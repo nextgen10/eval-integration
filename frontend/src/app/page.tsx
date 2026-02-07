@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Box,
   Container,
@@ -1036,8 +1037,15 @@ function MetricExplanationCard({ title, description, details, example, color, ic
   );
 }
 
-export default function EnterpriseDashboard() {
-  const [showLanding, setShowLanding] = useState(true);
+function EnterpriseDashboardContent() {
+  // Initialize showLanding from localStorage, default to true for first-time visitors
+  const [showLanding, setShowLanding] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const dismissed = localStorage.getItem('landingDismissed');
+      return dismissed !== 'true';
+    }
+    return true;
+  });
   const [config, setConfig] = useState({
     judgeModel: 'gpt-4o',
     alpha: 0.4,
@@ -1052,8 +1060,30 @@ export default function EnterpriseDashboard() {
     maxRows: 200
   });
   const [isExporting, setIsExporting] = useState(false);
-  const [activeView, setActiveView] = useState('insights');
+  const router = useRouter();
+  const [activeView, setActiveView] = useState(() => {
+    // Initialize from URL if available
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const viewFromUrl = params.get('view');
+      if (viewFromUrl && ['insights', 'drilldown', 'history', 'about', 'config'].includes(viewFromUrl)) {
+        return viewFromUrl;
+      }
+    }
+    return 'insights';
+  });
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('dark');
+
+  // Callback for SearchParamsHandler to update activeView
+  const handleViewChangeFromUrl = useCallback((view: string) => {
+    setActiveView(view);
+  }, []);
+
+  // Update URL when activeView changes
+  const handleViewChange = (view: string) => {
+    setActiveView(view);
+    router.push(`/?view=${view}`, { scroll: false });
+  };
 
   const theme = useMemo(() => getCustomTheme(themeMode), [themeMode]);
 
@@ -1151,7 +1181,7 @@ export default function EnterpriseDashboard() {
         const fullData = await res.json();
         setData(fullData);
         setDrilldownPage(1);
-        setActiveView('insights');
+        handleViewChange('insights');
       } else {
         setSnackbarMsg('Failed to load report details.');
         setSaveSuccess(true);
@@ -1445,7 +1475,10 @@ export default function EnterpriseDashboard() {
   if (!mounted) return null;
   if (showLanding) return (
     <ThemeProvider theme={theme}>
-      <LandingPage onEnter={() => setShowLanding(false)} />
+      <LandingPage onEnter={() => {
+        setShowLanding(false);
+        localStorage.setItem('landingDismissed', 'true');
+      }} />
     </ThemeProvider>
   );
 
@@ -1453,6 +1486,10 @@ export default function EnterpriseDashboard() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <>
+        {/* Search params handler wrapped in Suspense */}
+        <Suspense fallback={null}>
+          <SearchParamsHandler onViewChange={handleViewChangeFromUrl} />
+        </Suspense>
         <Box className="main-ui-container" sx={{ display: 'flex', height: '100vh', overflow: 'hidden', bgcolor: 'background.default', color: 'text.primary' }}>
 
           {/* Top Navigation Bar */}
@@ -1555,7 +1592,7 @@ export default function EnterpriseDashboard() {
               ].map((item) => (
                 <Button
                   key={item.id}
-                  onClick={() => setActiveView(item.id)}
+                  onClick={() => handleViewChange(item.id)}
                   startIcon={item.icon}
                   sx={{
                     px: { xs: 1, sm: 1.5, md: 2.2 },
@@ -2084,7 +2121,7 @@ export default function EnterpriseDashboard() {
                                 variant="contained"
                                 size="small"
                                 endIcon={<ChevronRight size={16} />}
-                                onClick={() => setActiveView('history')}
+                                onClick={() => handleViewChange('history')}
                                 sx={{
                                   height: 36,
                                   px: 2.5,
@@ -2164,7 +2201,7 @@ export default function EnterpriseDashboard() {
                                         <IconButton
                                           size="small"
                                           color="primary"
-                                          onClick={() => setActiveView('drilldown')}
+                                          onClick={() => handleViewChange('drilldown')}
                                         >
                                           <ArrowUpRight size={18} />
                                         </IconButton>
@@ -3276,6 +3313,39 @@ export default function EnterpriseDashboard() {
         `}</style>
       </>
     </ThemeProvider >
+  );
+}
+
+// Component to handle search params (wrapped in Suspense)
+function SearchParamsHandler({ onViewChange }: { onViewChange: (view: string) => void }) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const viewFromUrl = searchParams.get('view');
+    if (viewFromUrl && ['insights', 'drilldown', 'history', 'about', 'config'].includes(viewFromUrl)) {
+      onViewChange(viewFromUrl);
+    }
+  }, [searchParams, onViewChange]);
+
+  return null;
+}
+
+// Wrapper component with Suspense boundary
+export default function EnterpriseDashboard() {
+  return (
+    <Suspense fallback={
+      <Box sx={{
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: '#020617'
+      }}>
+        <CircularProgress size={60} sx={{ color: '#2563eb' }} />
+      </Box>
+    }>
+      <EnterpriseDashboardContent />
+    </Suspense>
   );
 }
 
