@@ -8,7 +8,7 @@ export default function SettingsPage() {
     const [botNames, setBotNames] = useState(['Bot_A', 'Bot_B', 'Bot_C', 'Bot_D']);
 
     const saveSettings = () => {
-        localStorage.setItem('nexus_bot_names', JSON.stringify(botNames));
+        localStorage.setItem('rag_bot_names', JSON.stringify(botNames));
         alert("Settings saved! Dashboard will update.");
     };
 

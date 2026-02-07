@@ -5,6 +5,10 @@
   --foreground: #e2e8f0;
 }
 
+html {
+  scrollbar-gutter: stable both-edges;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
@@ -16,6 +20,8 @@ body {
   color: var(--foreground);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
   overflow-x: hidden;
+  overflow-y: scroll;
+  /* Force scrollbar space to always be present */
   min-height: 100vh;
 }
 

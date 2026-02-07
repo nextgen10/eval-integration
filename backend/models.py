@@ -19,9 +19,10 @@ class RAGMetrics(BaseModel):
     # Ethics & Safety
     toxicity: float = 0.0
     
-    # Master Score
+    # Efficiency
     rqs: float = 0.0
     latency_ms: float = 0.0
+    total_tokens: int = 0
 
 class TestCase(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -43,9 +44,20 @@ class EvaluationResult(BaseModel):
     winner: Optional[str] = None
     config: Dict[str, Any] = {}
 
+class EvaluationSummary(BaseModel):
+    id: str
+    name: str
+    timestamp: datetime = Field(default_factory=datetime.now)
+    status: str = "completed"
+    summaries: Dict[str, Any] # High-level stats per bot
+    leaderboard: List[Dict[str, Any]] # Pre-calculated winner/ranks
+    winner: Optional[str] = None
+    total_test_cases: int = 0
+
 class EvaluationRequest(BaseModel):
     name: str
     dataset: List[TestCase]
     alpha: float = 0.4
     beta: float = 0.3
     gamma: float = 0.3
+    temperature: float = 0.0

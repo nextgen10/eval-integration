@@ -1,8 +1,8 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
-from models import EvaluationRequest, EvaluationResult, TestCase
-from evaluator import NexusEvaluator
+from models import EvaluationRequest, EvaluationResult, TestCase, EvaluationSummary
+from evaluator import RagEvaluator
 import uuid
 from datetime import datetime
 import pandas as pd
@@ -20,7 +20,7 @@ def sanitize_floats(obj):
         return [sanitize_floats(v) for v in obj]
     return obj
 
-app = FastAPI(title="NexusEval Backend")
+app = FastAPI(title="RagEval Backend")
 
 app.add_middleware(
     CORSMiddleware,
@@ -81,11 +81,23 @@ async def evaluate_excel(
     alpha: float = Form(0.4),
     beta: float = Form(0.3),
     gamma: float = Form(0.3),
-    model: str = Form("gpt-4o")
+    model: str = Form("gpt-4o"),
+    max_rows: int = Form(200),
+    temperature: float = Form(0.0),
+    background_tasks: BackgroundTasks = None
 ):
+    if background_tasks:
+        background_tasks.add_task(cleanup_cache)
     try:
         contents = await file.read()
         df = pd.read_excel(io.BytesIO(contents))
+
+        # --- Strict Validation ---
+        if df.empty:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty or contains no data.")
+            
+        if len(df) > max_rows:
+            raise HTTPException(status_code=400, detail=f"Dataset exceeds the safety limit of {max_rows} rows. Received: {len(df)} rows.")
         
         # Dynamically detect bots based on column prefixes
         bot_columns = [col for col in df.columns if col.startswith("Bot_")]
@@ -107,6 +119,9 @@ async def evaluate_excel(
         gt_col = find_col(["ground_truth", "reference", "target", "gt", "expected"])
         query_col = find_col(["query", "question", "input", "prompt"])
 
+        if not query_col:
+            raise HTTPException(status_code=400, detail="Critical Error: Missing required 'Query' column in dataset.")
+
         test_cases = []
         for _, row in df.iterrows():
             bot_responses = {}
@@ -114,15 +129,19 @@ async def evaluate_excel(
             
             for bot_col in bot_columns:
                 bot_id = bot_mapping[bot_col]
-                bot_responses[bot_id] = str(row.get(bot_col, ""))
+                resp_val = row.get(bot_col)
+                bot_responses[bot_id] = str(resp_val) if not pd.isna(resp_val) else ""
                 
-                # 1. Try specific context: Context_BotName
-                # 2. Try general context: Context
-                # 3. Fallback to empty list
-                context_col = bot_col.replace("Bot_", "Context_")
+                # Context detection: specific Context_BotName > BotName_Context > specific Context_A > general Context
+                # bot_col is like "Bot_A"
+                specific_ctx_1 = bot_col.replace("Bot_", "Context_")
+                specific_ctx_2 = bot_col.replace("Bot_", "") + "_Context"
+                
                 ctx_val = None
-                if context_col in df.columns:
-                    ctx_val = row.get(context_col)
+                if specific_ctx_1 in df.columns:
+                    ctx_val = row.get(specific_ctx_1)
+                elif specific_ctx_2 in df.columns:
+                    ctx_val = row.get(specific_ctx_2)
                 elif "Context" in df.columns:
                     ctx_val = row.get("Context")
                 elif "context" in df.columns:
@@ -134,14 +153,17 @@ async def evaluate_excel(
                 else:
                     bot_contexts[bot_id] = [str(ctx_val)]
             
+            query_val = row.get(query_col if query_col else "Query")
+            gt_val = row.get(gt_col if gt_col else "Ground_Truth")
+
             test_cases.append(TestCase(
-                query=str(row.get(query_col if query_col else "Query", "N/A")),
+                query=str(query_val) if not pd.isna(query_val) else "N/A",
                 bot_responses=bot_responses,
                 bot_contexts=bot_contexts,
-                ground_truth=str(row.get(gt_col if gt_col else "Ground_Truth", "")) if gt_col or "Ground_Truth" in df.columns else None
+                ground_truth=str(gt_val) if not pd.isna(gt_val) else None
             ))
 
-        evaluator = NexusEvaluator(alpha=alpha, beta=beta, gamma=gamma, model_name=model)
+        evaluator = RagEvaluator(alpha=alpha, beta=beta, gamma=gamma, model_name=model, temperature=temperature)
         print(f"DEBUG: Starting evaluation for {len(bot_columns)} models...")
         results = await evaluator.run_multi_bot_evaluation(test_cases)
         print("DEBUG: Evaluation successful!")
@@ -158,8 +180,12 @@ async def evaluate_excel(
             winner=results["winner"]
         )
         
-        save_to_db(result)
-        return result
+        # Sanitize for JSON compliance
+        sanitized_result_data = sanitize_floats(result.model_dump())
+        sanitized_result = EvaluationResult(**sanitized_result_data)
+        
+        save_to_db(sanitized_result)
+        return sanitized_result
 
     except Exception as e:
         import traceback
@@ -167,8 +193,15 @@ async def evaluate_excel(
         raise HTTPException(status_code=400, detail=f"Excel processing failed: {str(e)}")
 
 @app.post("/evaluate", response_model=EvaluationResult)
-async def run_evaluation(request: EvaluationRequest):
-    evaluator = NexusEvaluator(alpha=request.alpha, beta=request.beta, gamma=request.gamma)
+async def run_evaluation(request: EvaluationRequest, background_tasks: BackgroundTasks):
+    if background_tasks:
+        background_tasks.add_task(cleanup_cache)
+    evaluator = RagEvaluator(
+        alpha=request.alpha, 
+        beta=request.beta, 
+        gamma=request.gamma, 
+        temperature=request.temperature
+    )
     results = await evaluator.run_multi_bot_evaluation(request.dataset)
 
     eval_id = str(uuid.uuid4())
@@ -183,26 +216,44 @@ async def run_evaluation(request: EvaluationRequest):
         winner=results["winner"]
     )
     
-    save_to_db(result)
-    return result
+    # Sanitize for JSON compliance
+    sanitized_result_data = sanitize_floats(result.model_dump())
+    sanitized_result = EvaluationResult(**sanitized_result_data)
+    
+    save_to_db(sanitized_result)
+    return sanitized_result
 
-@app.get("/evaluations", response_model=List[EvaluationResult])
+@app.get("/evaluations", response_model=List[EvaluationSummary])
 async def get_all_evaluations():
     db = SessionLocal()
     try:
         records = db.query(EvaluationRecord).order_by(EvaluationRecord.timestamp.desc()).all()
         return [
-            EvaluationResult(
+            EvaluationSummary(
                 id=record.id,
                 name=record.name,
                 timestamp=record.timestamp,
-                test_cases=sanitize_floats(record.test_cases),
-                bot_metrics=sanitize_floats(record.bot_metrics),
+                status="completed",
                 summaries=sanitize_floats(record.summaries),
                 leaderboard=sanitize_floats(record.leaderboard),
-                winner=record.winner
+                winner=record.winner,
+                total_test_cases=len(record.test_cases) if record.test_cases else 0
             ) for record in records
         ]
+    finally:
+        db.close()
+
+@app.delete("/cache/cleanup")
+async def cleanup_cache():
+    """Removes triplets older than 30 days to maintain DB performance"""
+    db = SessionLocal()
+    from database import MetricCache
+    from datetime import timedelta
+    try:
+        limit = datetime.now() - timedelta(days=30)
+        deleted = db.query(MetricCache).filter(MetricCache.timestamp < limit).delete()
+        db.commit()
+        return {"status": "success", "deleted_records": deleted}
     finally:
         db.close()
 

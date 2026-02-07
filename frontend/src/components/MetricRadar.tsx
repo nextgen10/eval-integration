@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { useTheme } from '@mui/material/styles';
 import {
     Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer
 } from 'recharts';
@@ -13,6 +14,8 @@ interface Metrics {
 }
 
 export default function MetricRadar({ data, color }: { data: any, color: string }) {
+    const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
     const chartData = [
         { subject: 'Faithfulness', value: data.faithfulness * 100 },
         { subject: 'Relevancy', value: data.answer_relevancy * 100 },
@@ -24,8 +27,8 @@ export default function MetricRadar({ data, color }: { data: any, color: string 
         <div style={{ width: '100%', height: 250 }}>
             <ResponsiveContainer>
                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
-                    <PolarGrid stroke="#334155" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                    <PolarGrid stroke={isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'} />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: theme.palette.text.secondary, fontSize: 10, fontWeight: 700 }} />
                     <Radar
                         name="Metrics"
                         dataKey="value"

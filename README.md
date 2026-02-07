@@ -1,4 +1,4 @@
-# NexusEval: AI Chatbot Side-by-Side Analysis
+# RagEval: AI Chatbot Side-by-Side Analysis
 
 A premium evaluation observability platform for RAG-based chatbots. Designed to compare different versions of chatbots and periodically updated vector databases.
 
@@ -32,7 +32,7 @@ npm run dev
 Dashboard available at `http://localhost:3000`.
 
 ## 📊 Evaluation Approach
-NexusEval uses a weighted formula to calculate the **RQS**:
+RagEval uses a weighted formula to calculate the **RQS**:
 `RQS = α * Accuracy + β * ContextRecall + γ * ContextPrecision`
 
 Default Weights:

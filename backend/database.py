@@ -22,4 +22,11 @@ class EvaluationRecord(Base):
     leaderboard = Column(JSON)
     winner = Column(String)
 
+class MetricCache(Base):
+    __tablename__ = "metric_cache"
+    # hash of (query, response, contexts, ground_truth)
+    cache_key = Column(String, primary_key=True, index=True)
+    metrics = Column(JSON) # stored RAGMetrics data
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+
 Base.metadata.create_all(bind=engine)
