@@ -2500,6 +2500,59 @@ export default function EnterpriseDashboard() {
                               color="#ef4444"
                               icon={<AlertTriangle size={24} />}
                             />
+
+                            {/* --- Metric Dependency Matrix --- */}
+                            <Box sx={{ mt: 4, mb: 2 }}>
+                              <Typography variant="h6" sx={{ fontWeight: 800, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <Box sx={{ width: 8, height: 24, bgcolor: '#2563eb', borderRadius: 1 }} />
+                                Metric Architecture Matrix
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 600 }}>
+                                A technical breakdown of the signals required to compute each benchmark. Note that <span style={{ fontWeight: 800, color: '#2563eb' }}>Retrieved Context</span> is the most critical element for RAG-specific diagnostics.
+                              </Typography>
+
+                              <TableContainer component={Paper} sx={{
+                                borderRadius: 3,
+                                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.2)' : '#ffffff',
+                                border: (theme) => `1px solid ${theme.palette.divider}`,
+                                overflow: 'hidden'
+                              }}>
+                                <Table size="small">
+                                  <TableHead sx={{ bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : '#f8fafc' }}>
+                                    <TableRow>
+                                      <TableCell sx={{ fontWeight: 800, color: 'text.primary', py: 2 }}>METRIC</TableCell>
+                                      <TableCell align="center" sx={{ fontWeight: 800, color: 'text.primary' }}>QUESTION</TableCell>
+                                      <TableCell align="center" sx={{ fontWeight: 800, color: 'primary.main' }}>CONTEXT</TableCell>
+                                      <TableCell align="center" sx={{ fontWeight: 800, color: 'text.primary' }}>BOT ANSWER</TableCell>
+                                      <TableCell align="center" sx={{ fontWeight: 800, color: 'text.primary' }}>GROUND TRUTH</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {[
+                                      { name: 'Faithfulness', q: true, c: 'CRUCIAL', a: true, gt: false },
+                                      { name: 'Contextual Recall', q: true, c: 'CRUCIAL', a: false, gt: true },
+                                      { name: 'Contextual Precision', q: true, c: 'CRUCIAL', a: false, gt: true },
+                                      { name: 'Semantic Similarity', q: true, c: false, a: true, gt: true },
+                                    ].map((row) => (
+                                      <TableRow key={row.name} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                                        <TableCell component="th" scope="row" sx={{ fontWeight: 700, py: 2 }}>{row.name}</TableCell>
+                                        <TableCell align="center">{row.q ? <Box sx={{ color: '#10b981', display: 'flex', justifyContent: 'center' }}><CheckCircle2 size={18} /></Box> : '—'}</TableCell>
+                                        <TableCell align="center">
+                                          {row.c === 'CRUCIAL' ? (
+                                            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0.5 }}>
+                                              <CheckCircle2 size={18} color="#2563eb" />
+                                              <Typography sx={{ fontSize: '0.6rem', fontWeight: 900, color: 'primary.main', border: '1px solid', borderColor: 'primary.main', px: 0.5, borderRadius: 0.5 }}>REQUIRED</Typography>
+                                            </Box>
+                                          ) : (row.c ? <CheckCircle2 size={18} color="#10b981" /> : '—')}
+                                        </TableCell>
+                                        <TableCell align="center">{row.a ? <Box sx={{ color: '#10b981', display: 'flex', justifyContent: 'center' }}><CheckCircle2 size={18} /></Box> : '—'}</TableCell>
+                                        <TableCell align="center">{row.gt ? <Box sx={{ color: '#10b981', display: 'flex', justifyContent: 'center' }}><CheckCircle2 size={18} /></Box> : '—'}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
+                            </Box>
                           </Stack>
 
                         </Box>
