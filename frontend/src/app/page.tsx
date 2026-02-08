@@ -1474,7 +1474,7 @@ function EnterpriseDashboardContent() {
 
   if (!mounted) return null;
   if (showLanding) return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={getCustomTheme('dark')}>
       <LandingPage onEnter={() => {
         setShowLanding(false);
         localStorage.setItem('landingDismissed', 'true');
