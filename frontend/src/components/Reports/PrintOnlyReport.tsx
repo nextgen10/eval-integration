@@ -44,9 +44,18 @@ export const PrintOnlyReport: React.FC<PrintOnlyReportProps> = ({ data, leaderbo
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                         <Avatar
                             src={process.env.NEXT_PUBLIC_REPORT_AVATAR || undefined}
-                            sx={{ width: 64, height: 64, border: '3px solid #2563eb', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)', bgcolor: '#2563eb' }}
+                            sx={{
+                                width: 64,
+                                height: 64,
+                                border: '3px solid #2563eb',
+                                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
+                                bgcolor: '#2563eb !important', // Force background color
+                                color: '#ffffff !important', // Force icon color
+                                printColorAdjust: 'exact', // Force print background
+                                WebkitPrintColorAdjust: 'exact'
+                            }}
                         >
-                            <Scale size={32} />
+                            <Scale size={32} color="#ffffff" />
                         </Avatar>
                         <Box>
                             <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em', mb: 0.5 }}>
