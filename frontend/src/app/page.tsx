@@ -2870,8 +2870,8 @@ function EnterpriseDashboardContent() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>
                   <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                    animate={{ rotate: [0, 15, -15, 15, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                   >
                     <Scale size={40} color="#2563eb" />
                   </motion.div>
