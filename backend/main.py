@@ -1,8 +1,8 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
-from models import EvaluationRequest, EvaluationResult, TestCase, EvaluationSummary
-from evaluator import RagEvaluator
+from nexus_models import EvaluationRequest, EvaluationResult, TestCase, EvaluationSummary
+from nexus_evaluator import RagEvaluator
 import uuid
 from datetime import datetime
 import pandas as pd
@@ -30,7 +30,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from database import SessionLocal, EvaluationRecord
+from agent_router import router as agent_router
+app.include_router(agent_router)
+
+from nexus_database import SessionLocal, EvaluationRecord
 import json
 
 # DB Helper
@@ -247,7 +250,7 @@ async def get_all_evaluations():
 async def cleanup_cache():
     """Removes triplets older than 30 days to maintain DB performance"""
     db = SessionLocal()
-    from database import MetricCache
+    from nexus_database import MetricCache
     from datetime import timedelta
     try:
         limit = datetime.now() - timedelta(days=30)

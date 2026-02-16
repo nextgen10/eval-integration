@@ -6,7 +6,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import numpy as np
 import pandas as pd
 from typing import List, Dict, Any
-from models import RAGMetrics, TestCase
+from nexus_models import RAGMetrics, TestCase
 from datasets import Dataset
 from ragas import evaluate
 from ragas.metrics import faithfulness, answer_relevancy, context_precision, context_recall, answer_correctness
@@ -90,7 +90,7 @@ class RagEvaluator:
 
     async def _evaluate_bot(self, bid: str, dataset: List[TestCase]) -> Dict[str, RAGMetrics]:
         """Worker task for parallel evaluation with DB lookup"""
-        from database import SessionLocal, MetricCache
+        from nexus_database import SessionLocal, MetricCache
         
         db = SessionLocal()
         try:

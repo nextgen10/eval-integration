@@ -16,3 +16,8 @@ langchain-community
 datasets
 nest-asyncio
 langchain-huggingface
+chromadb
+rapidfuzz
+python-dateutil
+pytest
+pytest-asyncio

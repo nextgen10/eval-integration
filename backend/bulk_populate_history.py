@@ -1,5 +1,5 @@
-from database import SessionLocal, EvaluationRecord
-from models import TestCase
+from nexus_database import SessionLocal, EvaluationRecord
+from nexus_models import TestCase
 import uuid
 from datetime import datetime, timedelta
 import random

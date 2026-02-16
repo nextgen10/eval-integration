@@ -1,8 +1,8 @@
 import pandas as pd
 import asyncio
-from evaluator import RagEvaluator, RAGMetrics
-from models import TestCase
-from database import SessionLocal, MetricCache
+from nexus_evaluator import RagEvaluator
+from nexus_models import TestCase, RAGMetrics
+from nexus_database import SessionLocal, MetricCache
 import sys
 import random
 

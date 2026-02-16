@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 2, 6, 23;
+  --background-end-rgb: 2, 6, 23;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: transparent;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+
+
+/* Disable text selection globally on EVERYTHING */
+*,
+*::before,
+*::after {
+  -webkit-user-select: none !important;
+  /* Safari */
+  -ms-user-select: none !important;
+  /* IE 10 and IE 11 */
+  user-select: none !important;
+  /* Standard syntax */
+}
+
+/* Allow selection in inputs, textareas, and select boxes */
+input,
+textarea,
+select,
+[contenteditable="true"] {
+  -webkit-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+  cursor: text;
+  /* Ensure cursor signals typeability */
+}
+
+@keyframes sound {
+
+  0%,
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scaleY(0.7);
+    opacity: 0.8;
+  }
+
+  75% {
+    transform: scaleY(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes logo-pulse {
+
+  0%,
+  100% {
+    transform: scale(0.6);
+    /* Readable small size */
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1);
+    /* Full size */
+    opacity: 1;
+  }
+}
