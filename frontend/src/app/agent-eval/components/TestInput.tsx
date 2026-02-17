@@ -33,7 +33,7 @@ export function TestInput({ onRunTest, isLoading }: TestInputProps) {
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Expected JSON Keys (comma separated)</label>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Ground Truth JSON Keys (comma separated)</label>
                 <input
                     type="text"
                     value={expectedKeys}
@@ -44,7 +44,7 @@ export function TestInput({ onRunTest, isLoading }: TestInputProps) {
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Expected Output (Optional - for NLP Metrics)</label>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Ground Truth Output (Optional - for NLP Metrics)</label>
                 <textarea
                     value={expectedOutput}
                     onChange={(e) => setExpectedOutput(e.target.value)}

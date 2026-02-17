@@ -5,6 +5,17 @@ from nexus_models import EvaluationRequest, EvaluationResult, TestCase, Evaluati
 from nexus_evaluator import RagEvaluator
 import uuid
 from datetime import datetime
+from dotenv import load_dotenv
+import os
+
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+    print(f"DEBUG: Loaded .env from {env_path}")
+else:
+    load_dotenv() # Fallback
+    print(f"DEBUG: .env not found at {env_path}, using default load_dotenv()")
+
 import pandas as pd
 import io
 import math

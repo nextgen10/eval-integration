@@ -16,7 +16,10 @@ from dotenv import load_dotenv
 import nest_asyncio
 import asyncio
 
-load_dotenv()
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+load_dotenv(env_path)
+if not os.getenv("AZURE_OPENAI_API_KEY"):
+    load_dotenv() # Fallback
 
 class RagEvaluator:
     def __init__(self, alpha: float = 0.4, beta: float = 0.3, gamma: float = 0.3, model_name: str = "gpt-4o", temperature: float = 0.0):

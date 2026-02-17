@@ -99,11 +99,11 @@ function Row(props: { queryId: string; result: QueryResult }) {
                             <Table size="small" aria-label="details">
                                 <TableBody>
                                     <TableRow>
-                                        <TableCell component="th" scope="row" sx={{ fontWeight: 'bold', width: '150px' }}>Expected</TableCell>
+                                        <TableCell component="th" scope="row" sx={{ fontWeight: 'bold', width: '150px' }}>Ground Truth</TableCell>
                                         <TableCell sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>{output.expected}</TableCell>
                                     </TableRow>
                                     <TableRow>
-                                        <TableCell component="th" scope="row" sx={{ fontWeight: 'bold' }}>Actual Output</TableCell>
+                                        <TableCell component="th" scope="row" sx={{ fontWeight: 'bold' }}>AI Output</TableCell>
                                         <TableCell sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>{output.output}</TableCell>
                                     </TableRow>
                                     <TableRow>

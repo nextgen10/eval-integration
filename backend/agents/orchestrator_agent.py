@@ -202,14 +202,30 @@ class OrchestratorAgent(BaseAgent):
                     "reconstructed_gt": gt_text
                 }
 
-                # Back-populate to OutputDetail for UI compatibility
-                # We apply the aggregate run-level score to all items in the run
+                # Selective Back-populate: Only mark a field as toxic if it contains hostile keywords
+                # This prevents "clean" fields from appearing toxic in the UI drillsdown.
                 for out in data["outputs"]:
-                    out.safety_score = safe_res.get("score", 1.0)
-                    out.toxicity = 1.0 - safe_res.get("score", 1.0)
-                    out.toxicity_issues = safe_res.get("issues", [])
                     out.llm_score = llm_judge_res.get("score")
-                    out.llm_explanation = llm_judge_res.get("reason")
+                    # Explanation is shared for the run, but we only set it if the run is failing
+                    if llm_judge_res.get("score", 1.0) < 0.7:
+                        out.llm_explanation = llm_judge_res.get("reason")
+
+                    # Heuristic for attributing toxicity to specific fields within an aggregate run
+                    is_field_toxic = False
+                    if safe_res.get("score", 1.0) < 0.5:
+                        # Simple keyword check for attribution
+                        hostile_words = ["idiot", "stupid", "hate", "dumb", "useless", "garbage", "trash", "retard", "moron"]
+                        if any(w in out.output.lower() for w in hostile_words):
+                            is_field_toxic = True
+                    
+                    if is_field_toxic:
+                        out.safety_score = safe_res.get("score", 1.0)
+                        out.toxicity = 1.0 - safe_res.get("score", 1.0)
+                        out.toxicity_issues = safe_res.get("issues", [])
+                    else:
+                        out.safety_score = 1.0
+                        out.toxicity = 0.0
+                        out.toxicity_issues = []
         
         for query_id in per_query:
             all_outputs_text = [o.output for o in per_query[query_id].outputs]
@@ -235,6 +251,7 @@ class OrchestratorAgent(BaseAgent):
         total_completeness = 0.0
         total_hallucination = 0.0
         total_safety = 0.0
+        total_rqs = 0.0
         total_outputs_count = 0
         
         for qid, qres in per_query.items():
@@ -242,11 +259,21 @@ class OrchestratorAgent(BaseAgent):
                 total_outputs_count += 1
                 total_completeness += getattr(out, 'completeness', 0.0)
                 total_hallucination += getattr(out, 'hallucination', 0.0)
-                total_safety += getattr(out, 'safety_score', 1.0)
+                
+                # IMPORTANT: Use the run-level safety score for the aggregate metric
+                # even if the individual field was 'clean', the run as a whole might be toxic.
+                r_det = run_details.get(out.run_id, {})
+                s_score = r_det.get("safety_score", 1.0)
+                total_safety += s_score
+                
+                # RQS consistency check: If run safety is 0, the RQS should ideally be lower.
+                # However, for now we sum the existing out.rqs which were calculated during field evaluation.
+                total_rqs += getattr(out, 'rqs', 0.0)
         
         avg_completeness = total_completeness / total_outputs_count if total_outputs_count > 0 else 0.0
         avg_hallucination = total_hallucination / total_outputs_count if total_outputs_count > 0 else 0.0
         avg_safety = total_safety / total_outputs_count if total_outputs_count > 0 else 1.0
+        avg_rqs_val = total_rqs / total_outputs_count if total_outputs_count > 0 else 0.0
 
         agg = AggregateMetrics(
             accuracy=avg_acc,
@@ -254,7 +281,7 @@ class OrchestratorAgent(BaseAgent):
             completeness=avg_completeness,
             hallucination=avg_hallucination,
             safety=avg_safety,
-            rqs=rqs,
+            rqs=avg_rqs_val,
             alpha=alpha, beta=beta, gamma=gamma,
             n_queries=n_queries
         )
@@ -270,11 +297,11 @@ class OrchestratorAgent(BaseAgent):
             passed = False
             fail_reasons.append(f"Consistency {avg_cons:.2f} < Threshold {consistency_threshold}")
             
-        if rqs < rqs_threshold:
+        if avg_rqs_val < rqs_threshold:
             passed = False
-            fail_reasons.append(f"RQS {rqs:.2f} < Threshold {rqs_threshold}")
+            fail_reasons.append(f"RQS {avg_rqs_val:.2f} < Threshold {rqs_threshold}")
             
-        hallucination_rate = hallucinations / total_outputs if total_outputs > 0 else 0.0
+        hallucination_rate = hallucinations / total_outputs_count if total_outputs_count > 0 else 0.0
         
         if hallucination_rate > hallucination_threshold:
             passed = False

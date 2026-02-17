@@ -46,6 +46,7 @@ const Tooltip = MuiTooltip;
 
 const metricTooltips: { [key: string]: string } = {
     "Accuracy": "Measures correctness based on exact match or semantic similarity. (0-1)",
+    "Completeness": "Measures if all expected fields from the ground truth are present in the AI output.",
     "Consistency": "Measures similarity of outputs across multiple runs or internal coherence. (0-1)",
     "Hallucination": "Identifies if the output contains information not present in the reference or context. (0-1)",
     "Safety Score": "Unified score (0-1) representing both content safety (non-toxicity) and qualitative judge results. 1.0 is perfectly safe/accurate.",
@@ -255,7 +256,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                     <Tab
                                         icon={<CheckCircleIcon sx={{ fontSize: 18 }} />}
                                         iconPosition="start"
-                                        label="Correctness"
+                                        label="Completeness"
                                         sx={{ minHeight: 48, fontWeight: 'bold' }}
                                     />
                                     <Tab
@@ -292,13 +293,13 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                     <Grid container spacing={3}>
                                         <Grid size={{ xs: 12, md: 4 }}>
                                             <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha('#4caf50', 0.02) }}>
-                                                <Typography variant="caption" color="text.secondary" display="block">Total Expected Keys (GT)</Typography>
+                                                <Typography variant="caption" color="text.secondary" display="block">Total Ground Truth Keys</Typography>
                                                 <Typography variant="h4" fontWeight="bold">{run.outputs.reduce((a: number, b: any) => a + (b.gt_keys?.length || 0), 0)}</Typography>
                                             </Paper>
                                         </Grid>
                                         <Grid size={{ xs: 12, md: 4 }}>
                                             <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha('#2196f3', 0.02) }}>
-                                                <Typography variant="caption" color="text.secondary" display="block">Total Generated Keys (AIO)</Typography>
+                                                <Typography variant="caption" color="text.secondary" display="block">Total AI Output Keys</Typography>
                                                 <Typography variant="h4" fontWeight="bold">{run.outputs.reduce((a: number, b: any) => a + (b.aio_keys?.length || 0), 0)}</Typography>
                                             </Paper>
                                         </Grid>
@@ -348,8 +349,8 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                                             <TableRow>
                                                                 <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Field Name</TableCell>
                                                                 <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Query ID</TableCell>
-                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Expected</TableCell>
-                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Actual</TableCell>
+                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Ground Truth</TableCell>
+                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>AI Output</TableCell>
                                                                 <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Similarity</TableCell>
                                                                 <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Field Score</TableCell>
                                                             </TableRow>
@@ -812,7 +813,7 @@ function JsonDiffDialog({ open, onClose, initialRun, result, thresholds, allRuns
                     <Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             <CompareArrowsIcon color="primary" />
-                            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Actual JSON Diff</Typography>
+                            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>AI Output JSON Diff</Typography>
                             <Tabs
                                 value={viewMode}
                                 onChange={(_, v) => setViewMode(v)}
@@ -911,8 +912,8 @@ function JsonDiffDialog({ open, onClose, initialRun, result, thresholds, allRuns
                                 <TableHead>
                                     <TableRow>
                                         <TableCell sx={{ fontWeight: 'bold', width: '25%', bgcolor: alpha(theme.palette.background.paper, 1) }}>Field Path</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', width: '30%', bgcolor: alpha(theme.palette.background.paper, 1) }}>Expected Value</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', width: '30%', bgcolor: alpha(theme.palette.background.paper, 1) }}>Actual Output</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', width: '30%', bgcolor: alpha(theme.palette.background.paper, 1) }}>Ground Truth</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', width: '30%', bgcolor: alpha(theme.palette.background.paper, 1) }}>AI Output</TableCell>
                                         <TableCell align="center" sx={{ fontWeight: 'bold', width: '15%', bgcolor: alpha(theme.palette.background.paper, 1) }}>Analysis</TableCell>
                                     </TableRow>
                                 </TableHead>
@@ -1597,7 +1598,7 @@ function TestEvaluationsPage() {
                 data.outputs?.forEach((out: any, idx: number) => {
                     const row = {
                         'Query ID': qid,
-                        'Expected Output': out.expected || '-',
+                        'Ground Truth': out.expected || '-',
                         'AI Output': out.output || '-',
                         'Accuracy': formatMetric(out.accuracy),
                         'Query Accuracy': formatMetric(queryAccuracy),
@@ -1989,7 +1990,7 @@ function TestEvaluationsPage() {
                                                     <TextField label="Query ID Key" size="small" fullWidth value={gtQueryIdKey} onChange={(e) => setGtQueryIdKey(e.target.value)} />
                                                 </Grid>
                                                 <Grid size={{ xs: 4 }}>
-                                                    <TextField label="Expected Output Key" size="small" fullWidth value={gtExpectedKey} onChange={(e) => setGtExpectedKey(e.target.value)} />
+                                                    <TextField label="Ground Truth Key" size="small" fullWidth value={gtExpectedKey} onChange={(e) => setGtExpectedKey(e.target.value)} />
                                                 </Grid>
                                                 <Grid size={{ xs: 4 }}>
                                                     <TextField label="Match Type Key" size="small" fullWidth value={gtTypeKey} onChange={(e) => setGtTypeKey(e.target.value)} />
@@ -2002,7 +2003,7 @@ function TestEvaluationsPage() {
                                                     <TextField label="Query ID Key" size="small" fullWidth value={predQueryIdKey} onChange={(e) => setPredQueryIdKey(e.target.value)} />
                                                 </Grid>
                                                 <Grid size={{ xs: 4 }}>
-                                                    <TextField label="Output Key" size="small" fullWidth value={predOutputKey} onChange={(e) => setPredOutputKey(e.target.value)} />
+                                                    <TextField label="AI Output Key" size="small" fullWidth value={predOutputKey} onChange={(e) => setPredOutputKey(e.target.value)} />
                                                 </Grid>
                                                 <Grid size={{ xs: 4 }}>
                                                     <TextField label="Run ID Key" size="small" fullWidth value={predRunIdKey} onChange={(e) => setPredRunIdKey(e.target.value)} />
@@ -2155,7 +2156,7 @@ function TestEvaluationsPage() {
                                                     <TextField label="Query ID Key" size="small" fullWidth value={gtQueryIdKey} onChange={(e) => setGtQueryIdKey(e.target.value)} />
                                                 </Grid>
                                                 <Grid size={{ xs: 4 }}>
-                                                    <TextField label="Expected Output Key" size="small" fullWidth value={gtExpectedKey} onChange={(e) => setGtExpectedKey(e.target.value)} />
+                                                    <TextField label="Ground Truth Key" size="small" fullWidth value={gtExpectedKey} onChange={(e) => setGtExpectedKey(e.target.value)} />
                                                 </Grid>
                                                 <Grid size={{ xs: 4 }}>
                                                     <TextField label="Match Type Key" size="small" fullWidth value={gtTypeKey} onChange={(e) => setGtTypeKey(e.target.value)} />
@@ -2168,7 +2169,7 @@ function TestEvaluationsPage() {
                                                     <TextField label="Query ID Key" size="small" fullWidth value={predQueryIdKey} onChange={(e) => setPredQueryIdKey(e.target.value)} />
                                                 </Grid>
                                                 <Grid size={{ xs: 4 }}>
-                                                    <TextField label="Output Key" size="small" fullWidth value={predOutputKey} onChange={(e) => setPredOutputKey(e.target.value)} />
+                                                    <TextField label="AI Output Key" size="small" fullWidth value={predOutputKey} onChange={(e) => setPredOutputKey(e.target.value)} />
                                                 </Grid>
                                                 <Grid size={{ xs: 4 }}>
                                                     <TextField label="Run ID Key" size="small" fullWidth value={predRunIdKey} onChange={(e) => setPredRunIdKey(e.target.value)} />

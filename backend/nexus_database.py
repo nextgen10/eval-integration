@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import datetime
 import os
 
-DATABASE_URL = "sqlite:///./evaluations.db"
+DATABASE_URL = "sqlite:///./nexus_evaluations.db"
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
