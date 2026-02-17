@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Grid, Paper, Typography, Card, CardContent, useTheme, Icon, Tooltip as MuiTooltip, alpha, lighten } from '@mui/material';
-import ThemeToggle from './ThemeToggle';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -152,7 +151,6 @@ export default function Dashboard({ latestResult }: DashboardProps) {
                             </Typography>
                         </Paper>
                     )}
-                    <ThemeToggle />
                 </Box>
             </Box>
 
@@ -165,13 +163,8 @@ export default function Dashboard({ latestResult }: DashboardProps) {
                         mb: 2,
                         border: '1px solid',
                         borderColor: 'divider',
-                        background: (theme) => theme.palette.mode === 'dark'
-                            ? alpha(theme.palette.background.paper, 0.6)
-                            : alpha(theme.palette.background.paper, 0.8),
-                        backdropFilter: 'blur(10px)',
-                        boxShadow: (theme) => theme.palette.mode === 'dark'
-                            ? '0 4px 20px rgba(0,0,0,0.4)'
-                            : '0 4px 20px rgba(0,0,0,0.05)'
+                        borderRadius: 2,
+                        bgcolor: 'background.paper',
                     }}
                 >
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -365,99 +358,59 @@ export default function Dashboard({ latestResult }: DashboardProps) {
 }
 
 export function SummaryCard({ title, value, color, icon, subtitle }: { title: string, value: string | number, color: string, icon?: React.ReactNode, subtitle?: React.ReactNode }) {
+    const theme = useTheme();
     return (
         <Card
             sx={{
                 height: '100%',
-                background: (theme) => theme.palette.mode === 'dark'
-                    ? `linear-gradient(180deg, ${alpha(color, 0.12)} 0%, ${theme.palette.background.paper} 60%)`
-                    : `linear-gradient(180deg, ${alpha(color, 0.08)} 0%, #ffffff 60%)`,
-                border: '1.5px solid',
-                borderColor: (theme) => alpha(color, 0.25),
-                borderRadius: 2.5,
-                boxShadow: (theme) => `
-                    0 20px 50px -12px ${alpha(lighten(color, 0.35), 0.5)}, 
-                    0 6px 10px rgba(0,0,0,0.08),
-                    inset 0 1px 0 ${alpha('#ffffff', 0.5)},
-                    inset 0 -2px 4px ${alpha(color, 0.05)}
-                `,
-                transition: 'all 0.2s ease',
+                bgcolor: 'background.paper',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                transition: 'border-color 0.2s ease-in-out',
                 '&:hover': {
-                    transform: 'translateY(-8px) scale(1.15)',
-                    zIndex: 10,
-                    boxShadow: (theme) => `
-                        0 28px 70px -15px ${alpha(lighten(color, 0.35), 0.65)}, 
-                        0 8px 14px rgba(0,0,0,0.1),
-                        inset 0 1px 0 ${alpha('#ffffff', 0.6)},
-                        inset 0 -2px 6px ${alpha(color, 0.08)}
-                    `,
-                    borderColor: (theme) => alpha(color, 0.35),
+                    borderColor: 'primary.main',
                 }
             }}
         >
-            <CardContent sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                <Box sx={{ minWidth: 0, pl: 1 }}>
+            <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+                    <Box sx={{ color: color, display: 'flex' }}>
+                        {React.isValidElement(icon) && React.cloneElement(icon as React.ReactElement<any>, { size: 20 })}
+                    </Box>
                     <Typography
-                        color="textSecondary"
-                        variant="caption"
+                        variant="overline"
                         sx={{
-                            fontWeight: 600,
-                            textTransform: 'uppercase',
-                            letterSpacing: 0.5,
-                            fontSize: '0.65rem',
-                            display: 'block',
-                            mb: 0.3
+                            color: 'text.secondary',
+                            fontWeight: 700,
+                            letterSpacing: '0.05em',
+                            fontSize: '0.7rem'
                         }}
                     >
                         {title}
                     </Typography>
-                    <Typography
-                        variant="h5"
-                        component="div"
-                        sx={{
-                            fontWeight: 700,
-                            color: color,
-                            lineHeight: 1.2,
-                            fontSize: '1.1rem'
-                        }}
-                    >
-                        {value}
-                    </Typography>
-                    {subtitle && (
-                        <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{
-                                mt: 0.3,
-                                display: 'block',
-                                fontSize: '0.6rem',
-                                opacity: 0.8,
-                                whiteSpace: 'normal',
-                                lineHeight: 1.2
-                            }}
-                        >
-                            {subtitle}
-                        </Typography>
-                    )}
                 </Box>
-                {icon && (
-                    <Box
+                <Typography
+                    variant="h5"
+                    sx={{
+                        fontWeight: 700,
+                        color: 'text.primary',
+                        fontSize: '1.25rem',
+                        mb: 0.5
+                    }}
+                >
+                    {value}
+                </Typography>
+                {subtitle && (
+                    <Typography
+                        variant="caption"
                         sx={{
-                            color: color,
-                            opacity: 0.7,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 32,
-                            height: 32,
-                            flexShrink: 0,
-                            '& svg': {
-                                fontSize: '1.5rem'
-                            }
+                            color: 'text.secondary',
+                            fontSize: '0.75rem'
                         }}
                     >
-                        {icon}
-                    </Box>
+                        {subtitle}
+                    </Typography>
                 )}
             </CardContent>
         </Card>

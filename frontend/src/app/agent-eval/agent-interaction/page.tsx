@@ -4,12 +4,9 @@ import { Box, Typography, Paper, Grid, List, ListItem, ListItemText, Button, Chi
 import { ReactFlow, Node, Edge, Background, Controls, useNodesState, useEdgesState, MarkerType, ReactFlowProvider, useReactFlow, Handle, Position } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useAgentEvents } from '../hooks/useAgentEvents';
-import Sidebar from '../components/Sidebar';
-import ThemeToggle from '../components/ThemeToggle';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import DescriptionIcon from '@mui/icons-material/Description';
 import TerminalIcon from '@mui/icons-material/Terminal';
-import { useSidebar } from '../contexts/SidebarContext';
 
 // Agent Name to Node ID Mapping
 const agentNodeMap: Record<string, string> = {
@@ -183,7 +180,6 @@ const getInitialEdges = (theme: any): Edge[] => {
 // Inner component that uses ReactFlow hooks
 function FlowContent() {
     const theme = useTheme();
-    const { sidebarWidth } = useSidebar();
     const { events, isConnected, clearEvents } = useAgentEvents();
     const reactFlowInstance = useReactFlow();
 
@@ -275,142 +271,136 @@ function FlowContent() {
     }, [events]);
 
     return (
-        <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-            <Sidebar />
-            <Box component="main" sx={{ flexGrow: 1, ml: `${sidebarWidth}px`, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', transition: 'margin-left 0.3s ease-in-out' }}>
-
-                {/* Header */}
-                {/* Header */}
-                <Box sx={{ height: '70px', p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, background: (theme) => alpha(theme.palette.background.paper, 0.7), backdropFilter: 'blur(10px)', borderBottom: '1px solid', borderColor: 'divider' }}>
-                    <Box sx={{ pt: 1 }}>
-                        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                            Agent Interaction
-                        </Typography>
-                        <Typography variant="subtitle1" color="text.secondary">
-                            Live Agent Communication Flow
-                        </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                        <Button
-                            variant="outlined"
-                            startIcon={<AssessmentIcon />}
-                            href="/test-evaluations"
-                            sx={{
-                                fontWeight: 'bold',
-                            }}
-                        >
-                            View Results
-                        </Button>
-                        <Chip
-                            icon={<TerminalIcon />}
-                            label={isConnected ? "System Online" : "Disconnected"}
-                            color={isConnected ? "success" : "error"}
-                            variant="outlined"
-                        />
-                        <ThemeToggle />
-                    </Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            {/* Header */}
+            <Box sx={{ height: '70px', p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, background: (theme) => alpha(theme.palette.background.paper, 0.7), backdropFilter: 'blur(10px)', borderBottom: '1px solid', borderColor: 'divider' }}>
+                <Box sx={{ pt: 1 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                        Agent Interaction
+                    </Typography>
+                    <Typography variant="subtitle1" color="text.secondary">
+                        Live Agent Communication Flow
+                    </Typography>
                 </Box>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <Button
+                        variant="outlined"
+                        startIcon={<AssessmentIcon />}
+                        href="/agent-eval/test-evaluations"
+                        sx={{
+                            fontWeight: 'bold',
+                        }}
+                    >
+                        View Results
+                    </Button>
+                    <Chip
+                        icon={<TerminalIcon />}
+                        label={isConnected ? "System Online" : "Disconnected"}
+                        color={isConnected ? "success" : "error"}
+                        variant="outlined"
+                    />
+                </Box>
+            </Box>
 
-                <Box sx={{ flexGrow: 1, p: 2, overflow: 'hidden' }}>
-                    <Grid container spacing={2} sx={{ height: '100%' }}>
+            <Box sx={{ flexGrow: 1, p: 2, overflow: 'hidden' }}>
+                <Grid container spacing={2} sx={{ height: '100%' }}>
 
-                        {/* Center Panel: Flow Diagram */}
-                        <Grid size={{ xs: 12, md: 8 }} sx={{ height: '100%' }}>
-                            <Paper sx={{
-                                height: '100%',
-                                borderRadius: 2,
-                                overflow: 'hidden',
-                                bgcolor: flowBgColor,
-                                '& .react-flow__node': {
-                                    transition: 'all 0.3s ease',
-                                },
-                                '& .react-flow__node.active': {
-                                    animation: 'pulse 2s ease-in-out infinite',
+                    {/* Center Panel: Flow Diagram */}
+                    <Grid size={{ xs: 12, md: 8 }} sx={{ height: '100%' }}>
+                        <Paper sx={{
+                            height: '100%',
+                            borderRadius: 2,
+                            overflow: 'hidden',
+                            bgcolor: flowBgColor,
+                            '& .react-flow__node': {
+                                transition: 'all 0.3s ease',
+                            },
+                            '& .react-flow__node.active': {
+                                animation: 'pulse 2s ease-in-out infinite',
+                                boxShadow: '0 0 20px rgba(25, 118, 210, 0.6)',
+                            },
+                            '@keyframes pulse': {
+                                '0%, 100%': {
+                                    transform: 'scale(1)',
                                     boxShadow: '0 0 20px rgba(25, 118, 210, 0.6)',
                                 },
-                                '@keyframes pulse': {
-                                    '0%, 100%': {
-                                        transform: 'scale(1)',
-                                        boxShadow: '0 0 20px rgba(25, 118, 210, 0.6)',
-                                    },
-                                    '50%': {
-                                        transform: 'scale(1.05)',
-                                        boxShadow: '0 0 30px rgba(25, 118, 210, 0.8)',
+                                '50%': {
+                                    transform: 'scale(1.05)',
+                                    boxShadow: '0 0 30px rgba(25, 118, 210, 0.8)',
+                                },
+                            },
+                            // Theme-aware Controls styling
+                            '& .react-flow__controls': {
+                                button: {
+                                    backgroundColor: theme.palette.mode === 'dark' ? '#424242' : '#fff',
+                                    color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                                    borderColor: theme.palette.mode === 'dark' ? '#666' : '#ddd',
+                                    '&:hover': {
+                                        backgroundColor: theme.palette.mode === 'dark' ? '#616161' : '#f5f5f5',
                                     },
                                 },
-                                // Theme-aware Controls styling
-                                '& .react-flow__controls': {
-                                    button: {
-                                        backgroundColor: theme.palette.mode === 'dark' ? '#424242' : '#fff',
-                                        color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                                        borderColor: theme.palette.mode === 'dark' ? '#666' : '#ddd',
-                                        '&:hover': {
-                                            backgroundColor: theme.palette.mode === 'dark' ? '#616161' : '#f5f5f5',
-                                        },
-                                    },
-                                },
-                            }}>
-                                <ReactFlow
-                                    nodes={nodes}
-                                    edges={edges}
-                                    onNodesChange={onNodesChange}
-                                    onEdgesChange={onEdgesChange}
-                                    nodeTypes={nodeTypes}
-                                    fitViewOptions={{ padding: 0.2, minZoom: 0.5, maxZoom: 1.5 }}
-                                    attributionPosition="bottom-left"
-                                    minZoom={0.5}
-                                    maxZoom={1.5}
-                                    proOptions={{ hideAttribution: true }}
-                                >
-                                    <Background color={gridColor} gap={16} />
-                                    <Controls showInteractive={false} />
-                                </ReactFlow>
-                            </Paper>
-                        </Grid>
-
-                        {/* Right Panel: Event Log */}
-                        <Grid size={{ xs: 12, md: 4 }} sx={{ height: '100%' }}>
-                            <Paper sx={{ height: '100%', p: 2, borderRadius: 2, display: 'flex', flexDirection: 'column' }}>
-                                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, color: '#2196f3' }}>
-                                    <DescriptionIcon sx={{ color: '#2196f3' }} /> Event Log
-                                </Typography>
-                                <List sx={{ flexGrow: 1, overflow: 'auto', bgcolor: 'background.paper', borderRadius: 1 }}>
-                                    {events.map((event, index) => (
-                                        <ListItem key={index} divider alignItems="flex-start">
-                                            <ListItemText
-                                                primary={
-                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <Typography variant="subtitle2" sx={{ color: '#2196f3' }}>
-                                                            {event.agent_name}
-                                                        </Typography>
-                                                        <Typography variant="caption" color="text.secondary">
-                                                            {new Date(event.timestamp).toLocaleTimeString()}
-                                                        </Typography>
-                                                    </Box>
-                                                }
-                                                secondary={
-                                                    <Box component="div">
-                                                        <Typography variant="body2" component="div" sx={{ color: 'text.primary', mb: 0.5 }}>
-                                                            {event.message}
-                                                        </Typography>
-                                                        {event.details && (
-                                                            <Paper variant="outlined" sx={{ p: 1, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100', fontSize: '0.75rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
-                                                                {JSON.stringify(event.details, null, 2)}
-                                                            </Paper>
-                                                        )}
-                                                    </Box>
-                                                }
-                                                secondaryTypographyProps={{ component: 'div' }}
-                                            />
-                                        </ListItem>
-                                    ))}
-                                    <div ref={bottomRef} />
-                                </List>
-                            </Paper>
-                        </Grid>
-
+                            },
+                        }}>
+                            <ReactFlow
+                                nodes={nodes}
+                                edges={edges}
+                                onNodesChange={onNodesChange}
+                                onEdgesChange={onEdgesChange}
+                                nodeTypes={nodeTypes}
+                                fitViewOptions={{ padding: 0.2, minZoom: 0.5, maxZoom: 1.5 }}
+                                attributionPosition="bottom-left"
+                                minZoom={0.5}
+                                maxZoom={1.5}
+                                proOptions={{ hideAttribution: true }}
+                            >
+                                <Background color={gridColor} gap={16} />
+                                <Controls showInteractive={false} />
+                            </ReactFlow>
+                        </Paper>
                     </Grid>
-                </Box>
+
+                    {/* Right Panel: Event Log */}
+                    <Grid size={{ xs: 12, md: 4 }} sx={{ height: '100%' }}>
+                        <Paper sx={{ height: '100%', p: 2, borderRadius: 2, display: 'flex', flexDirection: 'column' }}>
+                            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, color: '#2196f3' }}>
+                                <DescriptionIcon sx={{ color: '#2196f3' }} /> Event Log
+                            </Typography>
+                            <List sx={{ flexGrow: 1, overflow: 'auto', bgcolor: 'background.paper', borderRadius: 1 }}>
+                                {events.map((event, index) => (
+                                    <ListItem key={index} divider alignItems="flex-start">
+                                        <ListItemText
+                                            primary={
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <Typography variant="subtitle2" sx={{ color: '#2196f3' }}>
+                                                        {event.agent_name}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {new Date(event.timestamp).toLocaleTimeString()}
+                                                    </Typography>
+                                                </Box>
+                                            }
+                                            secondary={
+                                                <Box component="div">
+                                                    <Typography variant="body2" component="div" sx={{ color: 'text.primary', mb: 0.5 }}>
+                                                        {event.message}
+                                                    </Typography>
+                                                    {event.details && (
+                                                        <Paper variant="outlined" sx={{ p: 1, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100', fontSize: '0.75rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+                                                            {JSON.stringify(event.details, null, 2)}
+                                                        </Paper>
+                                                    )}
+                                                </Box>
+                                            }
+                                            secondaryTypographyProps={{ component: 'div' }}
+                                        />
+                                    </ListItem>
+                                ))}
+                                <div ref={bottomRef} />
+                            </List>
+                        </Paper>
+                    </Grid>
+
+                </Grid>
             </Box>
         </Box>
     );

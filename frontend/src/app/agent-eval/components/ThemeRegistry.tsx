@@ -5,7 +5,7 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import GlobalStyles from '@mui/material/GlobalStyles';
-import getTheme from '../theme';
+import { getUnifiedTheme } from '../../../components/UnifiedTheme';
 import { ColorModeContext } from '../contexts/ColorModeContext';
 
 export default function ThemeRegistry({ children }: { children: React.ReactNode }) {
@@ -32,7 +32,7 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
         [mode],
     );
 
-    const theme = React.useMemo(() => getTheme(mode), [mode]);
+    const theme = React.useMemo(() => getUnifiedTheme(mode), [mode]);
 
     return (
         <AppRouterCacheProvider>

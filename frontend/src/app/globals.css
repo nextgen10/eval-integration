@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  --background: #050c14;
-  --foreground: #e2e8f0;
+  --background: #000000;
+  --foreground: #EDEDED;
 }
 
 html {
@@ -31,15 +31,17 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #050c14;
+  background: #000000;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #0d1926;
+  background: #27272a;
+  /* Zinc 800 */
   border-radius: 10px;
-  border: 2px solid #050c14;
+  border: 2px solid #000000;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #1a2a3a;
+  background: #3f3f46;
+  /* Zinc 700 */
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, Typography, Avatar, alpha } from '@mui/material';
+import { Box, Paper, Typography, Avatar, alpha, useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
 
 const MotionPaper = motion(Paper);
@@ -14,6 +14,7 @@ interface GlassCardProps {
 }
 
 export const GlassCard: React.FC<GlassCardProps> = ({ title, value, color: initialColor, icon, subtitle, trend }) => {
+    const theme = useTheme();
     const color = (initialColor === '#ffffff' || initialColor === '#fff')
         ? (initialColor === '#ffffff' ? (initialColor === '#ffffff' ? '#ffffff' : '#ffffff') : '#ffffff')
         : initialColor;
@@ -21,132 +22,83 @@ export const GlassCard: React.FC<GlassCardProps> = ({ title, value, color: initi
     // Actually, let's just use the current theme context to decide
     return (
         <MotionPaper
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            whileHover={{ y: -5 }}
+            whileHover={{ borderColor: theme.palette.primary.main }}
             sx={{
-                pl: 3,
-                pr: 2,
-                py: 2,
+                p: 3,
                 height: '100%',
-                background: (theme) => {
-                    const displayColor = (initialColor === '#ffffff' || initialColor === '#fff')
-                        ? (theme.palette.mode === 'dark' ? '#ffffff' : '#2563eb')
-                        : initialColor;
-                    return theme.palette.mode === 'dark'
-                        ? `linear-gradient(135deg, ${alpha(displayColor, 0.05)} 0%, ${alpha('#0f172a', 0.4)} 100%)`
-                        : `linear-gradient(135deg, ${alpha(displayColor, 0.05)} 0%, ${alpha('#ffffff', 0.95)} 100%)`;
-                },
-                backdropFilter: 'blur(30px)',
-                position: 'relative',
-                overflow: 'hidden',
-                border: (theme) => `1px solid ${theme.palette.divider}`,
+                backgroundColor: 'background.paper',
+                border: '1px solid',
+                borderColor: 'divider',
                 borderRadius: 2,
-                boxShadow: (theme) => {
-                    const displayColor = (initialColor === '#ffffff' || initialColor === '#fff')
-                        ? (theme.palette.mode === 'dark' ? '#ffffff' : '#2563eb')
-                        : initialColor;
-                    return `0 10px 30px ${theme.palette.mode === 'dark' ? alpha(displayColor, 0.35) : alpha(displayColor, 0.1)}`;
-                },
+                transition: 'border-color 0.2s ease-in-out',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
             }}
         >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
-                <Box sx={{ minWidth: 0, ml: 0.5 }}>
+            <Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                    <Box sx={{ color: 'primary.main', display: 'flex' }}>
+                        {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 20 }) : icon}
+                    </Box>
                     <Typography
                         variant="overline"
                         sx={{
                             color: 'text.secondary',
-                            fontWeight: 800,
-                            fontSize: '0.65rem',
-                            lineHeight: 1.2,
-                            mb: 0.5,
-                            display: 'block'
+                            fontWeight: 700,
+                            letterSpacing: '0.05em',
+                            fontSize: '0.7rem',
+                            lineHeight: 1
                         }}
                     >
                         {title}
                     </Typography>
-                    <Typography
-                        sx={{
-                            fontWeight: 900,
-                            color: 'text.primary',
-                            letterSpacing: '-0.02em',
-                            fontSize: '1.25rem',
-                            lineHeight: 1.2,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                        }}
-                        title={typeof value === 'string' ? value : ''}
-                    >
-                        {value}
-                    </Typography>
                 </Box>
-                <Avatar sx={{
-                    bgcolor: (theme) => {
-                        const displayColor = (initialColor === '#ffffff' || initialColor === '#fff')
-                            ? (theme.palette.mode === 'dark' ? '#ffffff' : '#2563eb')
-                            : initialColor;
-                        return alpha(displayColor, 0.1);
-                    },
-                    color: (theme) => (initialColor === '#ffffff' || initialColor === '#fff')
-                        ? (theme.palette.mode === 'dark' ? '#ffffff' : '#2563eb')
-                        : initialColor,
-                    width: 36,
-                    height: 36,
-                    border: (theme) => {
-                        const displayColor = (initialColor === '#ffffff' || initialColor === '#fff')
-                            ? (theme.palette.mode === 'dark' ? '#ffffff' : '#2563eb')
-                            : initialColor;
-                        return `1px solid ${alpha(displayColor, 0.2)}`;
-                    },
-                    boxShadow: (theme) => {
-                        const displayColor = (initialColor === '#ffffff' || initialColor === '#fff')
-                            ? (theme.palette.mode === 'dark' ? '#ffffff' : '#2563eb')
-                            : initialColor;
-                        return `0 0 10px ${alpha(displayColor, 0.2)}`;
-                    },
-                    ml: 1
-                }}>
-                    {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 18 }) : icon}
-                </Avatar>
+                <Typography
+                    variant="h4"
+                    sx={{
+                        fontWeight: 700,
+                        color: 'text.primary',
+                        fontSize: '1.75rem',
+                        mb: 1
+                    }}
+                >
+                    {value}
+                </Typography>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 0.5 }}>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 'auto' }}>
                 {trend && (
                     <Typography
                         variant="caption"
                         sx={{
-                            color: (theme) => (initialColor === '#ffffff' || initialColor === '#fff')
-                                ? (theme.palette.mode === 'dark' ? '#ffffff' : '#2563eb')
-                                : initialColor,
-                            fontWeight: 900,
-                            fontSize: '0.7rem',
-                            bgcolor: (theme) => {
-                                const displayColor = (initialColor === '#ffffff' || initialColor === '#fff')
-                                    ? (theme.palette.mode === 'dark' ? '#ffffff' : '#2563eb')
-                                    : initialColor;
-                                return alpha(displayColor, 0.1);
-                            },
+                            color: trend.startsWith('+') ? 'success.main' : trend.startsWith('-') ? 'error.main' : 'text.secondary',
+                            fontWeight: 700,
+                            bgcolor: (theme) => alpha(trend.startsWith('+') ? theme.palette.success.main : trend.startsWith('-') ? theme.palette.error.main : theme.palette.text.secondary, 0.1),
                             px: 1,
-                            py: 0.2,
-                            borderRadius: 1
+                            py: 0.5,
+                            borderRadius: 1,
+                            fontSize: '0.75rem'
                         }}
                     >
                         {trend}
                     </Typography>
                 )}
-                <Typography
-                    variant="caption"
-                    sx={{
-                        color: 'text.secondary',
-                        fontSize: '0.65rem',
-                        fontWeight: 600,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                    }}
-                >
-                    {subtitle}
-                </Typography>
+                {subtitle && (
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            color: 'text.secondary',
+                            fontSize: '0.75rem',
+                            fontWeight: 500
+                        }}
+                    >
+                        {subtitle}
+                    </Typography>
+                )}
             </Box>
         </MotionPaper>
     );

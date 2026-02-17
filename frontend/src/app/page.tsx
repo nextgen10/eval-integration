@@ -6,14 +6,12 @@ import {
   Container,
   Typography,
   Paper,
-  ThemeProvider,
-  createTheme,
-  CssBaseline,
   Grid,
-  Button
+  Button,
+  alpha,
+  Stack
 } from '@mui/material';
 import {
-  Scale,
   Rocket,
   Activity,
   ChevronRight,
@@ -21,49 +19,17 @@ import {
   Zap,
   BarChart3,
   Terminal,
-  ArrowRight
+  ArrowRight,
+  Brain
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
 // --- Theme Definition ---
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#fff',
-    },
-    background: {
-      default: '#000',
-      paper: '#0A0A0A',
-    },
-    text: {
-      primary: '#EDEDED',
-      secondary: '#A1A1AA',
-    }
-  },
-  typography: {
-    fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    h1: { fontSize: '4rem', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.1 },
-    h2: { fontSize: '2.5rem', fontWeight: 600, letterSpacing: '-0.02em' },
-    h3: { fontSize: '1.5rem', fontWeight: 600, letterSpacing: '-0.01em' },
-    body1: { fontSize: '1.05rem', lineHeight: 1.6, color: '#A1A1AA' },
-    button: { textTransform: 'none', fontWeight: 600 },
-  },
-  shape: {
-    borderRadius: 8,
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          borderRadius: '8px',
-          padding: '10px 20px',
-        }
-      }
-    }
-  }
-});
+import ThemeRegistry from '../components/ThemeRegistry';
+import ThemeToggle from './agent-eval/components/ThemeToggle';
+
+import { UbsLogo } from '../components/UbsLogo';
 
 const MotionPaper = motion(Paper);
 const MotionBox = motion(Box);
@@ -77,15 +43,13 @@ export default function NexusEvalLanding() {
   }, []);
 
   if (!mounted) return null;
-
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <ThemeRegistry>
       <Box sx={{
         minHeight: '100vh',
         width: '100vw',
-        bgcolor: '#000',
-        color: '#fff',
+        bgcolor: 'background.default',
+        color: 'text.primary',
         overflowX: 'hidden',
         position: 'relative'
       }}>
@@ -97,31 +61,33 @@ export default function NexusEvalLanding() {
           left: 0,
           right: 0,
           zIndex: 100,
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          bgcolor: 'rgba(0,0,0,0.6)',
+          bgcolor: 'background.default',
+          background: (theme) => alpha(theme.palette.background.default, 0.7),
           backdropFilter: 'blur(12px)'
         }}>
           <Container maxWidth="xl" sx={{ height: 72, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <motion.div
-                animate={{ rotate: [0, 15, -15, 15, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <Scale size={20} color="#fff" />
-              </motion.div>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>NEXUS EVAL</Typography>
+              <UbsLogo size={32} color="#E60000" />
+              <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.02em', color: 'text.primary', whiteSpace: 'nowrap' }}>
+                NEXUS <Box component="span" sx={{ color: 'primary.main' }}>EVAL</Box>
+              </Typography>
             </Box>
             <Box sx={{ display: 'flex', gap: 4 }}>
               <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { color: '#fff' }, transition: 'color 0.2s' }}>Platform</Typography>
               <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { color: '#fff' }, transition: 'color 0.2s' }}>Solutions</Typography>
               <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { color: '#fff' }, transition: 'color 0.2s' }}>Enterprise</Typography>
             </Box>
-            <Box>
-              <Button variant="outlined" sx={{
-                borderColor: 'rgba(255,255,255,0.2)',
-                color: '#fff',
-                '&:hover': { borderColor: '#fff', bgcolor: 'rgba(255,255,255,0.05)' }
-              }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <ThemeToggle />
+              <Button
+                variant="outlined"
+                onClick={() => router.push('/docs')}
+                sx={{
+                  borderColor: 'divider',
+                  color: 'text.primary',
+                  '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(239,68,68,0.05)' }
+                }}
+              >
                 Documentation
               </Button>
             </Box>
@@ -133,13 +99,9 @@ export default function NexusEvalLanding() {
           pt: 18,
           pb: { xs: 12, md: 32 },
           position: 'relative',
-          // borderBottom: '1px solid rgba(255,255,255,0.08)',
-          background: `
-            linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.8) 100%),
-            url('/images/enterprise-bg.png')
-          `,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          background: (theme) => theme.palette.mode === 'dark'
+            ? 'radial-gradient(circle at 100% 100%, rgba(239, 68, 68, 0.05) 0%, transparent 50%), radial-gradient(circle at 0% 0%, rgba(239, 68, 68, 0.05) 0%, transparent 50%)'
+            : 'radial-gradient(circle at 100% 100%, rgba(239, 68, 68, 0.03) 0%, transparent 50%), radial-gradient(circle at 0% 0%, rgba(239, 68, 68, 0.03) 0%, transparent 50%)',
         }}>
           <Container maxWidth="lg">
             <Grid container spacing={8} alignItems="center">
@@ -150,31 +112,27 @@ export default function NexusEvalLanding() {
                   transition={{ duration: 0.8 }}
                 >
 
-                  <Typography variant="h1" sx={{ mb: 3 }}>
-                    The Enterprise Standard for <br />
-                    <span style={{
-                      background: 'linear-gradient(to right, #fff, #94a3b8)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent'
-                    }}>AI Evaluation</span>.
+                  <Typography variant="h1" sx={{ mb: 3, fontWeight: 800, letterSpacing: '-0.04em', color: 'text.primary' }}>
+                    The Enterprise Standard <br />
+                    <Box component="span" sx={{ color: 'primary.main' }}>AI for AI Assurance</Box>.
                   </Typography>
-                  <Typography variant="body1" sx={{ fontSize: '1.25rem', maxWidth: 600, mb: 5 }}>
-                    Nexus Eval provides the rigorous testing infrastructure required to deploy Large Language Models and Autonomous Agents with confidence.
+                  <Typography variant="body1" sx={{ fontSize: '1.25rem', maxWidth: 600, mb: 5, color: 'text.secondary' }}>
+                    The Enterprise Standard for rigorous testing infrastructure. Deploy Large Language Models and Autonomous Agents with confidence.
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 2 }}>
                     <Button variant="contained" size="large" sx={{
-                      bgcolor: '#fff',
-                      color: '#000',
                       height: 52,
-                      '&:hover': { bgcolor: '#e2e2e2' }
+                      px: 4
+                    }} onClick={() => {
+                      document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
                     }}>
                       Start Evaluating
                     </Button>
                     <Button variant="outlined" size="large" endIcon={<ChevronRight />} sx={{
-                      borderColor: 'rgba(255,255,255,0.2)',
-                      color: '#fff',
+                      borderColor: 'divider',
+                      color: 'text.primary',
                       height: 52,
-                      '&:hover': { borderColor: '#fff', bgcolor: 'rgba(255,255,255,0.05)' }
+                      '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(239,68,68,0.05)' }
                     }}>
                       View Demo
                     </Button>
@@ -186,7 +144,13 @@ export default function NexusEvalLanding() {
         </Box>
 
         {/* Products Section */}
-        <Container maxWidth="xl" sx={{ py: 4, mt: { xs: 0, md: -20 }, position: 'relative', zIndex: 10 }}>
+        <Container id="products-section" maxWidth="xl" sx={{
+          py: 4,
+          mt: { xs: 0, md: -20 },
+          position: 'relative',
+          zIndex: 10,
+          scrollMarginTop: '100px'
+        }}>
           <Typography variant="overline" sx={{ display: 'block', mb: 4, letterSpacing: '0.1em', color: '#A1A1AA', fontWeight: 700, textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
             CORE PLATFORM
           </Typography>
@@ -200,15 +164,18 @@ export default function NexusEvalLanding() {
                 sx={{
                   p: 6,
                   height: '100%',
-                  bgcolor: '#0a0a0a',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  bgcolor: 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'divider',
                   borderRadius: 4,
                   cursor: 'pointer',
                   position: 'relative',
                   overflow: 'hidden',
-                  transition: 'border-color 0.2s',
+                  transition: 'all 0.3s ease',
                   '&:hover': {
-                    borderColor: 'rgba(255,255,255,0.2)'
+                    borderColor: 'primary.main',
+                    transform: 'translateY(-8px)',
+                    boxShadow: (theme) => `0 20px 40px ${alpha(theme.palette.primary.main, 0.1)}`
                   }
                 }}
               >
@@ -226,7 +193,7 @@ export default function NexusEvalLanding() {
                   }}>
                     <Activity size={24} color="#fff" />
                   </Box>
-                  <Typography variant="h3" sx={{ mb: 1 }}>RAG EVAL</Typography>
+                  <Typography variant="h3" sx={{ mb: 1, whiteSpace: 'nowrap' }}>RAG <Box component="span" sx={{ color: 'primary.main' }}>EVAL</Box></Typography>
                   <Typography variant="body1">
                     Advanced observability for Retrieval-Augmented Generation. Measure drift, hallucination rates, and retrieval precision in real-time.
                   </Typography>
@@ -261,15 +228,18 @@ export default function NexusEvalLanding() {
                 sx={{
                   p: 6,
                   height: '100%',
-                  bgcolor: '#0a0a0a',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  bgcolor: 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'divider',
                   borderRadius: 4,
                   cursor: 'pointer',
                   position: 'relative',
                   overflow: 'hidden',
-                  transition: 'border-color 0.2s',
+                  transition: 'all 0.3s ease',
                   '&:hover': {
-                    borderColor: 'rgba(255,255,255,0.2)'
+                    borderColor: 'primary.main',
+                    transform: 'translateY(-8px)',
+                    boxShadow: (theme) => `0 20px 40px ${alpha(theme.palette.primary.main, 0.1)}`
                   }
                 }}
               >
@@ -299,7 +269,7 @@ export default function NexusEvalLanding() {
                   }}>
                     <Rocket size={24} color="#fff" />
                   </Box>
-                  <Typography variant="h3" sx={{ mb: 1 }}>AGENT EVAL</Typography>
+                  <Typography variant="h3" sx={{ mb: 1, whiteSpace: 'nowrap' }}>AGENT <Box component="span" sx={{ color: 'primary.main' }}>EVAL</Box></Typography>
                   <Typography variant="body1">
                     Evaluation framework for multi-step autonomous agents. Analyze tool usage, planning logic, and state management consistency.
                   </Typography>
@@ -329,6 +299,94 @@ export default function NexusEvalLanding() {
           </Grid>
         </Container>
 
+        {/* Documentation Section */}
+        <Container id="documentation-section" maxWidth="xl" sx={{ py: 12, scrollMarginTop: '100px' }}>
+          <Stack spacing={8}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 800, letterSpacing: '0.1em' }}>
+                METHODOLOGY
+              </Typography>
+              <Typography variant="h2" sx={{ fontWeight: 900, mt: 2, mb: 3 }}>
+                How We <Box component="span" sx={{ color: 'primary.main' }}>Evaluate</Box>
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 800, mx: 'auto' }}>
+                Nexus Eval uses a proprietary blend of semantic similarity, named entity verification,
+                and LLM-based reasoning to provide high-fidelity accuracy scores.
+              </Typography>
+            </Box>
+
+            <Grid container spacing={4}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Paper sx={{ p: 4, borderRadius: 4, bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', height: '100%' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+                    <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(230,0,0,0.1)', color: 'primary.main' }}>
+                      <Activity size={24} />
+                    </Box>
+                    <Typography variant="h5" fontWeight={800}>RAG Benchmarks</Typography>
+                  </Box>
+                  <Stack spacing={4}>
+                    <MetricItem
+                      title="RQS (Retrieval Quality Score)"
+                      desc="A composite index measuring the end-to-end health of RAG systems."
+                    />
+                    <MetricItem
+                      title="Faithfulness"
+                      desc="Ensures the model output is grounded in retrieved context to prevent hallucination."
+                    />
+                    <MetricItem
+                      title="Answer Relevancy"
+                      desc="Measures how well the answer addresses the user's original intent."
+                    />
+                  </Stack>
+                </Paper>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Paper sx={{ p: 4, borderRadius: 4, bgcolor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', height: '100%' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+                    <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(230,0,0,0.1)', color: 'primary.main' }}>
+                      <Brain size={24} />
+                    </Box>
+                    <Typography variant="h5" fontWeight={800}>Agent Performance</Typography>
+                  </Box>
+                  <Stack spacing={4}>
+                    <MetricItem
+                      title="Decision Consistency"
+                      desc="Evaluates if an agent performs the same reasoning steps for identical tasks."
+                    />
+                    <MetricItem
+                      title="Tool Usage Accuracy"
+                      desc="Measures the precision of function calls and external data retrieval."
+                    />
+                    <MetricItem
+                      title="Toxicity & Safety"
+                      desc="BERT-based safety classifiers detect harmful or biased generated content."
+                    />
+                  </Stack>
+                </Paper>
+              </Grid>
+            </Grid>
+
+            <Box sx={{ textAlign: 'center' }}>
+              <Button
+                variant="outlined"
+                size="large"
+                onClick={() => router.push('/docs')}
+                sx={{
+                  borderRadius: 3,
+                  px: 4,
+                  py: 1.5,
+                  borderColor: 'divider',
+                  color: 'text.primary',
+                  '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(230,0,0,0.05)' }
+                }}
+              >
+                View Full Documentation & Formulas
+              </Button>
+            </Box>
+          </Stack>
+        </Container>
+
         {/* Feature Strip */}
         <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.08)', py: 8, bgcolor: '#050505' }}>
           <Container maxWidth="xl">
@@ -351,14 +409,9 @@ export default function NexusEvalLanding() {
           <Container maxWidth="xl">
             <Grid container spacing={4}>
               <Grid size={{ xs: 12, md: 4 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                  <motion.div
-                    animate={{ rotate: [0, 15, -15, 15, 0] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <Scale size={20} color="#fff" />
-                  </motion.div>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>NEXUS EVAL</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+                  <UbsLogo size={32} color="#E60000" />
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', whiteSpace: 'nowrap' }}>NEXUS <Box component="span" sx={{ color: 'primary.main' }}>EVAL</Box></Typography>
                 </Box>
                 <Typography variant="body2" color="text.secondary">
                   The future of reliable AI infrastructure. Built for scale.
@@ -398,6 +451,15 @@ export default function NexusEvalLanding() {
         </Box>
 
       </Box>
-    </ThemeProvider>
+    </ThemeRegistry>
+  );
+}
+
+function MetricItem({ title, desc }: { title: string; desc: string }) {
+  return (
+    <Box>
+      <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 0.5 }}>{title}</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>{desc}</Typography>
+    </Box>
   );
 }

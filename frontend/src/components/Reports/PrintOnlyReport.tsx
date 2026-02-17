@@ -13,7 +13,7 @@ import {
     Paper
 } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import { Scale } from 'lucide-react';
+import { UbsLogo } from '../UbsLogo';
 
 // Helper functions locally scoped to avoid dependency on main file
 const safeVal = (val: any) => {
@@ -55,11 +55,11 @@ export const PrintOnlyReport: React.FC<PrintOnlyReportProps> = ({ data, leaderbo
                                 WebkitPrintColorAdjust: 'exact'
                             }}
                         >
-                            <Scale size={32} color="#ffffff" />
+                            <UbsLogo size={32} color="#ffffff" />
                         </Avatar>
                         <Box>
                             <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em', mb: 0.5 }}>
-                                RAG EVALUATION <span style={{ color: '#2563eb' }}>REPORT</span>
+                                RAG <span style={{ color: '#E60000' }}>EVAL</span> REPORT
                             </Typography>
                             <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                                 Automated Benchmark System | Designed by <span style={{ color: '#0f172a' }}>Aniket Marwadi</span>

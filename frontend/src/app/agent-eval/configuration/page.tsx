@@ -4,14 +4,10 @@ import {
     Box, Typography, Paper, TextField, Button, Grid,
     Snackbar, Tooltip, InputAdornment
 } from '@mui/material';
-import Sidebar from '../components/Sidebar';
-import ThemeToggle from '../components/ThemeToggle';
 import SaveIcon from '@mui/icons-material/Save';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import { useSidebar } from '../contexts/SidebarContext';
 
 export default function ConfigurationPage() {
-    const { sidebarWidth } = useSidebar();
     const [openSnackbar, setOpenSnackbar] = useState(false);
 
     // Standard Metrics State (existing configuration)
@@ -97,443 +93,439 @@ export default function ConfigurationPage() {
     );
 
     return (
-        <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-            <Sidebar />
-            <Box component="main" sx={{ flexGrow: 1, ml: `${sidebarWidth}px`, height: '100vh', display: 'flex', flexDirection: 'column', transition: 'margin-left 0.3s ease-in-out' }}>
-                {/* Header */}
-                <Box sx={{ p: 2, height: '70px', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'background.paper' }}>
-                    <Box sx={{ pt: 1 }}>
-                        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                            Configuration
-                        </Typography>
-                        <Typography variant="subtitle1" color="text.secondary">
-                            System Settings & Parameters
-                        </Typography>
-                    </Box>
-                    <ThemeToggle />
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            {/* Header */}
+            <Box sx={{ p: 2, height: '70px', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'background.paper' }}>
+                <Box sx={{ pt: 1 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                        Configuration
+                    </Typography>
+                    <Typography variant="subtitle1" color="text.secondary">
+                        System Settings & Parameters
+                    </Typography>
                 </Box>
-
-                {/* Content */}
-                <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2, pb: 5 }}>
-                    <Grid container spacing={2}>
-                        {/* Left Column - Thresholds */}
-                        <Grid size={{ xs: 12, lg: 6 }}>
-                            <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
-                                <Typography variant="h6" gutterBottom sx={{ fontSize: '0.9rem', mb: 1.5 }}>
-                                    Evaluation Thresholds
-                                </Typography>
-                                <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
-                                    Basic Thresholds
-                                </Typography>
-
-                                <Grid container spacing={2.5}>
-                                    <Grid size={{ xs: 12 }}>
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            label="Semantic Threshold"
-                                            type="number"
-                                            value={semanticThreshold}
-                                            onChange={(e) => setSemanticThreshold(e.target.value)}
-                                            inputProps={{ step: "0.01", min: "0", max: "1" }}
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Minimum similarity score required for semantic matching (0-1)" arrow>
-                                                            <InfoIconWithHover />
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                )
-                                            }}
-                                        />
-                                    </Grid>
-                                </Grid>
-
-                                <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
-                                    Status Thresholds
-                                </Typography>
-                                <Grid container spacing={2.5}>
-                                    <Grid size={{ xs: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            label="Min Accuracy"
-                                            type="number"
-                                            value={accuracyThreshold}
-                                            onChange={(e) => setAccuracyThreshold(e.target.value)}
-                                            inputProps={{ step: "0.01", min: "0", max: "1" }}
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Minimum acceptable accuracy score (0-1)" arrow>
-                                                            <InfoIconWithHover />
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                )
-                                            }}
-                                        />
-                                    </Grid>
-                                    <Grid size={{ xs: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            label="Min Consistency"
-                                            type="number"
-                                            value={consistencyThreshold}
-                                            onChange={(e) => setConsistencyThreshold(e.target.value)}
-                                            inputProps={{ step: "0.01", min: "0", max: "1" }}
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Minimum acceptable consistency score (0-1)" arrow>
-                                                            <InfoIconWithHover />
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                )
-                                            }}
-                                        />
-                                    </Grid>
-                                    <Grid size={{ xs: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            label="Max Hallucination"
-                                            type="number"
-                                            value={hallucinationThreshold}
-                                            onChange={(e) => setHallucinationThreshold(e.target.value)}
-                                            inputProps={{ step: "0.01", min: "0", max: "1" }}
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Maximum acceptable hallucination rate (0-1)" arrow>
-                                                            <InfoIconWithHover />
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                )
-                                            }}
-                                        />
-                                    </Grid>
-                                    <Grid size={{ xs: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            label="Min RQS"
-                                            type="number"
-                                            value={rqsThreshold}
-                                            onChange={(e) => setRqsThreshold(e.target.value)}
-                                            inputProps={{ step: "0.01", min: "0", max: "1" }}
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Minimum Response Quality Score (RQS) required to pass (0-1)" arrow>
-                                                            <InfoIconWithHover />
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                )
-                                            }}
-                                        />
-                                    </Grid>
-                                </Grid>
-
-                                <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
-                                    RQS Weights
-                                </Typography>
-                                <Grid container spacing={2.5}>
-                                    <Grid size={{ xs: 4 }}>
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            label="Alpha"
-                                            type="number"
-                                            value={alpha}
-                                            onChange={(e) => setAlpha(e.target.value)}
-                                            inputProps={{ step: "0.1", min: "0", max: "1" }}
-                                            helperText="Accuracy Weight"
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Weight for Accuracy in RQS calculation (0-1). Alpha + Beta + Gamma should sum to 1." arrow>
-                                                            <InfoIconWithHover />
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                )
-                                            }}
-                                        />
-                                    </Grid>
-                                    <Grid size={{ xs: 4 }}>
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            label="Beta"
-                                            type="number"
-                                            value={beta}
-                                            onChange={(e) => setBeta(e.target.value)}
-                                            inputProps={{ step: "0.1", min: "0", max: "1" }}
-                                            helperText="Consistency Weight"
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Weight for Consistency in RQS calculation (0-1). Alpha + Beta + Gamma should sum to 1." arrow>
-                                                            <InfoIconWithHover />
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                )
-                                            }}
-                                        />
-                                    </Grid>
-                                    <Grid size={{ xs: 4 }}>
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            label="Gamma"
-                                            type="number"
-                                            value={gamma}
-                                            onChange={(e) => setGamma(e.target.value)}
-                                            inputProps={{ step: "0.1", min: "0", max: "1" }}
-                                            helperText="Correctness Weight"
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Weight for Strict Correctness in RQS calculation (0-1). Alpha + Beta + Gamma should sum to 1." arrow>
-                                                            <InfoIconWithHover />
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                )
-                                            }}
-                                        />
-                                    </Grid>
-                                </Grid>
-                            </Paper>
-                        </Grid>
-
-                        {/* Right Column - Models & Settings */}
-                        <Grid size={{ xs: 12, lg: 6 }}>
-                            <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
-                                <Typography variant="h6" gutterBottom sx={{ fontSize: '0.9rem', mb: 1.5 }}>
-                                    Models & Paths
-                                </Typography>
-
-                                <TextField
-                                    fullWidth
-                                    size="small"
-                                    label="Embedding Model"
-                                    value={modelName}
-                                    onChange={(e) => setModelName(e.target.value)}
-                                    sx={{ mb: 2.5 }}
-                                    InputProps={{
-                                        endAdornment: (
-                                            <InputAdornment position="end">
-                                                <Tooltip title="Model name used for generating text embeddings (e.g., all-MiniLM-L12-v2)" arrow>
-                                                    <InfoIconWithHover />
-                                                </Tooltip>
-                                            </InputAdornment>
-                                        )
-                                    }}
-                                />
-
-                                <Typography variant="subtitle2" sx={{ mt: 1, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
-                                    Safety & Quality Assessment
-                                </Typography>
-                                <TextField
-                                    fullWidth
-                                    size="small"
-                                    label="Safety Judge Model"
-                                    value={llmModelName}
-                                    onChange={(e) => setLlmModelName(e.target.value)}
-                                    sx={{ mt: 1, mb: 2.5 }}
-                                    placeholder="gpt-4o, gpt-4o-mini"
-                                    InputProps={{
-                                        endAdornment: (
-                                            <InputAdornment position="end">
-                                                <Tooltip title="Name of the LLM model used for safety and quality judging (e.g., gpt-4o)" arrow>
-                                                    <InfoIconWithHover />
-                                                </Tooltip>
-                                            </InputAdornment>
-                                        )
-                                    }}
-                                />
-                                <TextField
-                                    fullWidth
-                                    size="small"
-                                    label="Safety Score Threshold"
-                                    type="number"
-                                    value={llmThreshold}
-                                    onChange={(e) => setLlmThreshold(e.target.value)}
-                                    inputProps={{ step: "0.05", min: "0", max: "1" }}
-                                    sx={{ mb: 2.5 }}
-                                    helperText="Score >= this value overrides deterministic metrics"
-                                    InputProps={{
-                                        endAdornment: (
-                                            <InputAdornment position="end">
-                                                <Tooltip title="Minimum Safety Score (0-1) required to consider the content safe and qualitatively sound." arrow>
-                                                    <InfoIconWithHover />
-                                                </Tooltip>
-                                            </InputAdornment>
-                                        )
-                                    }}
-                                />
-                                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', ml: 1 }}>
-                                    Hybrid Safety Scoring: Always Enabled
-                                </Typography>
-                            </Paper>
-
-                            <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', mt: 2 }}>
-                                <Typography variant="h6" gutterBottom sx={{ fontSize: '0.9rem', mb: 1.5 }}>
-                                    Advanced Structured & JSON Metrics
-                                </Typography>
-
-                                <Grid container spacing={2.5}>
-                                    <Grid size={{ xs: 6 }}>
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            label="Fuzzy Threshold"
-                                            type="number"
-                                            value={fuzzyThreshold}
-                                            onChange={(e) => setFuzzyThreshold(e.target.value)}
-                                            inputProps={{ step: "0.01", min: "0", max: "1" }}
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Sensitivity for fuzzy string matching (0-1). Higher means stricter." arrow>
-                                                            <InfoIconWithHover />
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                )
-                                            }}
-                                        />
-                                    </Grid>
-                                    <Grid size={{ xs: 12 }}>
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            label="Short Text Definition (Chars)"
-                                            type="number"
-                                            value={shortTextLength}
-                                            onChange={(e) => setShortTextLength(e.target.value)}
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Content shorter than this uses stricter matching." arrow>
-                                                            <InfoIconWithHover />
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                )
-                                            }}
-                                        />
-                                    </Grid>
-                                </Grid>
-
-                                <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
-                                    JSON RQS Weights
-                                </Typography>
-                                <Grid container spacing={2.5}>
-                                    <Grid size={{ xs: 3 }}>
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            label="Acc Weight"
-                                            type="number"
-                                            value={wAccuracy}
-                                            onChange={(e) => setWAccuracy(e.target.value)}
-                                            inputProps={{ step: "0.05", min: "0", max: "1" }}
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Accuracy weight for JSON items." arrow>
-                                                            <InfoIconWithHover />
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                )
-                                            }}
-                                        />
-                                    </Grid>
-                                    <Grid size={{ xs: 3 }}>
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            label="Comp Weight"
-                                            type="number"
-                                            value={wCompleteness}
-                                            onChange={(e) => setWCompleteness(e.target.value)}
-                                            inputProps={{ step: "0.05", min: "0", max: "1" }}
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Completeness weight for JSON items." arrow>
-                                                            <InfoIconWithHover />
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                )
-                                            }}
-                                        />
-                                    </Grid>
-                                    <Grid size={{ xs: 3 }}>
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            label="Hall Weight"
-                                            type="number"
-                                            value={wHallucination}
-                                            onChange={(e) => setWHallucination(e.target.value)}
-                                            inputProps={{ step: "0.05", min: "0", max: "1" }}
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Hallucination weight for JSON items." arrow>
-                                                            <InfoIconWithHover />
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                )
-                                            }}
-                                        />
-                                    </Grid>
-                                    <Grid size={{ xs: 3 }}>
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            label="Safe Weight"
-                                            type="number"
-                                            value={wSafety}
-                                            onChange={(e) => setWSafety(e.target.value)}
-                                            inputProps={{ step: "0.05", min: "0", max: "1" }}
-                                            InputProps={{
-                                                endAdornment: (
-                                                    <InputAdornment position="end">
-                                                        <Tooltip title="Safety weight for JSON items." arrow>
-                                                            <InfoIconWithHover />
-                                                        </Tooltip>
-                                                    </InputAdornment>
-                                                )
-                                            }}
-                                        />
-                                    </Grid>
-                                </Grid>
-                            </Paper>
-                        </Grid>
-                    </Grid>
-                </Box>
-
-                {/* Save Button */}
-                <Box sx={{ display: 'flex', justifyContent: 'flex-start', mx: 2, mb: 10 }}>
-                    <Button
-                        variant="outlined"
-                        size="small"
-                        sx={{ fontWeight: 'bold' }}
-                        onClick={handleSave}
-                        startIcon={<SaveIcon />}
-                    >
-                        Save Configuration
-                    </Button>
-                </Box>
-
-                <Snackbar
-                    open={openSnackbar}
-                    autoHideDuration={3000}
-                    onClose={() => setOpenSnackbar(false)}
-                    message="Configuration saved successfully"
-                />
             </Box>
+
+            {/* Content */}
+            <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2, pb: 5 }}>
+                <Grid container spacing={2}>
+                    {/* Left Column - Thresholds */}
+                    <Grid size={{ xs: 12, lg: 6 }}>
+                        <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
+                            <Typography variant="h6" gutterBottom sx={{ fontSize: '0.9rem', mb: 1.5 }}>
+                                Evaluation Thresholds
+                            </Typography>
+                            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
+                                Basic Thresholds
+                            </Typography>
+
+                            <Grid container spacing={2.5}>
+                                <Grid size={{ xs: 12 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Semantic Threshold"
+                                        type="number"
+                                        value={semanticThreshold}
+                                        onChange={(e) => setSemanticThreshold(e.target.value)}
+                                        inputProps={{ step: "0.01", min: "0", max: "1" }}
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <Tooltip title="Minimum similarity score required for semantic matching (0-1)" arrow>
+                                                        <InfoIconWithHover />
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+                            </Grid>
+
+                            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
+                                Status Thresholds
+                            </Typography>
+                            <Grid container spacing={2.5}>
+                                <Grid size={{ xs: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Min Accuracy"
+                                        type="number"
+                                        value={accuracyThreshold}
+                                        onChange={(e) => setAccuracyThreshold(e.target.value)}
+                                        inputProps={{ step: "0.01", min: "0", max: "1" }}
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <Tooltip title="Minimum acceptable accuracy score (0-1)" arrow>
+                                                        <InfoIconWithHover />
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Min Consistency"
+                                        type="number"
+                                        value={consistencyThreshold}
+                                        onChange={(e) => setConsistencyThreshold(e.target.value)}
+                                        inputProps={{ step: "0.01", min: "0", max: "1" }}
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <Tooltip title="Minimum acceptable consistency score (0-1)" arrow>
+                                                        <InfoIconWithHover />
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Max Hallucination"
+                                        type="number"
+                                        value={hallucinationThreshold}
+                                        onChange={(e) => setHallucinationThreshold(e.target.value)}
+                                        inputProps={{ step: "0.01", min: "0", max: "1" }}
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <Tooltip title="Maximum acceptable hallucination rate (0-1)" arrow>
+                                                        <InfoIconWithHover />
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Min RQS"
+                                        type="number"
+                                        value={rqsThreshold}
+                                        onChange={(e) => setRqsThreshold(e.target.value)}
+                                        inputProps={{ step: "0.01", min: "0", max: "1" }}
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <Tooltip title="Minimum Response Quality Score (RQS) required to pass (0-1)" arrow>
+                                                        <InfoIconWithHover />
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+                            </Grid>
+
+                            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
+                                RQS Weights
+                            </Typography>
+                            <Grid container spacing={2.5}>
+                                <Grid size={{ xs: 4 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Alpha"
+                                        type="number"
+                                        value={alpha}
+                                        onChange={(e) => setAlpha(e.target.value)}
+                                        inputProps={{ step: "0.1", min: "0", max: "1" }}
+                                        helperText="Accuracy Weight"
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <Tooltip title="Weight for Accuracy in RQS calculation (0-1). Alpha + Beta + Gamma should sum to 1." arrow>
+                                                        <InfoIconWithHover />
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 4 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Beta"
+                                        type="number"
+                                        value={beta}
+                                        onChange={(e) => setBeta(e.target.value)}
+                                        inputProps={{ step: "0.1", min: "0", max: "1" }}
+                                        helperText="Consistency Weight"
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <Tooltip title="Weight for Consistency in RQS calculation (0-1). Alpha + Beta + Gamma should sum to 1." arrow>
+                                                        <InfoIconWithHover />
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 4 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Gamma"
+                                        type="number"
+                                        value={gamma}
+                                        onChange={(e) => setGamma(e.target.value)}
+                                        inputProps={{ step: "0.1", min: "0", max: "1" }}
+                                        helperText="Correctness Weight"
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <Tooltip title="Weight for Strict Correctness in RQS calculation (0-1). Alpha + Beta + Gamma should sum to 1." arrow>
+                                                        <InfoIconWithHover />
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+                            </Grid>
+                        </Paper>
+                    </Grid>
+
+                    {/* Right Column - Models & Settings */}
+                    <Grid size={{ xs: 12, lg: 6 }}>
+                        <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
+                            <Typography variant="h6" gutterBottom sx={{ fontSize: '0.9rem', mb: 1.5 }}>
+                                Models & Paths
+                            </Typography>
+
+                            <TextField
+                                fullWidth
+                                size="small"
+                                label="Embedding Model"
+                                value={modelName}
+                                onChange={(e) => setModelName(e.target.value)}
+                                sx={{ mb: 2.5 }}
+                                InputProps={{
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <Tooltip title="Model name used for generating text embeddings (e.g., all-MiniLM-L12-v2)" arrow>
+                                                <InfoIconWithHover />
+                                            </Tooltip>
+                                        </InputAdornment>
+                                    )
+                                }}
+                            />
+
+                            <Typography variant="subtitle2" sx={{ mt: 1, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
+                                Safety & Quality Assessment
+                            </Typography>
+                            <TextField
+                                fullWidth
+                                size="small"
+                                label="Safety Judge Model"
+                                value={llmModelName}
+                                onChange={(e) => setLlmModelName(e.target.value)}
+                                sx={{ mt: 1, mb: 2.5 }}
+                                placeholder="gpt-4o, gpt-4o-mini"
+                                InputProps={{
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <Tooltip title="Name of the LLM model used for safety and quality judging (e.g., gpt-4o)" arrow>
+                                                <InfoIconWithHover />
+                                            </Tooltip>
+                                        </InputAdornment>
+                                    )
+                                }}
+                            />
+                            <TextField
+                                fullWidth
+                                size="small"
+                                label="Safety Score Threshold"
+                                type="number"
+                                value={llmThreshold}
+                                onChange={(e) => setLlmThreshold(e.target.value)}
+                                inputProps={{ step: "0.05", min: "0", max: "1" }}
+                                sx={{ mb: 2.5 }}
+                                helperText="Score >= this value overrides deterministic metrics"
+                                InputProps={{
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <Tooltip title="Minimum Safety Score (0-1) required to consider the content safe and qualitatively sound." arrow>
+                                                <InfoIconWithHover />
+                                            </Tooltip>
+                                        </InputAdornment>
+                                    )
+                                }}
+                            />
+                            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', ml: 1 }}>
+                                Hybrid Safety Scoring: Always Enabled
+                            </Typography>
+                        </Paper>
+
+                        <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', mt: 2 }}>
+                            <Typography variant="h6" gutterBottom sx={{ fontSize: '0.9rem', mb: 1.5 }}>
+                                Advanced Structured & JSON Metrics
+                            </Typography>
+
+                            <Grid container spacing={2.5}>
+                                <Grid size={{ xs: 6 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Fuzzy Threshold"
+                                        type="number"
+                                        value={fuzzyThreshold}
+                                        onChange={(e) => setFuzzyThreshold(e.target.value)}
+                                        inputProps={{ step: "0.01", min: "0", max: "1" }}
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <Tooltip title="Sensitivity for fuzzy string matching (0-1). Higher means stricter." arrow>
+                                                        <InfoIconWithHover />
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 12 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Short Text Definition (Chars)"
+                                        type="number"
+                                        value={shortTextLength}
+                                        onChange={(e) => setShortTextLength(e.target.value)}
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <Tooltip title="Content shorter than this uses stricter matching." arrow>
+                                                        <InfoIconWithHover />
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+                            </Grid>
+
+                            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
+                                JSON RQS Weights
+                            </Typography>
+                            <Grid container spacing={2.5}>
+                                <Grid size={{ xs: 3 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Acc Weight"
+                                        type="number"
+                                        value={wAccuracy}
+                                        onChange={(e) => setWAccuracy(e.target.value)}
+                                        inputProps={{ step: "0.05", min: "0", max: "1" }}
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <Tooltip title="Accuracy weight for JSON items." arrow>
+                                                        <InfoIconWithHover />
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 3 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Comp Weight"
+                                        type="number"
+                                        value={wCompleteness}
+                                        onChange={(e) => setWCompleteness(e.target.value)}
+                                        inputProps={{ step: "0.05", min: "0", max: "1" }}
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <Tooltip title="Completeness weight for JSON items." arrow>
+                                                        <InfoIconWithHover />
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 3 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Hall Weight"
+                                        type="number"
+                                        value={wHallucination}
+                                        onChange={(e) => setWHallucination(e.target.value)}
+                                        inputProps={{ step: "0.05", min: "0", max: "1" }}
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <Tooltip title="Hallucination weight for JSON items." arrow>
+                                                        <InfoIconWithHover />
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid size={{ xs: 3 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        label="Safe Weight"
+                                        type="number"
+                                        value={wSafety}
+                                        onChange={(e) => setWSafety(e.target.value)}
+                                        inputProps={{ step: "0.05", min: "0", max: "1" }}
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <Tooltip title="Safety weight for JSON items." arrow>
+                                                        <InfoIconWithHover />
+                                                    </Tooltip>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+                            </Grid>
+                        </Paper>
+                    </Grid>
+                </Grid>
+            </Box>
+
+            {/* Save Button */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-start', mx: 2, mb: 10 }}>
+                <Button
+                    variant="outlined"
+                    size="small"
+                    sx={{ fontWeight: 'bold' }}
+                    onClick={handleSave}
+                    startIcon={<SaveIcon />}
+                >
+                    Save Configuration
+                </Button>
+            </Box>
+
+            <Snackbar
+                open={openSnackbar}
+                autoHideDuration={3000}
+                onClose={() => setOpenSnackbar(false)}
+                message="Configuration saved successfully"
+            />
         </Box>
     );
 }

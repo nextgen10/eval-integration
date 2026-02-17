@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Button, Tabs, Tab, TextField, Accordion, AccordionSummary, AccordionDetails, Snackbar, Alert, Grid, Dialog, DialogTitle, DialogContent, IconButton, CircularProgress, Collapse, Tooltip as MuiTooltip, List, ListItem, ListItemText, InputAdornment, Card, CardContent, styled, tooltipClasses, TooltipProps, Divider } from '@mui/material';
 import { API_BASE_URL } from '../utils/config';
 import { alpha, useTheme } from '@mui/material/styles';
-import Sidebar from '../components/Sidebar';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CloseIcon from '@mui/icons-material/Close';
@@ -11,7 +10,6 @@ import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import dynamic from 'next/dynamic';
 import { SummaryCard } from '../components/Dashboard';
-import ThemeToggle from '../components/ThemeToggle';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AssistantIcon from '@mui/icons-material/Assistant';
@@ -32,14 +30,18 @@ import HistoryIcon from '@mui/icons-material/History';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import { useAgentEvents } from '../hooks/useAgentEvents';
 import * as XLSX from 'xlsx';
-import { useSidebar } from '../contexts/SidebarContext';
 import { useEvaluation } from '../contexts/EvaluationContext';
+
 
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
 
-
+// Type definitions
+interface EvaluationResult {
+    id: string;
+    [key: string]: any;
+}
 
 // Custom Glassmorphic Tooltip -> Removed to revert to default grey style
 const Tooltip = MuiTooltip;
@@ -1010,8 +1012,7 @@ function JsonDiffDialog({ open, onClose, initialRun, result, thresholds, allRuns
 
 function TestEvaluationsPage() {
     const theme = useTheme();
-    const { sidebarWidth } = useSidebar();
-    const [result, setResult] = useState<any>(null);
+    const [result, setResult] = useState<EvaluationResult | null>(null);
     const [tabValue, setTabValue] = useState(0);
     const [openSnackbar, setOpenSnackbar] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -1036,8 +1037,7 @@ function TestEvaluationsPage() {
     const [gtSource, setGtSource] = useState<string>("");
 
     // Structured JSON Engine State
-    const [structuredGtJson, setStructuredGtJson] = useState('{\n  "name": "Aniket",\n  "role": "Engineer",\n  "location": "San Francisco"\n}');
-    const [structuredAiJson, setStructuredAiJson] = useState('[\n  {\n    "name": "Aniket",\n    "role": "Software Engineer",\n    "location": "SF"\n  },\n  {\n    "name": "Aniket M",\n    "role": "Engineer"\n  }\n]');
+
     const [showNormalized, setShowNormalized] = useState(false);
     const [normalizedJsonDepth, setNormalizedJsonDepth] = useState(1);
     const [normalizedJsonKey, setNormalizedJsonKey] = useState(0);
@@ -1424,106 +1424,7 @@ function TestEvaluationsPage() {
         }
     };
 
-    const handleRunStructuredJsonEvaluation = async () => {
-        try {
-            let gtInput, aiInput;
-            try {
-                gtInput = JSON.parse(structuredGtJson);
-                aiInput = JSON.parse(structuredAiJson);
-            } catch (e) {
-                throw new Error("Invalid JSON input.");
-            }
 
-            setLoading(true);
-            clearEvents();
-            setConvertedGt(null);
-            setConvertedAi(null);
-            setGtSource('');
-
-            const latestConfig = {
-                semantic_threshold: parseFloat(localStorage.getItem('config_semantic_threshold') || '0.80'),
-                fuzzy_threshold: 0.85,
-                w_accuracy: 0.45,
-                w_completeness: 0.25,
-                w_hallucination: 0.15,
-                w_safety: 0.15,
-                model_name: localStorage.getItem('config_model_name') || 'all-MiniLM-L12-v2',
-                enable_safety: true,
-                llm_model: localStorage.getItem('config_llm_model_name') || 'gpt-4o'
-            };
-
-            const isBatch = Array.isArray(aiInput);
-            const endpoint = isBatch ? '/evaluate-json-batch' : '/evaluate-json';
-            const body = isBatch
-                ? { ground_truth: gtInput, agent_outputs: aiInput, config: latestConfig }
-                : { ground_truth: gtInput, agent_output: aiInput, config: latestConfig };
-
-            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || "JSON evaluation failed");
-            }
-
-            const data = await response.json();
-
-            // Map the new response format to the old UI result format to reuse components
-            const results = isBatch ? data.results : [data];
-            const mappedPerQuery: any = {
-                "json_eval": {
-                    n_runs: results.length,
-                    outputs: results.map((r: any, idx: number) => ({
-                        found: true,
-                        match_type: "json_structured",
-                        accuracy: r.accuracy,
-                        expected: JSON.stringify(gtInput),
-                        output: JSON.stringify(isBatch ? aiInput[idx] : aiInput),
-                        run_id: `run_${idx + 1}`,
-                        safety_score: r.safety_score,
-                        error_type: r.accuracy >= 0.8 ? "correct" : "hallucination",
-                        semantic_score: r.accuracy,
-                        completeness: r.completeness,
-                        hallucination: r.hallucination,
-                        rqs: r.rqs,
-                        field_scores: r.field_scores
-                    }))
-                }
-            };
-
-            const mappedResult = {
-                id: `json_${Date.now()}`,
-                per_query: mappedPerQuery,
-                accuracy_per_query: { "json_eval": isBatch ? (results.reduce((s: number, r: any) => s + r.accuracy, 0) / results.length) : data.accuracy },
-                consistency_per_query: { "json_eval": isBatch ? data.consistency_score : 1.0 },
-                aggregate: {
-                    accuracy: isBatch ? (results.reduce((s: number, r: any) => s + r.accuracy, 0) / results.length) : data.accuracy,
-                    consistency: isBatch ? data.consistency_score : 1.0,
-                    rqs: isBatch ? data.mean_rqs : data.rqs,
-                    n_queries: 1
-                },
-                error_summary: {
-                    hallucination: results.filter((r: any) => r.accuracy < 0.8).length,
-                    correct: results.filter((r: any) => r.accuracy >= 0.8).length
-                },
-                evaluation_status: (isBatch ? data.mean_rqs : data.rqs) >= 0.8 ? "PASS" : "FAIL"
-            };
-
-            setResult(mappedResult);
-            setEvaluationType('json');
-            setSnackbarMessage("Structured JSON Evaluation Completed!");
-            setOpenSnackbar(true);
-
-        } catch (e: any) {
-            setSnackbarMessage(`Error: ${e.message}`);
-            setOpenSnackbar(true);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleExportToExcel = () => {
         if (!result || !result.per_query) {
@@ -1711,827 +1612,831 @@ function TestEvaluationsPage() {
     }, [result, config]);
 
     return (
-        <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-            <Sidebar />
-            <Box component="main" sx={{ flexGrow: 1, ml: `${sidebarWidth}px`, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', transition: 'margin-left 0.3s ease-in-out' }}>
-                <Box sx={{ height: '70px', p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, background: (theme) => alpha(theme.palette.background.paper, 0.7), backdropFilter: 'blur(10px)', borderBottom: '1px solid', borderColor: 'divider' }}>
-                    <Box sx={{ pt: 1 }}>
-                        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                            Test Evaluations
-                        </Typography>
-                        <Typography variant="subtitle1" color="text.secondary">
-                            Batch & Manual Evaluation
-                        </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        {result?.id && (
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    px: 1.5,
-                                    py: 0.5,
-                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                                    border: '1px solid',
-                                    borderColor: (theme) => alpha(theme.palette.primary.main, 0.5),
-                                    borderRadius: 2,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 1
-                                }}
-                            >
-                                <Typography variant="caption" color="text.primary" sx={{ fontWeight: 'bold', letterSpacing: 1.5, fontSize: '0.75rem' }}>
-                                    LATEST EVALUATION ID: {result.id}
-                                </Typography>
-                            </Paper>
-                        )}
-                        <ThemeToggle />
-                    </Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            {/* Header */}
+            <Box sx={{ p: 2, height: 'auto', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'transparent', mb: 2 }}>
+                <Box sx={{ pt: 1 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                        Test Evaluations
+                    </Typography>
+                    <Typography variant="subtitle1" color="text.secondary">
+                        Run & Analyze Agent Performance
+                    </Typography>
                 </Box>
-
-
-
-                <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2 }}>
-                    <svg width={0} height={0} style={{ position: 'absolute', visibility: 'hidden' }}>
-                        <defs>
-                            <linearGradient id="export_icon_gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="30%" stopColor="#673ab7" />
-                                <stop offset="90%" stopColor="#2196f3" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                    {/* Latest Stats Header */}
-                    {stats && (
-                        <Box sx={{ mb: 2 }}>
-                            <Card sx={{ borderLeft: `6px solid ${stats.status === "PASS" ? '#4caf50' : '#f44336'}` }}>
-                                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                                    {/* Header Section */}
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-                                                Evaluation Analysis
-                                            </Typography>
-                                            <Paper
-                                                elevation={0}
-                                                sx={{
-                                                    px: 1.5,
-                                                    py: 0.5,
-                                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                                                    border: '1px solid',
-                                                    borderColor: (theme) => alpha(theme.palette.primary.main, 0.5),
-                                                    borderRadius: 2,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 1
-                                                }}
-                                            >
-                                                <Typography variant="caption" color="text.primary" sx={{ fontWeight: 'bold', letterSpacing: 1.5, fontSize: '0.75rem' }}>
-                                                    {(() => {
-                                                        const threshold = config.rqs_threshold || 0.5;
-                                                        return `RQS: ${((stats.rqs || 0) * 100).toFixed(1)}% (> ${(threshold * 100).toFixed(0)}%)`;
-                                                    })()}
-                                                </Typography>
-                                            </Paper>
-                                        </Box>
-                                        <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 'bold' }}>
-                                            Total Queries: {stats.totalQueries} • Total Evaluations: {stats.totalEvaluations}
-                                        </Typography>
-                                    </Box>
-
-                                    <Grid container spacing={2}>
-                                        {/* Core Metrics */}
-                                        <Grid size={{ xs: 12, md: 5 }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-                                                    ⚡ Core Performance
-                                                </Typography>
-                                                <Chip
-                                                    label={stats.standardStatus}
-                                                    size="small"
-                                                    sx={{
-                                                        fontWeight: 900,
-                                                        backdropFilter: 'blur(8px)',
-                                                        background: stats.standardStatus === 'PASS' ? alpha('#4caf50', 0.2) : alpha('#f44336', 0.2),
-                                                        color: stats.standardStatus === 'PASS' ? '#4caf50' : '#f44336',
-                                                        border: '1px solid',
-                                                        borderColor: stats.standardStatus === 'PASS' ? alpha('#4caf50', 0.5) : alpha('#f44336', 0.5),
-                                                        boxShadow: `0 2px 10px 0 ${stats.standardStatus === 'PASS' ? alpha('#4caf50', 0.2) : alpha('#f44336', 0.2)}`
-                                                    }}
-                                                />
-                                            </Box>
-                                            <Box sx={{ display: 'flex', gap: 4 }}>
-                                                <Box sx={{ ml: 1 }}>
-                                                    <Typography variant="caption" color="text.secondary">RQS</Typography>
-                                                    <Typography variant="h2" color="primary" sx={{ fontWeight: 'bold' }}>
-                                                        {((stats.rqs || 0) * 100).toFixed(1)}%
-                                                    </Typography>
-                                                </Box>
-                                                <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
-                                                    <Typography variant="caption" color="text.secondary">Accuracy</Typography>
-                                                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                                                        {((stats.accuracy || 0) * 100).toFixed(1)}%
-                                                    </Typography>
-                                                </Box>
-                                                <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
-                                                    <Typography variant="caption" color="text.secondary">Completeness</Typography>
-                                                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                                                        {((stats.completeness || 0) * 100).toFixed(1)}%
-                                                    </Typography>
-                                                </Box>
-                                                <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
-                                                    <Typography variant="caption" color="text.secondary">Hallucination</Typography>
-                                                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                                                        {((stats.hallucination || 0) * 100).toFixed(1)}%
-                                                    </Typography>
-                                                </Box>
-                                                <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
-                                                    <Typography variant="caption" color="text.secondary">Consistency</Typography>
-                                                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                                                        {((stats.consistency || 0) * 100).toFixed(1)}%
-                                                    </Typography>
-                                                </Box>
-                                                <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
-                                                    <Typography variant="caption" color="text.secondary">Safety</Typography>
-                                                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                                                        {((stats.safety || 1.0) * 100).toFixed(1)}%
-                                                    </Typography>
-                                                </Box>
-                                            </Box>
-                                        </Grid>
-
-                                        {/* Deep Dive */}
-                                        <Grid size={{ xs: 12, md: 4 }}>
-                                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
-                                                📊 Detailed Metrics
-                                            </Typography>
-                                            <Grid container spacing={1}>
-                                                <Grid size={{ xs: 12 }}>
-                                                    <Typography variant="caption" display="block" color="text.secondary">Avg. Safety Score</Typography>
-                                                    <Typography variant="body2" fontWeight="bold" color={stats.safety < 0.9 ? 'error.main' : 'success.main'}>
-                                                        {(stats.safety * 100).toFixed(1)}%
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid size={{ xs: 6 }}>
-                                                    <Typography variant="caption" display="block" color="text.secondary">Hallucination Rate</Typography>
-                                                    <Typography variant="body2" fontWeight="bold" color={stats.hallucination > 0.1 ? 'error.main' : 'success.main'}>
-                                                        {(stats.hallucination * 100).toFixed(1)}%
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid size={{ xs: 6 }}>
-                                                    <Typography variant="caption" display="block" color="text.secondary">Avg. Consistency</Typography>
-                                                    <Typography variant="body2" fontWeight="bold">
-                                                        {(stats.consistency * 100).toFixed(1)}%
-                                                    </Typography>
-                                                </Grid>
-                                            </Grid>
-                                        </Grid>
-
-                                        {/* Recommendations */}
-                                        <Grid size={{ xs: 12, md: 3 }}>
-                                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5, color: 'text.primary' }}>
-                                                💡 Recommendations
-                                            </Typography>
-                                            <List dense disablePadding>
-                                                {(() => {
-                                                    const recs = [];
-                                                    if (stats.hallucination > 0.1) {
-                                                        recs.push("Check hallucinated responses.");
-                                                    }
-                                                    if (stats.consistency < 0.8) {
-                                                        recs.push("Improve consistency (lower temp).");
-                                                    }
-                                                    if (stats.accuracy < 0.6) {
-                                                        recs.push("Review prompt instructions.");
-                                                    }
-                                                    if (stats.safety < 0.8) {
-                                                        recs.push("Review safety guidelines.");
-                                                    }
-                                                    if (recs.length === 0) {
-                                                        recs.push("System performing optimally.");
-                                                    }
-                                                    return recs.slice(0, 3).map((rec, idx) => (
-                                                        <ListItem key={idx} disablePadding sx={{ mb: 0 }}>
-                                                            <ListItemText
-                                                                primary={<Typography variant="caption" sx={{ display: 'flex', gap: 1 }}><span style={{ color: '#ff9800' }}>•</span> {rec}</Typography>}
-                                                            />
-                                                        </ListItem>
-                                                    ));
-                                                })()}
-                                            </List>
-                                        </Grid>
-                                    </Grid>
-
-
-
-                                </CardContent>
-                            </Card>
-                        </Box>
-                    )}
-
-                    <Paper sx={{ mb: 2, border: '1px solid', borderColor: 'divider' }}>
-                        <Tabs
-                            value={tabValue}
-                            onChange={handleTabChange}
-                            aria-label="test scenarios tabs"
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    {result?.id && (
+                        <Paper
+                            elevation={0}
                             sx={{
-                                borderBottom: 1,
-                                borderColor: 'divider',
-                                '& .MuiTabs-indicator': {
-                                    backgroundColor: (theme) => theme.palette.primary.main,
-                                },
-                                '& .MuiTab-root.Mui-selected': {
-                                    color: (theme) => theme.palette.primary.main,
-                                }
+                                px: 1.5,
+                                py: 0.5,
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                                border: '1px solid',
+                                borderColor: (theme) => alpha(theme.palette.primary.main, 0.5),
+                                borderRadius: 2,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1
                             }}
                         >
-                            <Tab label="Batch Evaluation" />
-                            <Tab label="JSON Evaluation" />
-                        </Tabs>
+                            <Typography variant="caption" color="text.primary" sx={{ fontWeight: 'bold', letterSpacing: 1.5, fontSize: '0.75rem' }}>
+                                LATEST EVALUATION ID: {result.id}
+                            </Typography>
+                        </Paper>
+                    )}
+                    <Button
+                        variant="outlined"
+                        startIcon={<HistoryIcon />}
+                        href="/agent-eval/history"
+                        sx={{ fontWeight: 'bold' }}
+                    >
+                        History
+                    </Button>
+                </Box>
+            </Box>
 
-                        {/* Tab 1: Batch Evaluation */}
-                        <Box role="tabpanel" hidden={tabValue !== 0} sx={{ p: 3 }}>
-                            {tabValue === 0 && (
-                                <Box>
-                                    <Typography variant="h5" paragraph>
-                                        Run evaluation on local JSON files.
-                                    </Typography>
-                                    <Grid container spacing={3} sx={{ mb: 2 }}>
-                                        <Grid size={{ xs: 12, md: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="Ground Truth File Path (.json)"
-                                                value={gtPath}
-                                                onChange={(e) => setGtPath(e.target.value)}
-                                                placeholder="/path/to/ground_truth.json"
-                                                helperText="Enter the absolute path to your Ground Truth JSON file"
-                                            />
-                                        </Grid>
-                                        <Grid size={{ xs: 12, md: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                label="AI Outputs Folder Path"
-                                                value={aiPath}
-                                                onChange={(e) => setAiPath(e.target.value)}
-                                                placeholder="/path/to/ai_outputs/"
-                                                helperText="Enter the absolute path to the folder containing AI outputs"
-                                            />
-                                        </Grid>
-                                    </Grid>
-
-                                    <Accordion sx={{ mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-                                        <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />}>
-                                            <Typography variant="subtitle2">Advanced: Key Mapping</Typography>
-                                        </AccordionSummary>
-                                        <AccordionDetails>
-                                            <Grid container spacing={2}>
-                                                <Grid size={{ xs: 12 }}>
-                                                    <Typography variant="caption" sx={{ color: '#2196f3', fontWeight: 'bold' }}>Ground Truth Keys</Typography>
-                                                </Grid>
-                                                <Grid size={{ xs: 4 }}>
-                                                    <TextField label="Query ID Key" size="small" fullWidth value={gtQueryIdKey} onChange={(e) => setGtQueryIdKey(e.target.value)} />
-                                                </Grid>
-                                                <Grid size={{ xs: 4 }}>
-                                                    <TextField label="Ground Truth Key" size="small" fullWidth value={gtExpectedKey} onChange={(e) => setGtExpectedKey(e.target.value)} />
-                                                </Grid>
-                                                <Grid size={{ xs: 4 }}>
-                                                    <TextField label="Match Type Key" size="small" fullWidth value={gtTypeKey} onChange={(e) => setGtTypeKey(e.target.value)} />
-                                                </Grid>
-
-                                                <Grid size={{ xs: 12 }}>
-                                                    <Typography variant="caption" color="secondary" fontWeight="bold">AI Output Keys</Typography>
-                                                </Grid>
-                                                <Grid size={{ xs: 4 }}>
-                                                    <TextField label="Query ID Key" size="small" fullWidth value={predQueryIdKey} onChange={(e) => setPredQueryIdKey(e.target.value)} />
-                                                </Grid>
-                                                <Grid size={{ xs: 4 }}>
-                                                    <TextField label="AI Output Key" size="small" fullWidth value={predOutputKey} onChange={(e) => setPredOutputKey(e.target.value)} />
-                                                </Grid>
-                                                <Grid size={{ xs: 4 }}>
-                                                    <TextField label="Run ID Key" size="small" fullWidth value={predRunIdKey} onChange={(e) => setPredRunIdKey(e.target.value)} />
-                                                </Grid>
-                                            </Grid>
-                                        </AccordionDetails>
-                                    </Accordion>
-
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Button
-                                            variant="outlined"
-                                            color="primary"
-                                            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <PlayArrowIcon sx={{ fontSize: 20, width: 20, height: 20, display: 'block' }} />}
-                                            onClick={handleRunBatch}
-                                            disabled={loading}
-                                            sx={{
-                                                fontWeight: 'bold',
-                                            }}
-                                        >
-                                            {loading ? "Running..." : "Run"}
-                                        </Button>
-                                        {(latestEvent || loading) && (
-                                            <Alert
-                                                severity={latestEvent?.status === 'failed' ? 'error' : 'info'}
-                                                icon={loading ? <CircularProgress size={20} /> : undefined}
-                                                sx={{ flexGrow: 1, py: 0, alignItems: 'center' }}
-                                            >
-                                                {latestEvent ? (
-                                                    <>
-                                                        <Typography variant="body2" component="span" fontWeight="bold" sx={{ mr: 1 }}>
-                                                            [{latestEvent.agent_name}]
-                                                        </Typography>
-                                                        <Typography variant="body2" component="span">
-                                                            {latestEvent.message}
-                                                        </Typography>
-                                                    </>
-                                                ) : (
-                                                    <Typography variant="body2" component="span">
-                                                        Starting evaluation...
-                                                    </Typography>
-                                                )}
-                                            </Alert>
-                                        )}
-                                    </Box>
-                                    {(convertedGt || convertedAi) && (
-                                        <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                                            <Tooltip title="View Normalized JSON">
-                                                <Button
-                                                    size="small"
-                                                    variant="outlined"
-                                                    startIcon={<InfoIcon />}
-                                                    onClick={() => setShowNormalized(true)}
-                                                    sx={{ textTransform: 'none' }}
-                                                >
-                                                    View Normalized JSON
-                                                </Button>
-                                            </Tooltip>
-                                            <Tooltip title="View JSON Evaluation Differences">
-                                                <Button
-                                                    size="small"
-                                                    variant="outlined"
-                                                    color="secondary"
-                                                    startIcon={<DifferenceIcon />}
-                                                    onClick={() => {
-                                                        if (groupedRuns.length > 0) {
-                                                            setSelectedRunForDiff(groupedRuns[0]);
-                                                            setShowJsonDiff(true);
-                                                        } else {
-                                                            setSnackbarMessage("No evaluations found to compare.");
-                                                            setOpenSnackbar(true);
-                                                        }
-                                                    }}
-                                                    sx={{ textTransform: 'none' }}
-                                                >
-                                                    View JSON Differences
-                                                </Button>
-                                            </Tooltip>
-                                        </Box>
-                                    )}
-                                </Box>
-                            )}
-                        </Box>
-
-                        {/* Tab 2: JSON Evaluation */}
-                        <Box role="tabpanel" hidden={tabValue !== 1} sx={{ p: 3 }}>
-                            {tabValue === 1 && (
-                                <Box>
-                                    <Typography variant="body2" color="text.secondary" paragraph>
-                                        Paste your Ground Truth and AI Outputs JSON here to run a manual evaluation.
-                                    </Typography>
-
-                                    <Grid container spacing={3}>
-                                        <Grid size={{ xs: 12, md: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                multiline
-                                                rows={10}
-                                                label="Ground Truth JSON"
-                                                value={gtJson}
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    setGtJson(val);
-                                                    // Smart Paste Logic
-                                                    try {
-                                                        const parsed = JSON.parse(val);
-                                                        if (parsed.ground_truth && Array.isArray(parsed.ground_truth)) {
-                                                            setGtJson(JSON.stringify(parsed.ground_truth, null, 2));
-                                                            if (parsed.ai_outputs && Array.isArray(parsed.ai_outputs)) {
-                                                                setOutputsJson(JSON.stringify(parsed.ai_outputs, null, 2));
-                                                            }
-                                                            if (parsed.gt_query_id_key) setGtQueryIdKey(parsed.gt_query_id_key);
-                                                            if (parsed.gt_expected_key) setGtExpectedKey(parsed.gt_expected_key);
-                                                            if (parsed.gt_type_key) setGtTypeKey(parsed.gt_type_key);
-                                                            if (parsed.pred_query_id_key) setPredQueryIdKey(parsed.pred_query_id_key);
-                                                            if (parsed.pred_output_key) setPredOutputKey(parsed.pred_output_key);
-                                                            if (parsed.pred_run_id_key) setPredRunIdKey(parsed.pred_run_id_key);
-                                                        }
-                                                    } catch (err) {
-                                                        // Not a full JSON object, ignore
-                                                    }
-                                                }}
-                                                sx={{ mb: 2, fontFamily: 'monospace' }}
-                                                placeholder='[{"query_id": "q1", "expected_output": "..."}]'
-                                            />
-                                        </Grid>
-                                        <Grid size={{ xs: 12, md: 6 }}>
-                                            <TextField
-                                                fullWidth
-                                                multiline
-                                                rows={10}
-                                                label="AI Outputs JSON"
-                                                value={outputsJson}
-                                                onChange={(e) => setOutputsJson(e.target.value)}
-                                                sx={{ mb: 2, fontFamily: 'monospace' }}
-                                                placeholder='[{"query_id": "q1", "output": "..."}]'
-                                            />
-                                        </Grid>
-                                    </Grid>
-
-                                    <Accordion sx={{ mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-                                        <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />}>
-                                            <Typography variant="subtitle2">Advanced: Key Mapping</Typography>
-                                        </AccordionSummary>
-                                        <AccordionDetails>
-                                            <Grid container spacing={2}>
-                                                <Grid size={{ xs: 12 }}>
-                                                    <Typography variant="caption" sx={{ color: '#2196f3', fontWeight: 'bold' }}>Ground Truth Keys</Typography>
-                                                </Grid>
-                                                <Grid size={{ xs: 4 }}>
-                                                    <TextField label="Query ID Key" size="small" fullWidth value={gtQueryIdKey} onChange={(e) => setGtQueryIdKey(e.target.value)} />
-                                                </Grid>
-                                                <Grid size={{ xs: 4 }}>
-                                                    <TextField label="Ground Truth Key" size="small" fullWidth value={gtExpectedKey} onChange={(e) => setGtExpectedKey(e.target.value)} />
-                                                </Grid>
-                                                <Grid size={{ xs: 4 }}>
-                                                    <TextField label="Match Type Key" size="small" fullWidth value={gtTypeKey} onChange={(e) => setGtTypeKey(e.target.value)} />
-                                                </Grid>
-
-                                                <Grid size={{ xs: 12 }}>
-                                                    <Typography variant="caption" color="secondary" fontWeight="bold">AI Output Keys</Typography>
-                                                </Grid>
-                                                <Grid size={{ xs: 4 }}>
-                                                    <TextField label="Query ID Key" size="small" fullWidth value={predQueryIdKey} onChange={(e) => setPredQueryIdKey(e.target.value)} />
-                                                </Grid>
-                                                <Grid size={{ xs: 4 }}>
-                                                    <TextField label="AI Output Key" size="small" fullWidth value={predOutputKey} onChange={(e) => setPredOutputKey(e.target.value)} />
-                                                </Grid>
-                                                <Grid size={{ xs: 4 }}>
-                                                    <TextField label="Run ID Key" size="small" fullWidth value={predRunIdKey} onChange={(e) => setPredRunIdKey(e.target.value)} />
-                                                </Grid>
-                                            </Grid>
-                                        </AccordionDetails>
-                                    </Accordion>
-
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <Button
-                                            variant="outlined"
-                                            color="primary"
-                                            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <DataObjectIcon sx={{ fontSize: 20, width: 20, height: 20, display: 'block' }} />}
-                                            onClick={handleRunJsonEvaluation}
-                                            disabled={loading}
-                                            sx={{
-                                                fontWeight: 'bold',
-                                            }}
-                                        >
-                                            {loading ? "Running..." : "Run"}
-                                        </Button>
-                                        {(latestEvent || loading) && (
-                                            <Alert
-                                                severity={latestEvent?.status === 'failed' ? 'error' : 'info'}
-                                                icon={loading ? <CircularProgress size={20} /> : undefined}
-                                                sx={{ flexGrow: 1, py: 0, alignItems: 'center' }}
-                                            >
-                                                {latestEvent ? (
-                                                    <>
-                                                        <Typography variant="body2" component="span" fontWeight="bold" sx={{ mr: 1 }}>
-                                                            [{latestEvent.agent_name}]
-                                                        </Typography>
-                                                        <Typography variant="body2" component="span">
-                                                            {latestEvent.message}
-                                                        </Typography>
-                                                    </>
-                                                ) : (
-                                                    <Typography variant="body2" component="span">
-                                                        Starting evaluation...
-                                                    </Typography>
-                                                )}
-                                            </Alert>
-                                        )}
-                                    </Box>
-                                    {(convertedGt || convertedAi) && (
-                                        <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                                            <Tooltip title="View Normalized JSON">
-                                                <Button
-                                                    size="small"
-                                                    variant="outlined"
-                                                    startIcon={<InfoIcon />}
-                                                    onClick={() => setShowNormalized(true)}
-                                                    sx={{ textTransform: 'none' }}
-                                                >
-                                                    View Normalized JSON
-                                                </Button>
-                                            </Tooltip>
-                                            <Tooltip title="View JSON Evaluation Differences">
-                                                <Button
-                                                    size="small"
-                                                    variant="outlined"
-                                                    color="secondary"
-                                                    startIcon={<DifferenceIcon />}
-                                                    onClick={() => {
-                                                        if (groupedRuns.length > 0) {
-                                                            setSelectedRunForDiff(groupedRuns[0]);
-                                                            setShowJsonDiff(true);
-                                                        } else {
-                                                            setSnackbarMessage("No evaluations found to compare.");
-                                                            setOpenSnackbar(true);
-                                                        }
-                                                    }}
-                                                    sx={{ textTransform: 'none' }}
-                                                >
-                                                    View JSON Differences
-                                                </Button>
-                                            </Tooltip>
-                                        </Box>
-                                    )}
-                                </Box>
-                            )}
-                        </Box>
-                    </Paper>
-
-                    {/* Normalized JSON Dialog */}
-                    <Dialog open={showNormalized} onClose={() => setShowNormalized(false)} maxWidth="lg" fullWidth>
-                        <DialogTitle component="div">
-                            <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold' }}>Normalized JSON Data</Typography>
-                            <Box sx={{ position: 'absolute', right: 48, top: 20, display: 'flex', gap: 1 }}>
-                                <Tooltip title="Expand All">
-                                    <IconButton
-                                        onClick={() => { setNormalizedJsonDepth(Infinity); setNormalizedJsonKey(prev => prev + 1); }}
-                                        size="small"
-                                        sx={{
-                                            '&:hover': {
-                                                transform: 'scale(1.1)',
-                                                bgcolor: 'rgba(103, 58, 183, 0.08)',
-                                            }
-                                        }}
-                                    >
-                                        <UnfoldMoreIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
-                                    </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Collapse All">
-                                    <IconButton
-                                        onClick={() => { setNormalizedJsonDepth(1); setNormalizedJsonKey(prev => prev + 1); }}
-                                        size="small"
-                                        sx={{
-                                            '&:hover': {
-                                                transform: 'scale(1.1)',
-                                                bgcolor: 'rgba(103, 58, 183, 0.08)',
-                                            }
-                                        }}
-                                    >
-                                        <UnfoldLessIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
-                                    </IconButton>
-                                </Tooltip>
-                            </Box>
-                            <IconButton
-                                aria-label="close"
-                                onClick={() => setShowNormalized(false)}
-                                sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}
-                            >
-                                <CloseIcon />
-                            </IconButton>
-                        </DialogTitle>
-                        <DialogContent dividers>
-                            <Grid container spacing={2}>
-                                <Grid size={{ xs: 6 }}>
-                                    <Typography variant="subtitle1" gutterBottom>Ground Truth (Normalized)</Typography>
-                                    {evaluationType === 'batch' && gtSource && (
-                                        <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary', display: 'block', mb: 1 }}>
-                                            filename: {gtSource}
+            {/* Content */}
+            <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2 }}>
+                <svg width={0} height={0} style={{ position: 'absolute', visibility: 'hidden' }}>
+                    <defs>
+                        <linearGradient id="export_icon_gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="30%" stopColor="#673ab7" />
+                            <stop offset="90%" stopColor="#2196f3" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                {/* Latest Stats Header */}
+                {stats && (
+                    <Box sx={{ mb: 2 }}>
+                        <Card sx={{ borderLeft: `6px solid ${stats.status === "PASS" ? '#4caf50' : '#f44336'}` }}>
+                            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                                {/* Header Section */}
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                                            Evaluation Analysis
                                         </Typography>
-                                    )}
-                                    {convertedGt && <JsonView key={`gt-${normalizedJsonKey}`} src={convertedGt} theme={theme.palette.mode === 'dark' ? 'vscode' : 'default'} className={theme.palette.mode === 'dark' ? 'dark' : ''} collapsed={normalizedJsonDepth === 1} />}
-                                </Grid>
-                                <Grid size={{ xs: 6 }}>
-                                    <Typography variant="subtitle1" gutterBottom>AI Outputs (Normalized)</Typography>
-                                    {convertedAi && (() => {
-                                        // Group by run_id
-                                        const grouped = convertedAi.reduce((acc: any, item: any) => {
-                                            const rid = item.run_id || "unknown";
-                                            if (!acc[rid]) acc[rid] = [];
-                                            acc[rid].push(item);
-                                            return acc;
-                                        }, {});
-
-                                        return Object.entries(grouped).map(([rid, items]: [string, any]) => (
-                                            <Box key={rid} sx={{ mb: 2 }}>
-                                                {evaluationType === 'batch' && rid !== 'manual_run' && (
-                                                    <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
-                                                        filename: {rid}
-                                                    </Typography>
-                                                )}
-                                                <JsonView
-                                                    key={`ai-${rid}-${normalizedJsonKey}`}
-                                                    src={items}
-                                                    theme={theme.palette.mode === 'dark' ? 'vscode' : 'default'}
-                                                    className={theme.palette.mode === 'dark' ? 'dark' : ''}
-                                                    collapsed={normalizedJsonDepth === 1}
-                                                />
-                                            </Box>
-                                        ));
-                                    })()}
-                                </Grid>
-                            </Grid>
-                        </DialogContent>
-                    </Dialog>
-
-                    {/* Detailed Results */}
-                    {result && (
-                        <Paper sx={{ p: 3, mb: 4, border: '1px solid', borderColor: 'divider' }}>
-
-
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                    <Typography variant="h5">Detailed Results For (By Default shows latest evaluation):- </Typography>
-                                    {evaluationType && (
-                                        <Alert
-                                            severity={evaluationType === 'json' ? 'info' : 'info'}
-                                            icon={false}
-                                            sx={{ py: 0, px: 2, alignItems: 'center', borderRadius: '6px' }}
+                                        <Paper
+                                            elevation={0}
+                                            sx={{
+                                                px: 1.5,
+                                                py: 0.5,
+                                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                                                border: '1px solid',
+                                                borderColor: (theme) => alpha(theme.palette.primary.main, 0.5),
+                                                borderRadius: 2,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 1
+                                            }}
                                         >
-                                            <Typography variant="body2" component="span" fontWeight="bold">
-                                                {evaluationType === 'json' ? 'JSON' : 'BATCH'}
+                                            <Typography variant="caption" color="text.primary" sx={{ fontWeight: 'bold', letterSpacing: 1.5, fontSize: '0.75rem' }}>
+                                                {(() => {
+                                                    const threshold = config.rqs_threshold || 0.5;
+                                                    return `RQS: ${((stats.rqs || 0) * 100).toFixed(1)}% (> ${(threshold * 100).toFixed(0)}%)`;
+                                                })()}
                                             </Typography>
+                                        </Paper>
+                                    </Box>
+                                    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                                        Total Queries: {stats.totalQueries} • Total Evaluations: {stats.totalEvaluations}
+                                    </Typography>
+                                </Box>
+
+                                <Grid container spacing={2}>
+                                    {/* Core Metrics */}
+                                    <Grid size={{ xs: 12, md: 5 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                                                ⚡ Core Performance
+                                            </Typography>
+                                            <Chip
+                                                label={stats.standardStatus}
+                                                size="small"
+                                                sx={{
+                                                    fontWeight: 900,
+                                                    backdropFilter: 'blur(8px)',
+                                                    background: stats.standardStatus === 'PASS' ? alpha('#4caf50', 0.2) : alpha('#f44336', 0.2),
+                                                    color: stats.standardStatus === 'PASS' ? '#4caf50' : '#f44336',
+                                                    border: '1px solid',
+                                                    borderColor: stats.standardStatus === 'PASS' ? alpha('#4caf50', 0.5) : alpha('#f44336', 0.5),
+                                                    boxShadow: `0 2px 10px 0 ${stats.standardStatus === 'PASS' ? alpha('#4caf50', 0.2) : alpha('#f44336', 0.2)}`
+                                                }}
+                                            />
+                                        </Box>
+                                        <Box sx={{ display: 'flex', gap: 4 }}>
+                                            <Box sx={{ ml: 1 }}>
+                                                <Typography variant="caption" color="text.secondary">RQS</Typography>
+                                                <Typography variant="h2" color="primary" sx={{ fontWeight: 'bold' }}>
+                                                    {((stats.rqs || 0) * 100).toFixed(1)}%
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
+                                                <Typography variant="caption" color="text.secondary">Accuracy</Typography>
+                                                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                                                    {((stats.accuracy || 0) * 100).toFixed(1)}%
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
+                                                <Typography variant="caption" color="text.secondary">Completeness</Typography>
+                                                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                                                    {((stats.completeness || 0) * 100).toFixed(1)}%
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
+                                                <Typography variant="caption" color="text.secondary">Hallucination</Typography>
+                                                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                                                    {((stats.hallucination || 0) * 100).toFixed(1)}%
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
+                                                <Typography variant="caption" color="text.secondary">Consistency</Typography>
+                                                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                                                    {((stats.consistency || 0) * 100).toFixed(1)}%
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
+                                                <Typography variant="caption" color="text.secondary">Safety</Typography>
+                                                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                                                    {((stats.safety || 1.0) * 100).toFixed(1)}%
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                    </Grid>
+
+                                    {/* Deep Dive */}
+                                    <Grid size={{ xs: 12, md: 4 }}>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
+                                            📊 Detailed Metrics
+                                        </Typography>
+                                        <Grid container spacing={1}>
+                                            <Grid size={{ xs: 12 }}>
+                                                <Typography variant="caption" display="block" color="text.secondary">Avg. Safety Score</Typography>
+                                                <Typography variant="body2" fontWeight="bold" color={stats.safety < 0.9 ? 'error.main' : 'success.main'}>
+                                                    {(stats.safety * 100).toFixed(1)}%
+                                                </Typography>
+                                            </Grid>
+                                            <Grid size={{ xs: 6 }}>
+                                                <Typography variant="caption" display="block" color="text.secondary">Hallucination Rate</Typography>
+                                                <Typography variant="body2" fontWeight="bold" color={stats.hallucination > 0.1 ? 'error.main' : 'success.main'}>
+                                                    {(stats.hallucination * 100).toFixed(1)}%
+                                                </Typography>
+                                            </Grid>
+                                            <Grid size={{ xs: 6 }}>
+                                                <Typography variant="caption" display="block" color="text.secondary">Avg. Consistency</Typography>
+                                                <Typography variant="body2" fontWeight="bold">
+                                                    {(stats.consistency * 100).toFixed(1)}%
+                                                </Typography>
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+
+                                    {/* Recommendations */}
+                                    <Grid size={{ xs: 12, md: 3 }}>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5, color: 'text.primary' }}>
+                                            💡 Recommendations
+                                        </Typography>
+                                        <List dense disablePadding>
+                                            {(() => {
+                                                const recs = [];
+                                                if (stats.hallucination > 0.1) {
+                                                    recs.push("Check hallucinated responses.");
+                                                }
+                                                if (stats.consistency < 0.8) {
+                                                    recs.push("Improve consistency (lower temp).");
+                                                }
+                                                if (stats.accuracy < 0.6) {
+                                                    recs.push("Review prompt instructions.");
+                                                }
+                                                if (stats.safety < 0.8) {
+                                                    recs.push("Review safety guidelines.");
+                                                }
+                                                if (recs.length === 0) {
+                                                    recs.push("System performing optimally.");
+                                                }
+                                                return recs.slice(0, 3).map((rec, idx) => (
+                                                    <ListItem key={idx} disablePadding sx={{ mb: 0 }}>
+                                                        <ListItemText
+                                                            primary={<Typography variant="caption" sx={{ display: 'flex', gap: 1 }}><span style={{ color: '#ff9800' }}>•</span> {rec}</Typography>}
+                                                        />
+                                                    </ListItem>
+                                                ));
+                                            })()}
+                                        </List>
+                                    </Grid>
+                                </Grid>
+
+
+
+                            </CardContent>
+                        </Card>
+                    </Box>
+                )}
+
+                <Paper sx={{ mb: 2, border: '1px solid', borderColor: 'divider' }}>
+                    <Tabs
+                        value={tabValue}
+                        onChange={handleTabChange}
+                        aria-label="test scenarios tabs"
+                        sx={{
+                            borderBottom: 1,
+                            borderColor: 'divider',
+                            '& .MuiTabs-indicator': {
+                                backgroundColor: (theme) => theme.palette.primary.main,
+                            },
+                            '& .MuiTab-root.Mui-selected': {
+                                color: (theme) => theme.palette.primary.main,
+                            }
+                        }}
+                    >
+                        <Tab label="Batch Evaluation" />
+                        <Tab label="JSON Evaluation" />
+                    </Tabs>
+
+                    {/* Tab 1: Batch Evaluation */}
+                    <Box role="tabpanel" hidden={tabValue !== 0} sx={{ p: 3 }}>
+                        {tabValue === 0 && (
+                            <Box>
+                                <Typography variant="h5" paragraph>
+                                    Run evaluation on local JSON files.
+                                </Typography>
+                                <Grid container spacing={3} sx={{ mb: 2 }}>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Ground Truth File Path (.json)"
+                                            value={gtPath}
+                                            onChange={(e) => setGtPath(e.target.value)}
+                                            placeholder="/path/to/ground_truth.json"
+                                            helperText="Enter the absolute path to your Ground Truth JSON file"
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="AI Outputs Folder Path"
+                                            value={aiPath}
+                                            onChange={(e) => setAiPath(e.target.value)}
+                                            placeholder="/path/to/ai_outputs/"
+                                            helperText="Enter the absolute path to the folder containing AI outputs"
+                                        />
+                                    </Grid>
+                                </Grid>
+
+                                <Accordion sx={{ mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
+                                    <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />}>
+                                        <Typography variant="subtitle2">Advanced: Key Mapping</Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails>
+                                        <Grid container spacing={2}>
+                                            <Grid size={{ xs: 12 }}>
+                                                <Typography variant="caption" sx={{ color: '#2196f3', fontWeight: 'bold' }}>Ground Truth Keys</Typography>
+                                            </Grid>
+                                            <Grid size={{ xs: 4 }}>
+                                                <TextField label="Query ID Key" size="small" fullWidth value={gtQueryIdKey} onChange={(e) => setGtQueryIdKey(e.target.value)} />
+                                            </Grid>
+                                            <Grid size={{ xs: 4 }}>
+                                                <TextField label="Ground Truth Key" size="small" fullWidth value={gtExpectedKey} onChange={(e) => setGtExpectedKey(e.target.value)} />
+                                            </Grid>
+                                            <Grid size={{ xs: 4 }}>
+                                                <TextField label="Match Type Key" size="small" fullWidth value={gtTypeKey} onChange={(e) => setGtTypeKey(e.target.value)} />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12 }}>
+                                                <Typography variant="caption" color="secondary" fontWeight="bold">AI Output Keys</Typography>
+                                            </Grid>
+                                            <Grid size={{ xs: 4 }}>
+                                                <TextField label="Query ID Key" size="small" fullWidth value={predQueryIdKey} onChange={(e) => setPredQueryIdKey(e.target.value)} />
+                                            </Grid>
+                                            <Grid size={{ xs: 4 }}>
+                                                <TextField label="AI Output Key" size="small" fullWidth value={predOutputKey} onChange={(e) => setPredOutputKey(e.target.value)} />
+                                            </Grid>
+                                            <Grid size={{ xs: 4 }}>
+                                                <TextField label="Run ID Key" size="small" fullWidth value={predRunIdKey} onChange={(e) => setPredRunIdKey(e.target.value)} />
+                                            </Grid>
+                                        </Grid>
+                                    </AccordionDetails>
+                                </Accordion>
+
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <Button
+                                        variant="outlined"
+                                        color="primary"
+                                        startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <PlayArrowIcon sx={{ fontSize: 20, width: 20, height: 20, display: 'block' }} />}
+                                        onClick={handleRunBatch}
+                                        disabled={loading}
+                                        sx={{
+                                            fontWeight: 'bold',
+                                        }}
+                                    >
+                                        {loading ? "Running..." : "Run"}
+                                    </Button>
+                                    {(latestEvent || loading) && (
+                                        <Alert
+                                            severity={latestEvent?.status === 'failed' ? 'error' : 'info'}
+                                            icon={loading ? <CircularProgress size={20} /> : undefined}
+                                            sx={{ flexGrow: 1, py: 0, alignItems: 'center' }}
+                                        >
+                                            {latestEvent ? (
+                                                <>
+                                                    <Typography variant="body2" component="span" fontWeight="bold" sx={{ mr: 1 }}>
+                                                        [{latestEvent.agent_name}]
+                                                    </Typography>
+                                                    <Typography variant="body2" component="span">
+                                                        {latestEvent.message}
+                                                    </Typography>
+                                                </>
+                                            ) : (
+                                                <Typography variant="body2" component="span">
+                                                    Starting evaluation...
+                                                </Typography>
+                                            )}
                                         </Alert>
                                     )}
                                 </Box>
-                                <Box sx={{ display: 'flex', gap: 1 }}>
-                                    <Tooltip title="Export to Excel">
-                                        <Box sx={{ display: 'inline-flex' }}>
-                                            <IconButton
-                                                onClick={handleExportToExcel}
-                                                sx={{
-                                                    '&:hover': {
-                                                        transform: 'scale(1.1)',
-                                                        bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                {(convertedGt || convertedAi) && (
+                                    <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                                        <Tooltip title="View Normalized JSON">
+                                            <Button
+                                                size="small"
+                                                variant="outlined"
+                                                startIcon={<InfoIcon />}
+                                                onClick={() => setShowNormalized(true)}
+                                                sx={{ textTransform: 'none' }}
+                                            >
+                                                View Normalized JSON
+                                            </Button>
+                                        </Tooltip>
+                                        <Tooltip title="View JSON Evaluation Differences">
+                                            <Button
+                                                size="small"
+                                                variant="outlined"
+                                                color="secondary"
+                                                startIcon={<DifferenceIcon />}
+                                                onClick={() => {
+                                                    if (groupedRuns.length > 0) {
+                                                        setSelectedRunForDiff(groupedRuns[0]);
+                                                        setShowJsonDiff(true);
+                                                    } else {
+                                                        setSnackbarMessage("No evaluations found to compare.");
+                                                        setOpenSnackbar(true);
                                                     }
                                                 }}
+                                                sx={{ textTransform: 'none' }}
                                             >
-                                                <FileDownloadIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
-                                            </IconButton>
-                                        </Box>
-                                    </Tooltip>
-                                    <Tooltip title="Expand All Rows">
-                                        <IconButton
-                                            onClick={() => setExpandAction({ type: 'expand', id: Date.now() })}
-                                            sx={{
-                                                '&:hover': {
-                                                    transform: 'scale(1.1)',
-                                                    bgcolor: 'rgba(103, 58, 183, 0.08)',
-                                                }
-                                            }}
-                                        >
-                                            <UnfoldMoreIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
-                                        </IconButton>
-                                    </Tooltip>
-                                    <Tooltip title="Collapse All Rows">
-                                        <IconButton
-                                            onClick={() => setExpandAction({ type: 'collapse', id: Date.now() })}
-                                            sx={{
-                                                '&:hover': {
-                                                    transform: 'scale(1.1)',
-                                                    bgcolor: 'rgba(103, 58, 183, 0.08)',
-                                                }
-                                            }}
-                                        >
-                                            <UnfoldLessIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
-                                        </IconButton>
-                                    </Tooltip>
-                                    <Tooltip title="View Full Results JSON">
-                                        <IconButton
-                                            onClick={() => setOpenDialog(true)}
-                                            sx={{
-                                                '&:hover': {
-                                                    transform: 'scale(1.1)',
-                                                    bgcolor: 'rgba(103, 58, 183, 0.08)',
-                                                }
-                                            }}
-                                        >
-                                            <DataObjectIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
-                                        </IconButton>
-                                    </Tooltip>
-                                </Box>
+                                                View JSON Differences
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                )}
                             </Box>
-                            <TableContainer>
-                                <Table>
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell width="50px" />
-                                            <TableCell>JSON File Name</TableCell>
-                                            <TableCell align="center">Completeness</TableCell>
-                                            <TableCell align="center">Accuracy</TableCell>
-                                            <TableCell align="center">Hallucination</TableCell>
-                                            <TableCell align="center">Safety Score</TableCell>
-                                            <TableCell align="center">Overall Status</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {groupedRuns.map((run: any) => (
-                                            <RunResultRow
-                                                key={run.runId}
-                                                run={run}
-                                                expandAction={expandAction}
-                                                thresholds={config}
-                                                result={result}
-                                            />
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
-                        </Paper>
-                    )}
+                        )}
+                    </Box>
 
-                    {/* Detailed JSON Dialog */}
-                    <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="lg" fullWidth>
-                        <DialogTitle>
-                            <Typography variant="h5" component="div">Evaluation Result JSON</Typography>
-                            <Box sx={{ position: 'absolute', right: 96, top: 8, display: 'flex', gap: 1 }}>
-                                <Tooltip title="Expand All">
-                                    <IconButton
-                                        onClick={() => { setJsonDepth(Infinity); setJsonKey(prev => prev + 1); }}
-                                        size="small"
+                    {/* Tab 2: JSON Evaluation */}
+                    <Box role="tabpanel" hidden={tabValue !== 1} sx={{ p: 3 }}>
+                        {tabValue === 1 && (
+                            <Box>
+                                <Typography variant="body2" color="text.secondary" paragraph>
+                                    Paste your Ground Truth and AI Outputs JSON here to run a manual evaluation.
+                                </Typography>
+
+                                <Grid container spacing={3}>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            multiline
+                                            rows={10}
+                                            label="Ground Truth JSON"
+                                            value={gtJson}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setGtJson(val);
+                                                // Smart Paste Logic
+                                                try {
+                                                    const parsed = JSON.parse(val);
+                                                    if (parsed.ground_truth && Array.isArray(parsed.ground_truth)) {
+                                                        setGtJson(JSON.stringify(parsed.ground_truth, null, 2));
+                                                        if (parsed.ai_outputs && Array.isArray(parsed.ai_outputs)) {
+                                                            setOutputsJson(JSON.stringify(parsed.ai_outputs, null, 2));
+                                                        }
+                                                        if (parsed.gt_query_id_key) setGtQueryIdKey(parsed.gt_query_id_key);
+                                                        if (parsed.gt_expected_key) setGtExpectedKey(parsed.gt_expected_key);
+                                                        if (parsed.gt_type_key) setGtTypeKey(parsed.gt_type_key);
+                                                        if (parsed.pred_query_id_key) setPredQueryIdKey(parsed.pred_query_id_key);
+                                                        if (parsed.pred_output_key) setPredOutputKey(parsed.pred_output_key);
+                                                        if (parsed.pred_run_id_key) setPredRunIdKey(parsed.pred_run_id_key);
+                                                    }
+                                                } catch (err) {
+                                                    // Not a full JSON object, ignore
+                                                }
+                                            }}
+                                            sx={{ mb: 2, fontFamily: 'monospace' }}
+                                            placeholder='[{"query_id": "q1", "expected_output": "..."}]'
+                                        />
+                                    </Grid>
+                                    <Grid size={{ xs: 12, md: 6 }}>
+                                        <TextField
+                                            fullWidth
+                                            multiline
+                                            rows={10}
+                                            label="AI Outputs JSON"
+                                            value={outputsJson}
+                                            onChange={(e) => setOutputsJson(e.target.value)}
+                                            sx={{ mb: 2, fontFamily: 'monospace' }}
+                                            placeholder='[{"query_id": "q1", "output": "..."}]'
+                                        />
+                                    </Grid>
+                                </Grid>
+
+                                <Accordion sx={{ mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
+                                    <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />}>
+                                        <Typography variant="subtitle2">Advanced: Key Mapping</Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails>
+                                        <Grid container spacing={2}>
+                                            <Grid size={{ xs: 12 }}>
+                                                <Typography variant="caption" sx={{ color: '#2196f3', fontWeight: 'bold' }}>Ground Truth Keys</Typography>
+                                            </Grid>
+                                            <Grid size={{ xs: 4 }}>
+                                                <TextField label="Query ID Key" size="small" fullWidth value={gtQueryIdKey} onChange={(e) => setGtQueryIdKey(e.target.value)} />
+                                            </Grid>
+                                            <Grid size={{ xs: 4 }}>
+                                                <TextField label="Ground Truth Key" size="small" fullWidth value={gtExpectedKey} onChange={(e) => setGtExpectedKey(e.target.value)} />
+                                            </Grid>
+                                            <Grid size={{ xs: 4 }}>
+                                                <TextField label="Match Type Key" size="small" fullWidth value={gtTypeKey} onChange={(e) => setGtTypeKey(e.target.value)} />
+                                            </Grid>
+
+                                            <Grid size={{ xs: 12 }}>
+                                                <Typography variant="caption" color="secondary" fontWeight="bold">AI Output Keys</Typography>
+                                            </Grid>
+                                            <Grid size={{ xs: 4 }}>
+                                                <TextField label="Query ID Key" size="small" fullWidth value={predQueryIdKey} onChange={(e) => setPredQueryIdKey(e.target.value)} />
+                                            </Grid>
+                                            <Grid size={{ xs: 4 }}>
+                                                <TextField label="AI Output Key" size="small" fullWidth value={predOutputKey} onChange={(e) => setPredOutputKey(e.target.value)} />
+                                            </Grid>
+                                            <Grid size={{ xs: 4 }}>
+                                                <TextField label="Run ID Key" size="small" fullWidth value={predRunIdKey} onChange={(e) => setPredRunIdKey(e.target.value)} />
+                                            </Grid>
+                                        </Grid>
+                                    </AccordionDetails>
+                                </Accordion>
+
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <Button
+                                        variant="outlined"
+                                        color="primary"
+                                        startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <DataObjectIcon sx={{ fontSize: 20, width: 20, height: 20, display: 'block' }} />}
+                                        onClick={handleRunJsonEvaluation}
+                                        disabled={loading}
                                         sx={{
-                                            '&:hover': {
-                                                transform: 'scale(1.1)',
-                                                bgcolor: 'rgba(103, 58, 183, 0.08)',
-                                            }
+                                            fontWeight: 'bold',
                                         }}
                                     >
-                                        <UnfoldMoreIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
-                                    </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Collapse All">
-                                    <IconButton
-                                        onClick={() => { setJsonDepth(1); setJsonKey(prev => prev + 1); }}
-                                        size="small"
-                                        sx={{
-                                            '&:hover': {
-                                                transform: 'scale(1.1)',
-                                                bgcolor: 'rgba(103, 58, 183, 0.08)',
-                                            }
-                                        }}
-                                    >
-                                        <UnfoldLessIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
-                                    </IconButton>
-                                </Tooltip>
+                                        {loading ? "Running..." : "Run"}
+                                    </Button>
+                                    {(latestEvent || loading) && (
+                                        <Alert
+                                            severity={latestEvent?.status === 'failed' ? 'error' : 'info'}
+                                            icon={loading ? <CircularProgress size={20} /> : undefined}
+                                            sx={{ flexGrow: 1, py: 0, alignItems: 'center' }}
+                                        >
+                                            {latestEvent ? (
+                                                <>
+                                                    <Typography variant="body2" component="span" fontWeight="bold" sx={{ mr: 1 }}>
+                                                        [{latestEvent.agent_name}]
+                                                    </Typography>
+                                                    <Typography variant="body2" component="span">
+                                                        {latestEvent.message}
+                                                    </Typography>
+                                                </>
+                                            ) : (
+                                                <Typography variant="body2" component="span">
+                                                    Starting evaluation...
+                                                </Typography>
+                                            )}
+                                        </Alert>
+                                    )}
+                                </Box>
+                                {(convertedGt || convertedAi) && (
+                                    <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                                        <Tooltip title="View Normalized JSON">
+                                            <Button
+                                                size="small"
+                                                variant="outlined"
+                                                startIcon={<InfoIcon />}
+                                                onClick={() => setShowNormalized(true)}
+                                                sx={{ textTransform: 'none' }}
+                                            >
+                                                View Normalized JSON
+                                            </Button>
+                                        </Tooltip>
+                                        <Tooltip title="View JSON Evaluation Differences">
+                                            <Button
+                                                size="small"
+                                                variant="outlined"
+                                                color="secondary"
+                                                startIcon={<DifferenceIcon />}
+                                                onClick={() => {
+                                                    if (groupedRuns.length > 0) {
+                                                        setSelectedRunForDiff(groupedRuns[0]);
+                                                        setShowJsonDiff(true);
+                                                    } else {
+                                                        setSnackbarMessage("No evaluations found to compare.");
+                                                        setOpenSnackbar(true);
+                                                    }
+                                                }}
+                                                sx={{ textTransform: 'none' }}
+                                            >
+                                                View JSON Differences
+                                            </Button>
+                                        </Tooltip>
+                                    </Box>
+                                )}
                             </Box>
-                            <Tooltip title="Copy Result JSON">
+                        )}
+                    </Box>
+                </Paper>
+
+                {/* Normalized JSON Dialog */}
+                <Dialog open={showNormalized} onClose={() => setShowNormalized(false)} maxWidth="lg" fullWidth>
+                    <DialogTitle component="div">
+                        <Typography variant="h4" component="h2" sx={{ fontWeight: 'bold' }}>Normalized JSON Data</Typography>
+                        <Box sx={{ position: 'absolute', right: 48, top: 20, display: 'flex', gap: 1 }}>
+                            <Tooltip title="Expand All">
                                 <IconButton
-                                    onClick={handleCopyJson}
+                                    onClick={() => { setNormalizedJsonDepth(Infinity); setNormalizedJsonKey(prev => prev + 1); }}
+                                    size="small"
                                     sx={{
-                                        position: 'absolute',
-                                        right: 48,
-                                        top: 8,
                                         '&:hover': {
                                             transform: 'scale(1.1)',
                                             bgcolor: 'rgba(103, 58, 183, 0.08)',
                                         }
                                     }}
                                 >
-                                    <ContentCopyIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
+                                    <UnfoldMoreIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
                                 </IconButton>
                             </Tooltip>
+                            <Tooltip title="Collapse All">
+                                <IconButton
+                                    onClick={() => { setNormalizedJsonDepth(1); setNormalizedJsonKey(prev => prev + 1); }}
+                                    size="small"
+                                    sx={{
+                                        '&:hover': {
+                                            transform: 'scale(1.1)',
+                                            bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                        }
+                                    }}
+                                >
+                                    <UnfoldLessIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
+                                </IconButton>
+                            </Tooltip>
+                        </Box>
+                        <IconButton
+                            aria-label="close"
+                            onClick={() => setShowNormalized(false)}
+                            sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}
+                        >
+                            <CloseIcon />
+                        </IconButton>
+                    </DialogTitle>
+                    <DialogContent dividers>
+                        <Grid container spacing={2}>
+                            <Grid size={{ xs: 6 }}>
+                                <Typography variant="subtitle1" gutterBottom>Ground Truth (Normalized)</Typography>
+                                {evaluationType === 'batch' && gtSource && (
+                                    <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary', display: 'block', mb: 1 }}>
+                                        filename: {gtSource}
+                                    </Typography>
+                                )}
+                                {convertedGt && <JsonView key={`gt-${normalizedJsonKey}`} src={convertedGt} theme={theme.palette.mode === 'dark' ? 'vscode' : 'default'} className={theme.palette.mode === 'dark' ? 'dark' : ''} collapsed={normalizedJsonDepth === 1} />}
+                            </Grid>
+                            <Grid size={{ xs: 6 }}>
+                                <Typography variant="subtitle1" gutterBottom>AI Outputs (Normalized)</Typography>
+                                {convertedAi && (() => {
+                                    // Group by run_id
+                                    const grouped = convertedAi.reduce((acc: any, item: any) => {
+                                        const rid = item.run_id || "unknown";
+                                        if (!acc[rid]) acc[rid] = [];
+                                        acc[rid].push(item);
+                                        return acc;
+                                    }, {});
+
+                                    return Object.entries(grouped).map(([rid, items]: [string, any]) => (
+                                        <Box key={rid} sx={{ mb: 2 }}>
+                                            {evaluationType === 'batch' && rid !== 'manual_run' && (
+                                                <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
+                                                    filename: {rid}
+                                                </Typography>
+                                            )}
+                                            <JsonView
+                                                key={`ai-${rid}-${normalizedJsonKey}`}
+                                                src={items}
+                                                theme={theme.palette.mode === 'dark' ? 'vscode' : 'default'}
+                                                className={theme.palette.mode === 'dark' ? 'dark' : ''}
+                                                collapsed={normalizedJsonDepth === 1}
+                                            />
+                                        </Box>
+                                    ));
+                                })()}
+                            </Grid>
+                        </Grid>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Detailed Results */}
+                {result && (
+                    <Paper sx={{ p: 3, mb: 4, border: '1px solid', borderColor: 'divider' }}>
+
+
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Typography variant="h5">Detailed Results For (By Default shows latest evaluation):- </Typography>
+                                {evaluationType && (
+                                    <Alert
+                                        severity={evaluationType === 'json' ? 'info' : 'info'}
+                                        icon={false}
+                                        sx={{ py: 0, px: 2, alignItems: 'center', borderRadius: '6px' }}
+                                    >
+                                        <Typography variant="body2" component="span" fontWeight="bold">
+                                            {evaluationType === 'json' ? 'JSON' : 'BATCH'}
+                                        </Typography>
+                                    </Alert>
+                                )}
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Tooltip title="Export to Excel">
+                                    <Box sx={{ display: 'inline-flex' }}>
+                                        <IconButton
+                                            onClick={handleExportToExcel}
+                                            sx={{
+                                                '&:hover': {
+                                                    transform: 'scale(1.1)',
+                                                    bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                                }
+                                            }}
+                                        >
+                                            <FileDownloadIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
+                                        </IconButton>
+                                    </Box>
+                                </Tooltip>
+                                <Tooltip title="Expand All Rows">
+                                    <IconButton
+                                        onClick={() => setExpandAction({ type: 'expand', id: Date.now() })}
+                                        sx={{
+                                            '&:hover': {
+                                                transform: 'scale(1.1)',
+                                                bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                            }
+                                        }}
+                                    >
+                                        <UnfoldMoreIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
+                                    </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Collapse All Rows">
+                                    <IconButton
+                                        onClick={() => setExpandAction({ type: 'collapse', id: Date.now() })}
+                                        sx={{
+                                            '&:hover': {
+                                                transform: 'scale(1.1)',
+                                                bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                            }
+                                        }}
+                                    >
+                                        <UnfoldLessIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
+                                    </IconButton>
+                                </Tooltip>
+                                <Tooltip title="View Full Results JSON">
+                                    <IconButton
+                                        onClick={() => setOpenDialog(true)}
+                                        sx={{
+                                            '&:hover': {
+                                                transform: 'scale(1.1)',
+                                                bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                            }
+                                        }}
+                                    >
+                                        <DataObjectIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
+                                    </IconButton>
+                                </Tooltip>
+                            </Box>
+                        </Box>
+                        <TableContainer>
+                            <Table>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell width="50px" />
+                                        <TableCell>JSON File Name</TableCell>
+                                        <TableCell align="center">Completeness</TableCell>
+                                        <TableCell align="center">Accuracy</TableCell>
+                                        <TableCell align="center">Hallucination</TableCell>
+                                        <TableCell align="center">Safety Score</TableCell>
+                                        <TableCell align="center">Overall Status</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {groupedRuns.map((run: any) => (
+                                        <RunResultRow
+                                            key={run.runId}
+                                            run={run}
+                                            expandAction={expandAction}
+                                            thresholds={config}
+                                            result={result}
+                                        />
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    </Paper>
+                )}
+
+                {/* Detailed JSON Dialog */}
+                <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="lg" fullWidth>
+                    <DialogTitle>
+                        <Typography variant="h5" component="div">Evaluation Result JSON</Typography>
+                        <Box sx={{ position: 'absolute', right: 96, top: 8, display: 'flex', gap: 1 }}>
+                            <Tooltip title="Expand All">
+                                <IconButton
+                                    onClick={() => { setJsonDepth(Infinity); setJsonKey(prev => prev + 1); }}
+                                    size="small"
+                                    sx={{
+                                        '&:hover': {
+                                            transform: 'scale(1.1)',
+                                            bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                        }
+                                    }}
+                                >
+                                    <UnfoldMoreIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
+                                </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Collapse All">
+                                <IconButton
+                                    onClick={() => { setJsonDepth(1); setJsonKey(prev => prev + 1); }}
+                                    size="small"
+                                    sx={{
+                                        '&:hover': {
+                                            transform: 'scale(1.1)',
+                                            bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                        }
+                                    }}
+                                >
+                                    <UnfoldLessIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
+                                </IconButton>
+                            </Tooltip>
+                        </Box>
+                        <Tooltip title="Copy Result JSON">
                             <IconButton
-                                aria-label="close"
-                                onClick={() => setOpenDialog(false)}
-                                sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}
+                                onClick={handleCopyJson}
+                                sx={{
+                                    position: 'absolute',
+                                    right: 48,
+                                    top: 8,
+                                    '&:hover': {
+                                        transform: 'scale(1.1)',
+                                        bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                    }
+                                }}
                             >
-                                <CloseIcon />
+                                <ContentCopyIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />
                             </IconButton>
-                        </DialogTitle>
-                        <DialogContent dividers>
-                            {result && <JsonView src={result} theme={theme.palette.mode === 'dark' ? 'vscode' : 'default'} className={theme.palette.mode === 'dark' ? 'dark' : ''} collapsed={jsonDepth === 1} />}
-                        </DialogContent>
-                    </Dialog>
+                        </Tooltip>
+                        <IconButton
+                            aria-label="close"
+                            onClick={() => setOpenDialog(false)}
+                            sx={{ position: 'absolute', right: 8, top: 8, color: (theme) => theme.palette.grey[500] }}
+                        >
+                            <CloseIcon />
+                        </IconButton>
+                    </DialogTitle>
+                    <DialogContent dividers>
+                        {result && <JsonView src={result} theme={theme.palette.mode === 'dark' ? 'vscode' : 'default'} className={theme.palette.mode === 'dark' ? 'dark' : ''} collapsed={jsonDepth === 1} />}
+                    </DialogContent>
+                </Dialog>
 
 
 
-                    <Snackbar
-                        open={openSnackbar}
-                        autoHideDuration={6000}
-                        onClose={() => setOpenSnackbar(false)}
-                    >
-                        <Alert onClose={() => setOpenSnackbar(false)} severity={snackbarMessage.includes("Error") ? "error" : "success"} sx={{ width: '100%' }}>
-                            {snackbarMessage}
-                        </Alert>
-                    </Snackbar>
+                <Snackbar
+                    open={openSnackbar}
+                    autoHideDuration={6000}
+                    onClose={() => setOpenSnackbar(false)}
+                >
+                    <Alert onClose={() => setOpenSnackbar(false)} severity={snackbarMessage.includes("Error") ? "error" : "success"} sx={{ width: '100%' }}>
+                        {snackbarMessage}
+                    </Alert>
+                </Snackbar>
 
-                    <JsonDiffDialog
-                        open={showJsonDiff}
-                        onClose={() => setShowJsonDiff(false)}
-                        initialRun={selectedRunForDiff}
-                        result={result}
-                        thresholds={config}
-                        allRuns={groupedRuns}
-                    />
-                </Box>
-            </Box >
-        </Box >
+                <JsonDiffDialog
+                    open={showJsonDiff}
+                    onClose={() => setShowJsonDiff(false)}
+                    initialRun={selectedRunForDiff}
+                    result={result}
+                    thresholds={config}
+                    allRuns={groupedRuns}
+                />
+            </Box>
+        </Box>
     );
 }
 
