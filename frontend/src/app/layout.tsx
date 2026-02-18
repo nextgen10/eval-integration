@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import ThemeRegistry from "@/components/ThemeRegistry";
 
 export const metadata: Metadata = {
   title: "Nexus Eval",
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}>
-        {children}
+        <ThemeRegistry>
+          {children}
+        </ThemeRegistry>
       </body>
     </html>
   );

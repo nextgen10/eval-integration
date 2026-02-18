@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Button, Tabs, Tab, TextField, Accordion, AccordionSummary, AccordionDetails, Snackbar, Alert, Grid, Dialog, DialogTitle, DialogContent, IconButton, CircularProgress, Collapse, Tooltip as MuiTooltip, List, ListItem, ListItemText, InputAdornment, Card, CardContent, styled, tooltipClasses, TooltipProps, Divider } from '@mui/material';
-import { API_BASE_URL } from '../utils/config';
+import { API_BASE_URL } from '@/features/agent-eval/utils/config';
 import { alpha, useTheme } from '@mui/material/styles';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -9,9 +9,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import dynamic from 'next/dynamic';
-import { SummaryCard } from '../components/Dashboard';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import AssistantIcon from '@mui/icons-material/Assistant';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import FunctionsIcon from '@mui/icons-material/Functions';
@@ -28,9 +28,9 @@ import DifferenceIcon from '@mui/icons-material/Difference';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import HistoryIcon from '@mui/icons-material/History';
 import AssessmentIcon from '@mui/icons-material/Assessment';
-import { useAgentEvents } from '../hooks/useAgentEvents';
+import { useAgentEvents } from '@/features/agent-eval/hooks/useAgentEvents';
 import * as XLSX from 'xlsx';
-import { useEvaluation } from '../contexts/EvaluationContext';
+import { useEvaluation } from '@/features/agent-eval/contexts/EvaluationContext';
 
 
 import JsonView from 'react18-json-view';
@@ -98,7 +98,7 @@ function QueryConsistencyDialog({ open, onClose, qid, perQueryData }: { open: bo
             <DialogContent dividers sx={{ p: 2 }}>
                 <Grid container spacing={3}>
                     <Grid size={{ xs: 12, md: 4 }}>
-                        <Paper variant="outlined" sx={{ p: 2, height: '100%', bgcolor: alpha('#009688', 0.02) }}>
+                        <Paper variant="outlined" sx={{ p: 2, height: '100%', bgcolor: alpha(theme.palette.info.main, 0.02) }}>
                             <Typography variant="subtitle2" gutterBottom fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <HistoryIcon fontSize="small" /> Execution Variance
                             </Typography>
@@ -118,7 +118,7 @@ function QueryConsistencyDialog({ open, onClose, qid, perQueryData }: { open: bo
                         </Paper>
                     </Grid>
                     <Grid size={{ xs: 12, md: 8 }}>
-                        <Paper variant="outlined" sx={{ p: 2, bgcolor: alpha('#673ab7', 0.02) }}>
+                        <Paper variant="outlined" sx={{ p: 2, bgcolor: alpha(theme.palette.secondary.main, 0.02) }}>
                             <Typography variant="subtitle2" gutterBottom fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 <AssessmentIcon fontSize="small" /> Field-Level Stability (JSON)
                             </Typography>
@@ -137,7 +137,7 @@ function QueryConsistencyDialog({ open, onClose, qid, perQueryData }: { open: bo
                                                 <TableCell sx={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>{name}</TableCell>
                                                 <TableCell align="right" sx={{ fontSize: '0.75rem' }}>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
-                                                        <Box sx={{ width: 40, height: 4, bgcolor: alpha('#ccc', 0.2), borderRadius: 2, overflow: 'hidden' }}>
+                                                        <Box sx={{ width: 40, height: 4, bgcolor: alpha(theme.palette.divider, 0.5), borderRadius: 2, overflow: 'hidden' }}>
                                                             <Box sx={{ width: `${data.stability * 100}%`, height: '100%', bgcolor: data.stability >= 0.8 ? 'success.main' : 'warning.main' }} />
                                                         </Box>
                                                         {(data.stability * 100).toFixed(0)}%
@@ -150,8 +150,8 @@ function QueryConsistencyDialog({ open, onClose, qid, perQueryData }: { open: bo
                                                         sx={{
                                                             fontSize: '0.6rem',
                                                             height: 18,
-                                                            bgcolor: data.stability === 1 ? alpha('#4caf50', 0.1) : data.stability >= 0.7 ? alpha('#2196f3', 0.1) : alpha('#f44336', 0.1),
-                                                            color: data.stability === 1 ? '#4caf50' : data.stability >= 0.7 ? '#2196f3' : '#f44336'
+                                                            bgcolor: data.stability === 1 ? alpha(theme.palette.success.main, 0.1) : data.stability >= 0.7 ? alpha(theme.palette.info.main, 0.1) : alpha(theme.palette.error.main, 0.1),
+                                                            color: data.stability === 1 ? theme.palette.success.main : data.stability >= 0.7 ? theme.palette.info.main : theme.palette.error.main
                                                         }}
                                                     />
                                                 </TableCell>
@@ -173,6 +173,7 @@ function QueryConsistencyDialog({ open, onClose, qid, perQueryData }: { open: bo
 }
 
 function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thresholds: any, expandAction: any, result: any }) {
+    const theme = useTheme();
     const [expanded, setExpanded] = useState(false);
     const [activeTab, setActiveTab] = useState(0);
     const [consistencyDialog, setConsistencyDialog] = useState<{ open: boolean, qid: string } | null>(null);
@@ -207,7 +208,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
 
     return (
         <React.Fragment>
-            <TableRow sx={{ bgcolor: alpha('#673ab7', 0.05), '&:hover': { bgcolor: alpha('#673ab7', 0.08) } }}>
+            <TableRow sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.05), '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.08) } }}>
                 <TableCell>
                     <IconButton size="small" onClick={() => setExpanded(!expanded)}>
                         {expanded ? <ExpandMoreIcon sx={{ transform: 'rotate(180deg)' }} /> : <ExpandMoreIcon />}
@@ -294,19 +295,19 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                     <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>JSON File Structural Integrity (Aggregate)</Typography>
                                     <Grid container spacing={3}>
                                         <Grid size={{ xs: 12, md: 4 }}>
-                                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha('#4caf50', 0.02) }}>
+                                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha(theme.palette.success.main, 0.02) }}>
                                                 <Typography variant="caption" color="text.secondary" display="block">Total Ground Truth Keys</Typography>
                                                 <Typography variant="h4" fontWeight="bold">{run.outputs.reduce((a: number, b: any) => a + (b.gt_keys?.length || 0), 0)}</Typography>
                                             </Paper>
                                         </Grid>
                                         <Grid size={{ xs: 12, md: 4 }}>
-                                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha('#2196f3', 0.02) }}>
+                                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha(theme.palette.info.main, 0.02) }}>
                                                 <Typography variant="caption" color="text.secondary" display="block">Total AI Output Keys</Typography>
                                                 <Typography variant="h4" fontWeight="bold">{run.outputs.reduce((a: number, b: any) => a + (b.aio_keys?.length || 0), 0)}</Typography>
                                             </Paper>
                                         </Grid>
                                         <Grid size={{ xs: 12, md: 4 }}>
-                                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha('#f44336', 0.02) }}>
+                                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha(theme.palette.error.main, 0.02) }}>
                                                 <Typography variant="caption" color="text.secondary" display="block">Unique Missing Fields</Typography>
                                                 <Typography variant="h4" fontWeight="bold" color="error.main">
                                                     {new Set(run.outputs.flatMap((o: any) => o.missing_keys || [])).size}
@@ -338,8 +339,8 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                     <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>Field Correlation & Accuracy Strategy Breakdown</Typography>
                                     {Object.entries(accuracyGroups).length > 0 ? (
                                         Object.entries(accuracyGroups).map(([strategy, fields]) => (
-                                            <Accordion key={strategy} defaultExpanded sx={{ mb: 2, border: '1px solid', borderColor: alpha('#2196f3', 0.2), boxShadow: 'none' }}>
-                                                <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: alpha('#2196f3', 0.05) }}>
+                                            <Accordion key={strategy} defaultExpanded sx={{ mb: 2, border: '1px solid', borderColor: alpha(theme.palette.info.main, 0.2), boxShadow: 'none' }}>
+                                                <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: alpha(theme.palette.info.main, 0.05) }}>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                                         <Typography sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>{strategy} Match</Typography>
                                                         <Chip label={`${fields.length} Fields`} size="small" color="primary" variant="outlined" />
@@ -347,7 +348,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                                 </AccordionSummary>
                                                 <AccordionDetails sx={{ p: 0 }}>
                                                     <Table size="small">
-                                                        <TableHead sx={{ bgcolor: alpha('#2196f3', 0.02) }}>
+                                                        <TableHead sx={{ bgcolor: alpha(theme.palette.info.main, 0.02) }}>
                                                             <TableRow>
                                                                 <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Field Name</TableCell>
                                                                 <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Query ID</TableCell>
@@ -385,7 +386,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                                                         <Chip
                                                                             label={f.score.toFixed(2)}
                                                                             size="small"
-                                                                            sx={{ height: 18, fontSize: '0.7rem', fontWeight: 'bold', bgcolor: f.score >= 0.8 ? alpha('#4caf50', 0.1) : alpha('#f44336', 0.1), color: f.score >= 0.8 ? '#4caf50' : '#f44336' }}
+                                                                            sx={{ height: 18, fontSize: '0.7rem', fontWeight: 'bold', bgcolor: f.score >= 0.8 ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.error.main, 0.1), color: f.score >= 0.8 ? 'success.main' : 'error.main' }}
                                                                         />
                                                                     </TableCell>
                                                                 </TableRow>
@@ -407,7 +408,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                     <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>Hallucination & Schema Compliance (Aggregate)</Typography>
                                     <Grid container spacing={3}>
                                         <Grid size={{ xs: 12, md: 6 }}>
-                                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha('#ff9800', 0.02) }}>
+                                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha(theme.palette.warning.main, 0.02) }}>
                                                 <Typography variant="caption" color="text.secondary" display="block">Total Extra Keys (Not in GT)</Typography>
                                                 <Typography variant="h4" fontWeight="bold" color="warning.main">
                                                     {run.outputs.reduce((a: number, b: any) => a + (b.extra_keys?.length || 0), 0)}
@@ -415,7 +416,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                             </Paper>
                                         </Grid>
                                         <Grid size={{ xs: 12, md: 6 }}>
-                                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha('#f44336', 0.02) }}>
+                                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha(theme.palette.error.main, 0.02) }}>
                                                 <Typography variant="caption" color="text.secondary" display="block">Overall Hallucination Index (File Average)</Typography>
                                                 <Typography variant="h4" fontWeight="bold" color={run.avg.hallucination > 0.1 ? "error.main" : "success.main"}>
                                                     {(run.avg.hallucination * 100).toFixed(1)}%
@@ -447,7 +448,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                     <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>Query-Level Consistency Breakdown (Across All Runs)</Typography>
                                     <Grid container spacing={3}>
                                         <Grid size={{ xs: 12, md: 6 }}>
-                                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha('#009688', 0.02) }}>
+                                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha(theme.palette.info.main, 0.02) }}>
                                                 <Typography variant="caption" color="text.secondary" display="block">Average Run Consistency</Typography>
                                                 <Typography variant="h4" fontWeight="bold" color="primary.main">
                                                     {(run.avg.consistency * 100).toFixed(1)}%
@@ -455,7 +456,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                             </Paper>
                                         </Grid>
                                         <Grid size={{ xs: 12, md: 6 }}>
-                                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha('#673ab7', 0.02) }}>
+                                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: alpha(theme.palette.secondary.main, 0.02) }}>
                                                 <Typography variant="caption" color="text.secondary" display="block">Most Inconsistent Query</Typography>
                                                 <Typography variant="body2" fontWeight="bold">
                                                     {(() => {
@@ -471,7 +472,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                         <Grid size={{ xs: 12 }}>
                                             <TableContainer component={Paper} variant="outlined">
                                                 <Table size="small">
-                                                    <TableHead sx={{ bgcolor: alpha('#f5f5f5', 0.5) }}>
+                                                    <TableHead sx={{ bgcolor: alpha(theme.palette.divider, 0.3) }}>
                                                         <TableRow>
                                                             <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Query ID</TableCell>
                                                             <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Consistency Score</TableCell>
@@ -523,11 +524,11 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                             {activeTab === 4 && (
                                 <Box sx={{ p: 1 }}>
                                     <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>JSON Payload Safety & Quality Analysis (Run Level)</Typography>
-                                    <Paper variant="outlined" sx={{ p: 3, borderLeft: '6px solid', borderLeftColor: (run.details?.safety_score || run.avg.safety_score || 1.0) >= 0.8 ? 'success.main' : 'error.main', bgcolor: alpha((run.details?.safety_score || run.avg.safety_score || 1.0) >= 0.8 ? '#4caf50' : '#f44336', 0.02) }}>
+                                    <Paper variant="outlined" sx={{ p: 3, borderLeft: '6px solid', borderLeftColor: (run.details?.safety_score || run.avg.safety_score || 1.0) >= 0.8 ? 'success.main' : 'error.main', bgcolor: (run.details?.safety_score || run.avg.safety_score || 1.0) >= 0.8 ? alpha(theme.palette.success.main, 0.02) : alpha(theme.palette.error.main, 0.02) }}>
                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                             <Box>
                                                 <Typography variant="h6" fontWeight="bold" gutterBottom>Consolidated Safety & Quality Score</Typography>
-                                                <Typography variant="body2" color="text.secondary">Unified assessment of content safety (non-toxicity) and qualitative reasoning for run <code style={{ padding: '2px 4px', background: alpha('#000', 0.05) }}>{run.runId}</code></Typography>
+                                                <Typography variant="body2" color="text.secondary">Unified assessment of content safety (non-toxicity) and qualitative reasoning for run <code style={{ padding: '2px 4px', background: alpha(theme.palette.text.primary, 0.05) }}>{run.runId}</code></Typography>
                                             </Box>
                                             <Box sx={{ textAlign: 'right' }}>
                                                 <Typography variant="h3" fontWeight="bold" color={(run.details?.safety_score || run.avg.safety_score || 1.0) >= 0.8 ? "success.main" : "error.main"}>
@@ -552,7 +553,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                                     )}
                                                 </Box>
                                                 {run.details?.llm_explanation && (
-                                                    <Paper sx={{ p: 2, bgcolor: alpha('#f44336', 0.05), borderRadius: 2, fontStyle: 'italic', border: '1px dashed', borderColor: 'error.light' }}>
+                                                    <Paper sx={{ p: 2, bgcolor: alpha(theme.palette.error.main, 0.05), borderRadius: 2, fontStyle: 'italic', border: '1px dashed', borderColor: 'error.light' }}>
                                                         <Typography variant="body2">"{run.details.llm_explanation}"</Typography>
                                                     </Paper>
                                                 )}
@@ -564,7 +565,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                                     <Typography variant="body1" color="success.main" fontWeight="medium">Professional content with high qualitative integrity. No safety violations detected.</Typography>
                                                 </Box>
                                                 {run.details?.llm_explanation && (
-                                                    <Paper sx={{ p: 2, bgcolor: alpha('#4caf50', 0.05), borderRadius: 2, fontStyle: 'italic', border: '1px dashed', borderColor: 'success.light' }}>
+                                                    <Paper sx={{ p: 2, bgcolor: alpha(theme.palette.success.main, 0.05), borderRadius: 2, fontStyle: 'italic', border: '1px dashed', borderColor: 'success.light' }}>
                                                         <Typography variant="body2">"{run.details.llm_explanation}"</Typography>
                                                     </Paper>
                                                 )}
@@ -572,13 +573,13 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                         )}
 
                                         {run.details?.reconstructed_aio && (run.details?.safety_score || run.avg.safety_score || 1.0) < 0.8 && (
-                                            <Accordion sx={{ mt: 3, bgcolor: alpha('#000', 0.02), boxShadow: 'none', border: '1px solid divider' }}>
+                                            <Accordion sx={{ mt: 3, bgcolor: alpha(theme.palette.text.primary, 0.02), boxShadow: 'none', border: '1px solid divider' }}>
                                                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                                                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Review Flawed Content</Typography>
                                                 </AccordionSummary>
                                                 <AccordionDetails>
-                                                    <Box sx={{ maxHeight: '200px', overflow: 'auto', p: 1, bgcolor: '#1e1e1e', borderRadius: 1 }}>
-                                                        <pre style={{ margin: 0, color: '#d4d4d4', fontSize: '11px' }}>{run.details.reconstructed_aio}</pre>
+                                                    <Box sx={{ maxHeight: '200px', overflow: 'auto', p: 1, bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.200', borderRadius: 1 }}>
+                                                        <pre style={{ margin: 0, color: theme.palette.text.primary, fontSize: '11px' }}>{run.details.reconstructed_aio}</pre>
                                                     </Box>
                                                 </AccordionDetails>
                                             </Accordion>
@@ -950,14 +951,14 @@ function JsonDiffDialog({ open, onClose, initialRun, result, thresholds, allRuns
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Box sx={{ p: 1, bgcolor: alpha('#000', 0.02), borderRadius: 1, maxHeight: 150, overflow: 'auto' }}>
+                                                    <Box sx={{ p: 1, bgcolor: alpha(theme.palette.text.primary, 0.02), borderRadius: 1, maxHeight: 150, overflow: 'auto' }}>
                                                         <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.75rem', fontFamily: 'monospace' }}>
                                                             {typeof f.gt_value === 'object' ? JSON.stringify(f.gt_value, null, 2) : String(f.gt_value || '-')}
                                                         </pre>
                                                     </Box>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Box sx={{ p: 1, bgcolor: alpha('#000', 0.02), borderRadius: 1, maxHeight: 150, overflow: 'auto' }}>
+                                                    <Box sx={{ p: 1, bgcolor: alpha(theme.palette.text.primary, 0.02), borderRadius: 1, maxHeight: 150, overflow: 'auto' }}>
                                                         <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.75rem', fontFamily: 'monospace' }}>
                                                             {typeof f.aio_value === 'object' ? JSON.stringify(f.aio_value, null, 2) : String(f.aio_value || '-')}
                                                         </pre>
@@ -1613,13 +1614,13 @@ function TestEvaluationsPage() {
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            {/* Header */}
-            <Box sx={{ p: 2, height: 'auto', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'transparent', mb: 2 }}>
-                <Box sx={{ pt: 1 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                        Test Evaluations
+            {/* Page Header - matches RAG Eval */}
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, mb: 1 }}>
+                <Box>
+                    <Typography sx={{ fontWeight: 800, fontSize: { xs: '0.95rem', md: '1.1rem' }, letterSpacing: '-0.02em', mb: 0.5, color: 'text.primary' }}>
+                        Experimental Evaluations
                     </Typography>
-                    <Typography variant="subtitle1" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', md: '0.85rem' } }}>
                         Run & Analyze Agent Performance
                     </Typography>
                 </Box>
@@ -1648,7 +1649,6 @@ function TestEvaluationsPage() {
                         variant="outlined"
                         startIcon={<HistoryIcon />}
                         href="/agent-eval/history"
-                        sx={{ fontWeight: 'bold' }}
                     >
                         History
                     </Button>
@@ -1660,174 +1660,77 @@ function TestEvaluationsPage() {
                 <svg width={0} height={0} style={{ position: 'absolute', visibility: 'hidden' }}>
                     <defs>
                         <linearGradient id="export_icon_gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="30%" stopColor="#673ab7" />
-                            <stop offset="90%" stopColor="#2196f3" />
+                            <stop offset="30%" stopColor={theme.palette.secondary.main} />
+                            <stop offset="90%" stopColor={theme.palette.info.main} />
                         </linearGradient>
                     </defs>
                 </svg>
-                {/* Latest Stats Header */}
+                {/* Evaluation Analysis - Clean, responsive layout */}
                 {stats && (
                     <Box sx={{ mb: 2 }}>
-                        <Card sx={{ borderLeft: `6px solid ${stats.status === "PASS" ? '#4caf50' : '#f44336'}` }}>
+                        <Card sx={{ borderLeft: `4px solid ${stats.status === "PASS" ? theme.palette.success.main : theme.palette.error.main}` }}>
                             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                                {/* Header Section */}
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-                                            Evaluation Analysis
-                                        </Typography>
-                                        <Paper
-                                            elevation={0}
-                                            sx={{
-                                                px: 1.5,
-                                                py: 0.5,
-                                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
-                                                border: '1px solid',
-                                                borderColor: (theme) => alpha(theme.palette.primary.main, 0.5),
-                                                borderRadius: 2,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 1
-                                            }}
-                                        >
-                                            <Typography variant="caption" color="text.primary" sx={{ fontWeight: 'bold', letterSpacing: 1.5, fontSize: '0.75rem' }}>
-                                                {(() => {
-                                                    const threshold = config.rqs_threshold || 0.5;
-                                                    return `RQS: ${((stats.rqs || 0) * 100).toFixed(1)}% (> ${(threshold * 100).toFixed(0)}%)`;
-                                                })()}
-                                            </Typography>
-                                        </Paper>
-                                    </Box>
-                                    <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 'bold' }}>
-                                        Total Queries: {stats.totalQueries} • Total Evaluations: {stats.totalEvaluations}
+                                {/* Compact Header */}
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2, mb: 2, rowGap: 1 }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                        Evaluation Analysis
+                                    </Typography>
+                                    <Chip
+                                        label={stats.standardStatus}
+                                        size="small"
+                                        sx={{
+                                            fontWeight: 700,
+                                            bgcolor: stats.standardStatus === 'PASS' ? alpha(theme.palette.success.main, 0.12) : alpha(theme.palette.error.main, 0.12),
+                                            color: stats.standardStatus === 'PASS' ? 'success.main' : 'error.main',
+                                            border: '1px solid',
+                                            borderColor: stats.standardStatus === 'PASS' ? alpha(theme.palette.success.main, 0.4) : alpha(theme.palette.error.main, 0.4),
+                                        }}
+                                    />
+                                    <Typography variant="body2" color="text.secondary" sx={{ ml: { md: 'auto' } }}>
+                                        {stats.totalQueries} queries · {stats.totalEvaluations} evaluations
                                     </Typography>
                                 </Box>
 
-                                <Grid container spacing={2}>
-                                    {/* Core Metrics */}
-                                    <Grid size={{ xs: 12, md: 5 }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-                                                ⚡ Core Performance
-                                            </Typography>
-                                            <Chip
-                                                label={stats.standardStatus}
-                                                size="small"
-                                                sx={{
-                                                    fontWeight: 900,
-                                                    backdropFilter: 'blur(8px)',
-                                                    background: stats.standardStatus === 'PASS' ? alpha('#4caf50', 0.2) : alpha('#f44336', 0.2),
-                                                    color: stats.standardStatus === 'PASS' ? '#4caf50' : '#f44336',
-                                                    border: '1px solid',
-                                                    borderColor: stats.standardStatus === 'PASS' ? alpha('#4caf50', 0.5) : alpha('#f44336', 0.5),
-                                                    boxShadow: `0 2px 10px 0 ${stats.standardStatus === 'PASS' ? alpha('#4caf50', 0.2) : alpha('#f44336', 0.2)}`
-                                                }}
-                                            />
-                                        </Box>
-                                        <Box sx={{ display: 'flex', gap: 4 }}>
-                                            <Box sx={{ ml: 1 }}>
-                                                <Typography variant="caption" color="text.secondary">RQS</Typography>
-                                                <Typography variant="h2" color="primary" sx={{ fontWeight: 'bold' }}>
-                                                    {((stats.rqs || 0) * 100).toFixed(1)}%
+                                {/* Metrics Grid - 6 metric cells, responsive */}
+                                <Grid container spacing={2} sx={{ mb: 2 }}>
+                                    {[
+                                        { label: 'RQS', value: (stats.rqs || 0) * 100, primary: true },
+                                        { label: 'Accuracy', value: (stats.accuracy || 0) * 100 },
+                                        { label: 'Completeness', value: (stats.completeness || 0) * 100 },
+                                        { label: 'Hallucination', value: (stats.hallucination || 0) * 100 },
+                                        { label: 'Consistency', value: (stats.consistency || 0) * 100 },
+                                        { label: 'Safety', value: (stats.safety || 1.0) * 100 },
+                                    ].map((m) => (
+                                        <Grid size={{ xs: 6, sm: 4, md: 2 }} key={m.label}>
+                                            <Paper variant="outlined" sx={{ p: 1.5, height: '100%', borderColor: 'divider' }}>
+                                                <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: '0.7rem', fontWeight: 600 }}>
+                                                    {m.label}
                                                 </Typography>
-                                            </Box>
-                                            <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
-                                                <Typography variant="caption" color="text.secondary">Accuracy</Typography>
-                                                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                                                    {((stats.accuracy || 0) * 100).toFixed(1)}%
+                                                <Typography variant={m.primary ? 'h5' : 'h6'} sx={{ fontWeight: 700, mt: 0.25 }} color={m.primary ? 'primary' : 'text.primary'}>
+                                                    {m.value.toFixed(1)}%
                                                 </Typography>
-                                            </Box>
-                                            <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
-                                                <Typography variant="caption" color="text.secondary">Completeness</Typography>
-                                                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                                                    {((stats.completeness || 0) * 100).toFixed(1)}%
-                                                </Typography>
-                                            </Box>
-                                            <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
-                                                <Typography variant="caption" color="text.secondary">Hallucination</Typography>
-                                                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                                                    {((stats.hallucination || 0) * 100).toFixed(1)}%
-                                                </Typography>
-                                            </Box>
-                                            <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
-                                                <Typography variant="caption" color="text.secondary">Consistency</Typography>
-                                                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                                                    {((stats.consistency || 0) * 100).toFixed(1)}%
-                                                </Typography>
-                                            </Box>
-                                            <Box sx={{ borderLeft: '1px solid', borderColor: 'divider', pl: 3 }}>
-                                                <Typography variant="caption" color="text.secondary">Safety</Typography>
-                                                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                                                    {((stats.safety || 1.0) * 100).toFixed(1)}%
-                                                </Typography>
-                                            </Box>
-                                        </Box>
-                                    </Grid>
-
-                                    {/* Deep Dive */}
-                                    <Grid size={{ xs: 12, md: 4 }}>
-                                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
-                                            📊 Detailed Metrics
-                                        </Typography>
-                                        <Grid container spacing={1}>
-                                            <Grid size={{ xs: 12 }}>
-                                                <Typography variant="caption" display="block" color="text.secondary">Avg. Safety Score</Typography>
-                                                <Typography variant="body2" fontWeight="bold" color={stats.safety < 0.9 ? 'error.main' : 'success.main'}>
-                                                    {(stats.safety * 100).toFixed(1)}%
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={{ xs: 6 }}>
-                                                <Typography variant="caption" display="block" color="text.secondary">Hallucination Rate</Typography>
-                                                <Typography variant="body2" fontWeight="bold" color={stats.hallucination > 0.1 ? 'error.main' : 'success.main'}>
-                                                    {(stats.hallucination * 100).toFixed(1)}%
-                                                </Typography>
-                                            </Grid>
-                                            <Grid size={{ xs: 6 }}>
-                                                <Typography variant="caption" display="block" color="text.secondary">Avg. Consistency</Typography>
-                                                <Typography variant="body2" fontWeight="bold">
-                                                    {(stats.consistency * 100).toFixed(1)}%
-                                                </Typography>
-                                            </Grid>
+                                            </Paper>
                                         </Grid>
-                                    </Grid>
-
-                                    {/* Recommendations */}
-                                    <Grid size={{ xs: 12, md: 3 }}>
-                                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5, color: 'text.primary' }}>
-                                            💡 Recommendations
-                                        </Typography>
-                                        <List dense disablePadding>
-                                            {(() => {
-                                                const recs = [];
-                                                if (stats.hallucination > 0.1) {
-                                                    recs.push("Check hallucinated responses.");
-                                                }
-                                                if (stats.consistency < 0.8) {
-                                                    recs.push("Improve consistency (lower temp).");
-                                                }
-                                                if (stats.accuracy < 0.6) {
-                                                    recs.push("Review prompt instructions.");
-                                                }
-                                                if (stats.safety < 0.8) {
-                                                    recs.push("Review safety guidelines.");
-                                                }
-                                                if (recs.length === 0) {
-                                                    recs.push("System performing optimally.");
-                                                }
-                                                return recs.slice(0, 3).map((rec, idx) => (
-                                                    <ListItem key={idx} disablePadding sx={{ mb: 0 }}>
-                                                        <ListItemText
-                                                            primary={<Typography variant="caption" sx={{ display: 'flex', gap: 1 }}><span style={{ color: '#ff9800' }}>•</span> {rec}</Typography>}
-                                                        />
-                                                    </ListItem>
-                                                ));
-                                            })()}
-                                        </List>
-                                    </Grid>
+                                    ))}
                                 </Grid>
 
-
-
+                                {/* Recommendations - compact single row when possible */}
+                                <Box sx={{ pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 1 }}>
+                                        Recommendations
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                        {(() => {
+                                            const recs = [];
+                                            if (stats.hallucination > 0.1) recs.push("Check hallucinated responses.");
+                                            if (stats.consistency < 0.8) recs.push("Improve consistency (lower temp).");
+                                            if (stats.accuracy < 0.6) recs.push("Review prompt instructions.");
+                                            if (stats.safety < 0.8) recs.push("Review safety guidelines.");
+                                            if (recs.length === 0) recs.push("System performing optimally.");
+                                            return recs.slice(0, 3).join(" · ");
+                                        })()}
+                                    </Typography>
+                                </Box>
                             </CardContent>
                         </Card>
                     </Box>
@@ -1890,7 +1793,7 @@ function TestEvaluationsPage() {
                                     <AccordionDetails>
                                         <Grid container spacing={2}>
                                             <Grid size={{ xs: 12 }}>
-                                                <Typography variant="caption" sx={{ color: '#2196f3', fontWeight: 'bold' }}>Ground Truth Keys</Typography>
+                                                <Typography variant="caption" sx={{ color: 'info.main', fontWeight: 'bold' }}>Ground Truth Keys</Typography>
                                             </Grid>
                                             <Grid size={{ xs: 4 }}>
                                                 <TextField label="Query ID Key" size="small" fullWidth value={gtQueryIdKey} onChange={(e) => setGtQueryIdKey(e.target.value)} />
@@ -1920,14 +1823,11 @@ function TestEvaluationsPage() {
 
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                     <Button
-                                        variant="outlined"
+                                        variant="contained"
                                         color="primary"
                                         startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <PlayArrowIcon sx={{ fontSize: 20, width: 20, height: 20, display: 'block' }} />}
                                         onClick={handleRunBatch}
                                         disabled={loading}
-                                        sx={{
-                                            fontWeight: 'bold',
-                                        }}
                                     >
                                         {loading ? "Running..." : "Run"}
                                     </Button>
@@ -2056,7 +1956,7 @@ function TestEvaluationsPage() {
                                     <AccordionDetails>
                                         <Grid container spacing={2}>
                                             <Grid size={{ xs: 12 }}>
-                                                <Typography variant="caption" sx={{ color: '#2196f3', fontWeight: 'bold' }}>Ground Truth Keys</Typography>
+                                                <Typography variant="caption" sx={{ color: 'info.main', fontWeight: 'bold' }}>Ground Truth Keys</Typography>
                                             </Grid>
                                             <Grid size={{ xs: 4 }}>
                                                 <TextField label="Query ID Key" size="small" fullWidth value={gtQueryIdKey} onChange={(e) => setGtQueryIdKey(e.target.value)} />
@@ -2086,14 +1986,11 @@ function TestEvaluationsPage() {
 
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                     <Button
-                                        variant="outlined"
+                                        variant="contained"
                                         color="primary"
                                         startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <DataObjectIcon sx={{ fontSize: 20, width: 20, height: 20, display: 'block' }} />}
                                         onClick={handleRunJsonEvaluation}
                                         disabled={loading}
-                                        sx={{
-                                            fontWeight: 'bold',
-                                        }}
                                     >
                                         {loading ? "Running..." : "Run"}
                                     </Button>
@@ -2417,12 +2314,29 @@ function TestEvaluationsPage() {
 
 
 
-                <Snackbar
-                    open={openSnackbar}
-                    autoHideDuration={6000}
-                    onClose={() => setOpenSnackbar(false)}
-                >
-                    <Alert onClose={() => setOpenSnackbar(false)} severity={snackbarMessage.includes("Error") ? "error" : "success"} sx={{ width: '100%' }}>
+                <Snackbar open={openSnackbar} autoHideDuration={4000} onClose={() => setOpenSnackbar(false)}>
+                    <Alert
+                        onClose={() => setOpenSnackbar(false)}
+                        severity={snackbarMessage.includes('Error') || snackbarMessage.includes('Failed') ? 'error' : 'success'}
+                        icon={snackbarMessage.includes('Error') || snackbarMessage.includes('Failed') ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
+                        sx={{
+                            width: '100%',
+                            borderRadius: 2,
+                            fontWeight: 700,
+                            backdropFilter: 'blur(10px)',
+                            ...(snackbarMessage.includes('Error') || snackbarMessage.includes('Failed') ? {
+                                bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(194, 48, 48, 0.15)' : 'rgba(194, 48, 48, 0.08)',
+                                color: '#C23030',
+                                border: '1px solid rgba(194, 48, 48, 0.3)',
+                                '.MuiAlert-icon': { color: '#C23030' },
+                            } : {
+                                bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(208, 0, 0, 0.12)' : 'rgba(208, 0, 0, 0.06)',
+                                color: '#D00000',
+                                border: '1px solid rgba(208, 0, 0, 0.25)',
+                                '.MuiAlert-icon': { color: '#D00000' },
+                            }),
+                        }}
+                    >
                         {snackbarMessage}
                     </Alert>
                 </Snackbar>

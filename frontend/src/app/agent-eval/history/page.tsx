@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { Box, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, alpha, useTheme, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, Button, Tooltip, Checkbox, Slide } from '@mui/material';
-import { API_BASE_URL } from '../utils/config';
+import { API_BASE_URL } from '@/features/agent-eval/utils/config';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -121,19 +121,19 @@ export default function HistoryPage() {
             <svg width={0} height={0}>
                 <defs>
                     <linearGradient id="history_icon_gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style={{ stopColor: '#7b1fa2', stopOpacity: 1 }} />
-                        <stop offset="100%" style={{ stopColor: '#1976d2', stopOpacity: 1 }} />
+                        <stop offset="0%" stopColor={theme.palette.secondary.main} />
+                        <stop offset="100%" stopColor={theme.palette.info.main} />
                     </linearGradient>
                 </defs>
             </svg>
 
-            {/* Header */}
-            <Box sx={{ p: 2, height: '70px', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: (theme) => alpha(theme.palette.background.paper, 0.7), backdropFilter: 'blur(10px)', flexShrink: 0 }}>
-                <Box sx={{ pt: 1 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+            {/* Page Header - matches RAG Eval */}
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, mb: 1, flexShrink: 0 }}>
+                <Box>
+                    <Typography sx={{ fontWeight: 800, fontSize: { xs: '0.95rem', md: '1.1rem' }, letterSpacing: '-0.02em', mb: 0.5, color: 'text.primary' }}>
                         Historical Data
                     </Typography>
-                    <Typography variant="subtitle1" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', md: '0.85rem' } }}>
                         Top 50 Evaluation Results
                     </Typography>
                 </Box>
@@ -160,13 +160,11 @@ export default function HistoryPage() {
                         />
                     )}
                     <Button
-                        variant="outlined"
+                        variant="contained"
+                        color="primary"
                         disabled={selectedIds.length !== 2}
                         onClick={handleCompare}
                         startIcon={<CompareArrowsIcon />}
-                        sx={{
-                            fontWeight: 'bold'
-                        }}
                     >
                         Compare Evaluations
                     </Button>

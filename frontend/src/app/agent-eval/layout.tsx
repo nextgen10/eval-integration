@@ -1,24 +1,20 @@
 'use client';
 
 import React from 'react';
+import { Box } from '@mui/material';
 import { usePathname, useRouter } from 'next/navigation';
 import {
     LayoutDashboard,
     Activity,
-    Bot,
     Settings,
     History,
-    Lightbulb,
-    Info,
-    Brain
 } from 'lucide-react';
 
-import './agent_globals.css';
-import CopyProtection from './components/CopyProtection';
-import { EvaluationProvider } from './contexts/EvaluationContext';
-import ThemeRegistry from '../../components/ThemeRegistry';
-import ThemeToggle from './components/ThemeToggle';
+import CopyProtection from '@/features/agent-eval/components/CopyProtection';
+import { EvaluationProvider } from '@/features/agent-eval/contexts/EvaluationContext';
+import ThemeToggle from '@/components/ThemeToggle';
 import { UnifiedNavBar } from '../../components/UnifiedNavBar';
+import { agentEvalNavItems } from '../../config/nav';
 
 export default function AgentEvalLayout({
     children,
@@ -28,45 +24,21 @@ export default function AgentEvalLayout({
     const router = useRouter();
     const pathname = usePathname();
 
-    const menuItems = [
-        {
-            id: '/agent-eval/dashboard',
-            label: 'Dashboard',
-            icon: <LayoutDashboard size={16} />,
-            path: '/agent-eval/dashboard'
-        },
-        {
-            id: '/agent-eval/test-evaluations',
-            label: 'Test Eval', // Shortened for space
-            icon: <Activity size={16} />,
-            path: '/agent-eval/test-evaluations'
-        },
-        {
-            id: '/agent-eval/agent-interaction',
-            label: 'Interaction',
-            icon: <Bot size={16} />,
-            path: '/agent-eval/agent-interaction'
-        },
-        {
-            id: '/agent-eval/configuration',
-            label: 'Config',
-            icon: <Settings size={16} />,
-            path: '/agent-eval/configuration'
-        },
-        {
-            id: '/agent-eval/history',
-            label: 'History',
-            icon: <History size={16} />,
-            path: '/agent-eval/history'
-        },
-    ];
+    const menuItems = agentEvalNavItems.map((item) => ({
+        id: item.path,
+        label: item.label,
+        icon: item.id === 'dashboard' ? <LayoutDashboard size={16} /> :
+              item.id === 'test-evaluations' ? <Activity size={16} /> :
+              item.id === 'configuration' ? <Settings size={16} /> :
+              <History size={16} />,
+        path: item.path,
+    }));
 
     return (
-        <ThemeRegistry>
-            <EvaluationProvider>
-                <CopyProtection />
-
-                <UnifiedNavBar
+        <EvaluationProvider>
+            <CopyProtection />
+            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary' }}>
+            <UnifiedNavBar
                     title="AGENT EVAL"
                     items={menuItems.map(item => ({
                         id: item.id,
@@ -79,18 +51,24 @@ export default function AgentEvalLayout({
                     actions={<ThemeToggle />}
                 />
 
-                <div style={{
-                    paddingTop: '20px',
-                    paddingLeft: '24px',
-                    paddingRight: '24px',
-                    maxWidth: '1600px',
-                    margin: '0 auto',
-                    position: 'relative',
-                    zIndex: 1
-                }}>
+                <Box
+                    component="main"
+                    sx={{
+                        width: '100%',
+                        flexGrow: 1,
+                        px: { xs: 2, md: 3 },
+                        pb: 2,
+                        pt: 2,
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        maxWidth: 1536,
+                        mx: 'auto',
+                    }}
+                >
                     {children}
-                </div>
-            </EvaluationProvider>
-        </ThemeRegistry>
+                </Box>
+            </Box>
+        </EvaluationProvider>
     );
 }

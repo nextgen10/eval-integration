@@ -5,7 +5,7 @@ interface UbsLogoProps {
     color?: string;
 }
 
-export const UbsLogo: React.FC<UbsLogoProps> = ({ size = 24, color = '#E60000' }) => {
+export const UbsLogo: React.FC<UbsLogoProps> = ({ size = 24, color = '#D00000' }) => {
     return (
         <svg
             width={size}

@@ -99,31 +99,11 @@ def ensure_string(value: Any) -> str:
         return value
     return str(value)
 
-class ConvertRequest(BatchPathRequest): # Reusing model or define new? 
-    # Original main.py defined ConvertRequest inline
-    pass
-
 from pydantic import BaseModel
 class ConvertRequestModel(BaseModel):
     data: Any
     mode: str  # 'gt' or 'ai'
     run_id: str = "manual_run"
-
-class PreviewResponse(BaseModel):
-    normalized_ground_truth: Optional[List[Dict[str, Any]]] = None
-    normalized_ai_outputs: Optional[List[Dict[str, Any]]] = None
-    ground_truth_source: Optional[str] = None
-
-# Report generation logic omitted for brevity unless needed by frontend.
-# Frontend seems to consume JSON results.
-# The original main.py had save_reports. I should probably include it or stub it.
-def generate_html_report(result: BatchTestResult) -> str:
-    # Simplified HTML report generation
-    return "<html><body>Report generated</body></html>"
-
-def save_reports(result: BatchTestResult):
-    # Stub for now, or implement if file system access is desired
-    pass
 
 @router.post("/run-batch", response_model=BatchTestResult)
 async def run_batch(requests: List[TestRequest]):
@@ -156,8 +136,6 @@ async def run_batch(requests: List[TestRequest]):
         result.run_id = run_id
         new_id = save_result(result.model_dump_json(), json.dumps(events_log), run_id=run_id)
         result.id = new_id
-        
-        save_reports(result)
             
         return result
     except Exception as e:
@@ -324,8 +302,6 @@ async def evaluate_from_json(request: JsonEvaluationRequest):
         
         new_id = save_result(result.model_dump_json(), json.dumps(events_log), run_id=run_id)
         result.id = new_id
-        
-        save_reports(result)
         
         return result
     except Exception as e:

@@ -3,12 +3,16 @@ import * as React from 'react';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { getUnifiedTheme } from './UnifiedTheme';
+import { getUnifiedTheme } from '../theme';
 import { ThemeContext, ThemeModeProvider, useThemeMode } from '../contexts/ThemeContext';
 
 function ThemeRegistryContent({ children }: { children: React.ReactNode }) {
     const { mode } = useThemeMode();
     const theme = React.useMemo(() => getUnifiedTheme(mode), [mode]);
+
+    React.useEffect(() => {
+        document.documentElement.setAttribute('data-theme', mode);
+    }, [mode]);
 
     return (
         <ThemeProvider theme={theme}>

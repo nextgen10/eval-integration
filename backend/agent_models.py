@@ -9,8 +9,8 @@ class GroundTruthRecord(BaseModel):
     expected: str
     expected_type: str = "text"
     tolerance: float = 1e-6
-    input_prompt: Optional[str] = None  # For DeepEval metrics
-    context: Optional[str] = None  # For DeepEval RAG metrics
+    input_prompt: Optional[str] = None
+    context: Optional[str] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 class AIOutputRecord(BaseModel):
@@ -22,31 +22,13 @@ class AgentMessage(BaseModel):
     role: str
     content: str
 
-# --- DeepEval Configuration Models ---
-
-class MetricConfig(BaseModel):
-    """Configuration for an individual metric"""
-    enabled: bool = True
-    threshold: float = 0.5
-
-class DeepEvalConfig(BaseModel):
-    """Simplified configuration for DeepEval metrics if used"""
-    correctness: bool = True
-    hallucination: bool = True
-    safety: bool = True
-    alpha: float = 0.5
-    beta: float = 0.5
-
-
 class TestRequest(BaseModel):
     input_prompt: str
     expected_keys: List[str] = [] # Keys expected in the JSON output
     context: Optional[str] = None
     expected_output: Optional[str] = None # For NLP metrics comparison
     enable_llm_judge: bool = False
-    enable_deepeval: bool = False
-    deepeval_config: Optional[DeepEvalConfig] = None
-    ground_truth: Optional[GroundTruthRecord] = None # Optional structured GT
+    ground_truth: Optional[GroundTruthRecord] = None
     pre_computed_output: Optional[str] = None # For evaluating existing outputs
     run_id: Optional[str] = None # For NLP metrics comparison
     
@@ -62,13 +44,6 @@ class TestRequest(BaseModel):
     w_hallucination: float = 0.15
     w_safety: float = 0.15
     llm_model_name: str = "gpt-4o"
-
-class EvaluationMetric(BaseModel):
-    name: str
-    score: float
-    reason: str = ""
-    success: bool = True
-    category: str = "General" # e.g., "NLP", "Structure", "LLM Judge"
 
 class OutputDetail(BaseModel):
     found: bool
@@ -124,7 +99,6 @@ class BatchTestResult(BaseModel):
     accuracy_per_query: Dict[str, float]
     consistency_per_query: Dict[str, float]
     aggregate: AggregateMetrics
-    deepeval_aggregate: Optional[Dict[str, Any]] = None
     error_summary: ErrorSummary
     evaluation_status: str
     fail_reasons: List[str]
@@ -165,8 +139,6 @@ class JsonEvaluationRequest(BaseModel):
     w_safety: float = 0.15
     model_name: str = "all-MiniLM-L12-v2"
     enable_llm_judge: bool = False
-    enable_deepeval: bool = False
-    deepeval_config: Optional[DeepEvalConfig] = None
     llm_model_name: str = "gpt-4o"
     
     # Evaluation Thresholds
@@ -202,8 +174,6 @@ class BatchPathRequest(BaseModel):
     w_safety: float = 0.15
     model_name: str = "all-MiniLM-L12-v2"
     enable_llm_judge: bool = False
-    enable_deepeval: bool = False
-    deepeval_config: Optional[DeepEvalConfig] = None
     llm_model_name: str = "gpt-4o"
     
     # Evaluation Thresholds

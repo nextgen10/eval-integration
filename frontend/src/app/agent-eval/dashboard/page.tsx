@@ -2,8 +2,8 @@
 
 import React from "react";
 import { Box } from "@mui/material";
-import Dashboard from "../components/Dashboard";
-import { useEvaluation } from '../contexts/EvaluationContext';
+import Dashboard from "@/features/agent-eval/components/Dashboard";
+import { useEvaluation } from '@/features/agent-eval/contexts/EvaluationContext';
 
 export default function DashboardPage() {
     const { latestResult } = useEvaluation();

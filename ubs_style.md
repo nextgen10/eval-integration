@@ -438,3 +438,10 @@ Target UI:
 ---
 
 **Begin by implementing the theme system and layout architecture (Steps 1–2).**
+
+RAG EVAL - Rename Scenario metrics as Experiments
+AGENT EVAL - Remove Interaction page
+AGENT EVAL - Rename Config to Configuration and move to last item
+AGENT EVAL - Experiments page - Evaluation analysis section is cluttered and overlapping infomration..make it more nicer
+
+There toggle should always be at right most

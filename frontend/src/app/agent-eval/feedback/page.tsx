@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Grid, TextField, Button, Rating, Snackbar, Alert, Card, CardContent, Divider, alpha } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
-import { API_BASE_URL } from '../utils/config';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
+import { API_BASE_URL } from '@/features/agent-eval/utils/config';
 
 interface Feedback {
     id: number;
@@ -114,7 +115,8 @@ export default function FeedbackPage() {
                                 variant="outlined"
                             />
                             <Button
-                                variant="outlined"
+                                variant="contained"
+                                color="primary"
                                 onClick={handleSubmit}
                                 disabled={loading}
                                 startIcon={<SendIcon />}
@@ -159,9 +161,29 @@ export default function FeedbackPage() {
                 </Grid>
             </Grid>
 
-            {/* Snackbar */}
-            <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={() => setOpenSnackbar(false)}>
-                <Alert onClose={() => setOpenSnackbar(false)} severity={snackbarSeverity} sx={{ width: '100%' }}>
+            <Snackbar open={openSnackbar} autoHideDuration={4000} onClose={() => setOpenSnackbar(false)}>
+                <Alert
+                    onClose={() => setOpenSnackbar(false)}
+                    severity={snackbarSeverity}
+                    icon={snackbarSeverity === 'error' ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
+                    sx={{
+                        width: '100%',
+                        borderRadius: 2,
+                        fontWeight: 700,
+                        backdropFilter: 'blur(10px)',
+                        ...(snackbarSeverity === 'error' ? {
+                            bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(194, 48, 48, 0.15)' : 'rgba(194, 48, 48, 0.08)',
+                            color: '#C23030',
+                            border: '1px solid rgba(194, 48, 48, 0.3)',
+                            '.MuiAlert-icon': { color: '#C23030' },
+                        } : {
+                            bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(208, 0, 0, 0.12)' : 'rgba(208, 0, 0, 0.06)',
+                            color: '#D00000',
+                            border: '1px solid rgba(208, 0, 0, 0.25)',
+                            '.MuiAlert-icon': { color: '#D00000' },
+                        }),
+                    }}
+                >
                     {snackbarMessage}
                 </Alert>
             </Snackbar>

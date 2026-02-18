@@ -2,10 +2,11 @@
 import React, { useState } from 'react';
 import {
     Box, Typography, Paper, TextField, Button, Grid,
-    Snackbar, Tooltip, InputAdornment
+    Snackbar, Alert, Tooltip, InputAdornment
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import { CheckCircle2 } from 'lucide-react';
 
 export default function ConfigurationPage() {
     const [openSnackbar, setOpenSnackbar] = useState(false);
@@ -93,33 +94,41 @@ export default function ConfigurationPage() {
     );
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-            {/* Header */}
-            <Box sx={{ p: 2, height: '70px', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'background.paper' }}>
-                <Box sx={{ pt: 1 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden' }}>
+            {/* Page Header - title left, Save top right */}
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, mb: 2, flexShrink: 0 }}>
+                <Box>
+                    <Typography sx={{ fontWeight: 800, fontSize: { xs: '0.95rem', md: '1.1rem' }, letterSpacing: '-0.02em', mb: 0.5, color: 'text.primary' }}>
                         Configuration
                     </Typography>
-                    <Typography variant="subtitle1" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', md: '0.85rem' } }}>
                         System Settings & Parameters
                     </Typography>
                 </Box>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleSave}
+                    startIcon={<SaveIcon />}
+                >
+                    Save Configuration
+                </Button>
             </Box>
 
-            {/* Content */}
-            <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2, pb: 5 }}>
-                <Grid container spacing={2}>
+            {/* Content - compact fit, no scroll */}
+            <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                <Grid container spacing={2} sx={{ height: '100%' }}>
                     {/* Left Column - Thresholds */}
-                    <Grid size={{ xs: 12, lg: 6 }}>
-                        <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
-                            <Typography variant="h6" gutterBottom sx={{ fontSize: '0.9rem', mb: 1.5 }}>
+                    <Grid size={{ xs: 12, lg: 6 }} sx={{ minHeight: 0 }}>
+                        <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>
                                 Evaluation Thresholds
                             </Typography>
-                            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
+                            <Typography variant="overline" sx={{ display: 'block', mt: 1, mb: 0.5, color: 'text.secondary', fontWeight: 600, fontSize: '0.65rem' }}>
                                 Basic Thresholds
                             </Typography>
 
-                            <Grid container spacing={2.5}>
+                            <Grid container spacing={1}>
                                 <Grid size={{ xs: 12 }}>
                                     <TextField
                                         fullWidth
@@ -142,11 +151,11 @@ export default function ConfigurationPage() {
                                 </Grid>
                             </Grid>
 
-                            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
+                            <Typography variant="overline" sx={{ display: 'block', mt: 1.5, mb: 0.5, color: 'text.secondary', fontWeight: 600, fontSize: '0.65rem' }}>
                                 Status Thresholds
                             </Typography>
-                            <Grid container spacing={2.5}>
-                                <Grid size={{ xs: 6 }}>
+                            <Grid container spacing={1}>
+                                <Grid size={{ xs: 6, md: 3 }}>
                                     <TextField
                                         fullWidth
                                         size="small"
@@ -166,7 +175,7 @@ export default function ConfigurationPage() {
                                         }}
                                     />
                                 </Grid>
-                                <Grid size={{ xs: 6 }}>
+                                <Grid size={{ xs: 6, md: 3 }}>
                                     <TextField
                                         fullWidth
                                         size="small"
@@ -186,7 +195,7 @@ export default function ConfigurationPage() {
                                         }}
                                     />
                                 </Grid>
-                                <Grid size={{ xs: 6 }}>
+                                <Grid size={{ xs: 6, md: 3 }}>
                                     <TextField
                                         fullWidth
                                         size="small"
@@ -206,7 +215,7 @@ export default function ConfigurationPage() {
                                         }}
                                     />
                                 </Grid>
-                                <Grid size={{ xs: 6 }}>
+                                <Grid size={{ xs: 6, md: 3 }}>
                                     <TextField
                                         fullWidth
                                         size="small"
@@ -228,10 +237,10 @@ export default function ConfigurationPage() {
                                 </Grid>
                             </Grid>
 
-                            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
+                            <Typography variant="overline" sx={{ display: 'block', mt: 1.5, mb: 0.5, color: 'text.secondary', fontWeight: 600, fontSize: '0.65rem' }}>
                                 RQS Weights
                             </Typography>
-                            <Grid container spacing={2.5}>
+                            <Grid container spacing={1}>
                                 <Grid size={{ xs: 4 }}>
                                     <TextField
                                         fullWidth
@@ -241,7 +250,6 @@ export default function ConfigurationPage() {
                                         value={alpha}
                                         onChange={(e) => setAlpha(e.target.value)}
                                         inputProps={{ step: "0.1", min: "0", max: "1" }}
-                                        helperText="Accuracy Weight"
                                         InputProps={{
                                             endAdornment: (
                                                 <InputAdornment position="end">
@@ -262,7 +270,6 @@ export default function ConfigurationPage() {
                                         value={beta}
                                         onChange={(e) => setBeta(e.target.value)}
                                         inputProps={{ step: "0.1", min: "0", max: "1" }}
-                                        helperText="Consistency Weight"
                                         InputProps={{
                                             endAdornment: (
                                                 <InputAdornment position="end">
@@ -283,7 +290,6 @@ export default function ConfigurationPage() {
                                         value={gamma}
                                         onChange={(e) => setGamma(e.target.value)}
                                         inputProps={{ step: "0.1", min: "0", max: "1" }}
-                                        helperText="Correctness Weight"
                                         InputProps={{
                                             endAdornment: (
                                                 <InputAdornment position="end">
@@ -300,9 +306,9 @@ export default function ConfigurationPage() {
                     </Grid>
 
                     {/* Right Column - Models & Settings */}
-                    <Grid size={{ xs: 12, lg: 6 }}>
-                        <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
-                            <Typography variant="h6" gutterBottom sx={{ fontSize: '0.9rem', mb: 1.5 }}>
+                    <Grid size={{ xs: 12, lg: 6 }} sx={{ minHeight: 0 }}>
+                        <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>
                                 Models & Paths
                             </Typography>
 
@@ -312,7 +318,7 @@ export default function ConfigurationPage() {
                                 label="Embedding Model"
                                 value={modelName}
                                 onChange={(e) => setModelName(e.target.value)}
-                                sx={{ mb: 2.5 }}
+                                sx={{ mb: 1.5 }}
                                 InputProps={{
                                     endAdornment: (
                                         <InputAdornment position="end">
@@ -324,7 +330,7 @@ export default function ConfigurationPage() {
                                 }}
                             />
 
-                            <Typography variant="subtitle2" sx={{ mt: 1, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
+                            <Typography variant="overline" sx={{ display: 'block', mt: 1.5, mb: 0.5, color: 'text.secondary', fontWeight: 600, fontSize: '0.65rem' }}>
                                 Safety & Quality Assessment
                             </Typography>
                             <TextField
@@ -333,7 +339,7 @@ export default function ConfigurationPage() {
                                 label="Safety Judge Model"
                                 value={llmModelName}
                                 onChange={(e) => setLlmModelName(e.target.value)}
-                                sx={{ mt: 1, mb: 2.5 }}
+                                sx={{ mb: 1.5 }}
                                 placeholder="gpt-4o, gpt-4o-mini"
                                 InputProps={{
                                     endAdornment: (
@@ -353,8 +359,7 @@ export default function ConfigurationPage() {
                                 value={llmThreshold}
                                 onChange={(e) => setLlmThreshold(e.target.value)}
                                 inputProps={{ step: "0.05", min: "0", max: "1" }}
-                                sx={{ mb: 2.5 }}
-                                helperText="Score >= this value overrides deterministic metrics"
+                                sx={{ mb: 1 }}
                                 InputProps={{
                                     endAdornment: (
                                         <InputAdornment position="end">
@@ -365,18 +370,18 @@ export default function ConfigurationPage() {
                                     )
                                 }}
                             />
-                            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', ml: 1 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                                 Hybrid Safety Scoring: Always Enabled
                             </Typography>
                         </Paper>
 
-                        <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', mt: 2 }}>
-                            <Typography variant="h6" gutterBottom sx={{ fontSize: '0.9rem', mb: 1.5 }}>
+                        <Paper sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, mt: 2 }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>
                                 Advanced Structured & JSON Metrics
                             </Typography>
 
-                            <Grid container spacing={2.5}>
-                                <Grid size={{ xs: 6 }}>
+                            <Grid container spacing={1}>
+                                <Grid size={{ xs: 6, md: 4 }}>
                                     <TextField
                                         fullWidth
                                         size="small"
@@ -396,11 +401,11 @@ export default function ConfigurationPage() {
                                         }}
                                     />
                                 </Grid>
-                                <Grid size={{ xs: 12 }}>
+                                <Grid size={{ xs: 6, md: 4 }}>
                                     <TextField
                                         fullWidth
                                         size="small"
-                                        label="Short Text Definition (Chars)"
+                                        label="Short Text (Chars)"
                                         type="number"
                                         value={shortTextLength}
                                         onChange={(e) => setShortTextLength(e.target.value)}
@@ -417,10 +422,10 @@ export default function ConfigurationPage() {
                                 </Grid>
                             </Grid>
 
-                            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontSize: '0.85rem', color: '#2196f3' }}>
+                            <Typography variant="overline" sx={{ display: 'block', mt: 1.5, mb: 0.5, color: 'text.secondary', fontWeight: 600, fontSize: '0.65rem' }}>
                                 JSON RQS Weights
                             </Typography>
-                            <Grid container spacing={2.5}>
+                            <Grid container spacing={1}>
                                 <Grid size={{ xs: 3 }}>
                                     <TextField
                                         fullWidth
@@ -507,25 +512,25 @@ export default function ConfigurationPage() {
                 </Grid>
             </Box>
 
-            {/* Save Button */}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-start', mx: 2, mb: 10 }}>
-                <Button
-                    variant="outlined"
-                    size="small"
-                    sx={{ fontWeight: 'bold' }}
-                    onClick={handleSave}
-                    startIcon={<SaveIcon />}
+            <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={() => setOpenSnackbar(false)}>
+                <Alert
+                    onClose={() => setOpenSnackbar(false)}
+                    severity="success"
+                    icon={<CheckCircle2 size={18} />}
+                    sx={{
+                        width: '100%',
+                        borderRadius: 2,
+                        fontWeight: 700,
+                        backdropFilter: 'blur(10px)',
+                        bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(208, 0, 0, 0.12)' : 'rgba(208, 0, 0, 0.06)',
+                        color: '#D00000',
+                        border: '1px solid rgba(208, 0, 0, 0.25)',
+                        '.MuiAlert-icon': { color: '#D00000' },
+                    }}
                 >
-                    Save Configuration
-                </Button>
-            </Box>
-
-            <Snackbar
-                open={openSnackbar}
-                autoHideDuration={3000}
-                onClose={() => setOpenSnackbar(false)}
-                message="Configuration saved successfully"
-            />
+                    Configuration saved successfully
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

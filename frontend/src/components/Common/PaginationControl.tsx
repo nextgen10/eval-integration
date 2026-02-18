@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Pagination, PaginationItem } from '@mui/material';
+import { Box, Pagination, PaginationItem, alpha } from '@mui/material';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface PaginationControlProps {
@@ -21,14 +21,17 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({ count, pag
                         slots={{ previous: () => <ArrowLeft size={16} />, next: () => <ArrowRight size={16} /> }}
                         {...item}
                         sx={{
-                            color: '#94a3b8',
+                            color: 'text.secondary',
                             '&.Mui-selected': {
-                                bgcolor: 'rgba(56, 189, 248, 0.1)',
-                                color: '#38bdf8',
-                                border: '1px solid rgba(56, 189, 248, 0.3)',
+                                bgcolor: (t) => alpha(t.palette.primary.main, 0.1),
+                                color: 'primary.main',
+                                border: (t) => `1px solid ${alpha(t.palette.primary.main, 0.3)}`,
                                 '&:hover': {
-                                    bgcolor: 'rgba(56, 189, 248, 0.2)',
+                                    bgcolor: (t) => alpha(t.palette.primary.main, 0.18),
                                 }
+                            },
+                            '&:hover': {
+                                bgcolor: (t) => alpha(t.palette.primary.main, 0.06),
                             }
                         }}
                     />

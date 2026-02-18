@@ -3,13 +3,13 @@ import React, { createContext, useContext, useMemo, useState, useEffect } from '
 
 export const ThemeContext = createContext({
     toggleColorMode: () => { },
-    mode: 'dark' as 'light' | 'dark',
+    mode: 'light' as 'light' | 'dark',
 });
 
 export const useThemeMode = () => useContext(ThemeContext);
 
 export const ThemeModeProvider = ({ children }: { children: React.ReactNode }) => {
-    const [mode, setMode] = useState<'light' | 'dark'>('dark');
+    const [mode, setMode] = useState<'light' | 'dark'>('light');
 
     useEffect(() => {
         const savedMode = localStorage.getItem('themeMode') as 'light' | 'dark';

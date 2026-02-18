@@ -58,8 +58,8 @@ export const PrintOnlyReport: React.FC<PrintOnlyReportProps> = ({ data, leaderbo
                             <UbsLogo size={32} color="#ffffff" />
                         </Avatar>
                         <Box>
-                            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em', mb: 0.5 }}>
-                                RAG <span style={{ color: '#E60000' }}>EVAL</span> REPORT
+                            <Typography variant="h4" sx={{ fontFamily: 'Audela, sans-serif', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em', mb: 0.5 }}>
+                                UBS <span style={{ color: '#5B6472' }}>|</span> RAG <span style={{ color: '#D00000' }}>EVAL</span> REPORT
                             </Typography>
                             <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                                 Automated Benchmark System | Designed by <span style={{ color: '#0f172a' }}>Aniket Marwadi</span>
