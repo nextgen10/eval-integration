@@ -643,7 +643,7 @@ export default function NexusEvalLanding() {
                 POWERED BY
               </Typography>
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: { xs: 2, md: 0 }, flexWrap: 'wrap', alignItems: 'center' }}>
-                {['FastAPI', 'Next.js', 'Ragas', 'Azure OpenAI', 'LLM Scoring'].map((tech, i, arr) => (
+                {['FastAPI', 'NEXT.js', 'RAGAS', 'Azure OpenAI', 'LLM Scoring'].map((tech, i, arr) => (
                   <Box key={tech} sx={{ display: 'flex', alignItems: 'center' }}>
                     <Typography variant="h6" sx={{ fontWeight: 600, letterSpacing: '-0.02em', color: 'text.secondary', fontSize: { xs: '0.85rem', md: '1rem' }, opacity: 0.75, px: { xs: 1, md: 3 } }}>{tech}</Typography>
                     {i < arr.length - 1 && <Box sx={{ width: '1px', height: 16, bgcolor: 'divider', display: { xs: 'none', md: 'block' } }} />}
@@ -684,7 +684,7 @@ export default function NexusEvalLanding() {
                 <Typography variant="subtitle2" sx={{ color: 'text.primary', mb: 2, fontWeight: 600 }}>Resources</Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <Typography variant="body2" sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s' }} onClick={() => router.push('/docs')}>Documentation</Typography>
-                  <Typography variant="body2" sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s' }} onClick={() => window.open('http://localhost:8000/docs', '_blank')}>API Reference</Typography>
+                  <Typography variant="body2" sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s' }} onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/docs`, '_blank')}>API Reference</Typography>
                 </Box>
               </Grid>
             </Grid>

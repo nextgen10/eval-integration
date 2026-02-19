@@ -47,7 +47,9 @@ interface ResultsTableProps {
 function Row(props: { queryId: string; result: QueryResult }) {
     const { queryId, result } = props;
     const [open, setOpen] = React.useState(false);
-    const output = result.outputs[0]; // Assuming single run for now
+    const output = result.outputs?.[0];
+
+    if (!output) return null;
 
     const isSuccess = output.accuracy === 1.0;
 

@@ -62,7 +62,9 @@ async def check_toxicity(text: str, model_name: str, api_key: Optional[str] = No
         )
         
         import json as json_lib
-        content = response.choices[0].message.content
+        if not response.choices:
+            raise ValueError("LLM returned empty choices list")
+        content = response.choices[0].message.content or ""
         data = json_lib.loads(content)
 
         # Robust extraction / Aggregation:

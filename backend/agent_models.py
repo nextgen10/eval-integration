@@ -102,7 +102,8 @@ class BatchTestResult(BaseModel):
     normalized_ground_truth: Optional[List[Dict[str, Any]]] = None
     normalized_ai_outputs: Optional[List[Dict[str, Any]]] = None
     ground_truth_source: Optional[str] = None
-    evaluation_method: Optional[str] = "Unknown" # "Batch" or "JSON"
+    evaluation_method: Optional[str] = "Unknown"
+    run_details: Optional[Dict[str, Any]] = None
 
 # --- Live Agent Status Models ---
 
@@ -178,4 +179,4 @@ class BatchPathRequest(BaseModel):
 
 class FeedbackRequest(BaseModel):
     rating: int
-    suggestion: str
+    suggestion: Optional[str] = ""

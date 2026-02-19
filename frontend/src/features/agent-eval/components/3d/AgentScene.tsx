@@ -38,7 +38,6 @@ export default function AgentScene({ events = [] }: AgentSceneProps) {
         const lastEvent = events[events.length - 1];
         const { agent_name, status } = lastEvent;
 
-        // Map agent names to IDs
         let agentId = '';
         if (agent_name.includes('Orchestrator')) agentId = 'orchestrator';
         else if (agent_name.includes('PDF')) agentId = 'pdf_agent';
@@ -46,30 +45,31 @@ export default function AgentScene({ events = [] }: AgentSceneProps) {
         else if (agent_name.includes('Target')) agentId = 'web_agent';
         else if (agent_name.includes('Evaluator') || agent_name.includes('Match') || agent_name.includes('Rouge')) agentId = 'evaluator';
 
+        const timers: ReturnType<typeof setTimeout>[] = [];
+
         if (agentId) {
-            // Update Agent Status
             setAgents(prev => prev.map(a => a.id === agentId ? { ...a, status: (status === 'working' ? 'working' : status === 'failed' ? 'error' : status === 'completed' ? 'success' : 'idle') as 'idle' | 'working' | 'error' | 'success' } : a));
 
-            // Activate Connection
             if (agentId !== 'orchestrator' && status === 'working') {
                 setConnections(prev => prev.map(c =>
                     (c.start === 'orchestrator' && c.end === agentId) ? { ...c, active: true } : c
                 ));
 
-                setTimeout(() => {
+                timers.push(setTimeout(() => {
                     setConnections(prev => prev.map(c =>
                         (c.start === 'orchestrator' && c.end === agentId) ? { ...c, active: false } : c
                     ));
-                }, 2000);
+                }, 2000));
             }
 
-            // Reset Agent Status
             if (status === 'completed' || status === 'failed') {
-                setTimeout(() => {
+                timers.push(setTimeout(() => {
                     setAgents(prev => prev.map(a => a.id === agentId ? { ...a, status: 'idle' } : a));
-                }, 3000);
+                }, 3000));
             }
         }
+
+        return () => { timers.forEach(t => clearTimeout(t)); };
     }, [events]);
 
     const getPosition = (id: string) => agents.find(a => a.id === id)?.position || [0, 0, 0];

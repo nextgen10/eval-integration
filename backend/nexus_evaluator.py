@@ -30,12 +30,18 @@ class RagEvaluator:
         self.temperature = temperature
         self.model_name = model_name
         
-        # Initialize Azure OpenAI (GPT-4o)
+        az_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        az_key = os.getenv("AZURE_OPENAI_API_KEY")
+        if not az_endpoint or not az_key:
+            raise ValueError(
+                "AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY must be set for RAG evaluation. "
+                "Check your .env file."
+            )
         self.llm = AzureChatOpenAI(
             azure_deployment=model_name,
             openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview"),
-            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+            azure_endpoint=az_endpoint,
+            api_key=az_key,
             temperature=self.temperature
         )
         

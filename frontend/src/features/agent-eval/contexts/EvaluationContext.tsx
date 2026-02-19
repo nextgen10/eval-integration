@@ -17,6 +17,7 @@ export function EvaluationProvider({ children }: { children: ReactNode }) {
     const fetchLatestResult = async () => {
         try {
             const res = await fetch(`${API_BASE_URL}/latest-result`);
+            if (!res.ok) return;
             const data = await res.json();
             if (data && data.result) {
                 setLatestResult(data.result);

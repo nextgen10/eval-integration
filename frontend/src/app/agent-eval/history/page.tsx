@@ -67,9 +67,12 @@ export default function HistoryPage() {
 
     useEffect(() => {
         fetch(`${API_BASE_URL}/history`)
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
             .then(data => {
-                // Take only the latest 50 items and sort by ID descending (newest first)
+                if (!Array.isArray(data)) return;
                 const sorted = data.sort((a: any, b: any) => b.id - a.id).slice(0, 50);
                 setHistory(sorted);
                 setLoading(false);

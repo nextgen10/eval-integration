@@ -44,8 +44,11 @@ async def calculate_similarity(gt_value, aio_value, strategy: str, config):
         return 1.0, 1.0, 'ignore'
 
     if strategy == 'EXACT':
-        gt_str = json.dumps(gt_value, sort_keys=True) if isinstance(gt_value, (dict, list)) else str(gt_value).strip().lower()
-        aio_str = json.dumps(aio_value, sort_keys=True) if isinstance(aio_value, (dict, list)) else str(aio_value).strip().lower()
+        try:
+            gt_str = json.dumps(gt_value, sort_keys=True, allow_nan=False) if isinstance(gt_value, (dict, list)) else str(gt_value).strip().lower()
+            aio_str = json.dumps(aio_value, sort_keys=True, allow_nan=False) if isinstance(aio_value, (dict, list)) else str(aio_value).strip().lower()
+        except (ValueError, TypeError):
+            return 0.0, 0.0, 'exact'
         is_match = (gt_str == aio_str)
         return (1.0 if is_match else 0.0), (1.0 if is_match else 0.0), 'exact'
 

@@ -59,9 +59,8 @@ class JsonEvaluatorAgent:
             else:
                 both_non_null_keys.append(key)
 
-        # Derive standard key lists for backward compatibility
         matching_keys = sorted(gt_keys & aio_keys)
-        missing_from_aio = sorted(gt_keys - aio_keys)
+        missing_from_aio = sorted((gt_keys - aio_keys) - ignored_set)
 
         # --- Phase 1: Completeness (IGNORE keys excluded from denominator & numerator) ---
         gt_non_null_count = len(gt_non_null_keys)

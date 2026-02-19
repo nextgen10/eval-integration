@@ -116,7 +116,7 @@ export default function PromptsPage() {
             const res = await fetch(`${API_BASE_URL}/prompts`);
             if (!res.ok) throw new Error('Failed to fetch prompts');
             const data = await res.json();
-            setPrompts(data);
+            if (Array.isArray(data)) setPrompts(data);
         } catch (e) {
             console.error('Error fetching prompts:', e);
             setSnackbar({ open: true, message: 'Failed to load prompts from server', severity: 'error' });
@@ -127,10 +127,14 @@ export default function PromptsPage() {
 
     useEffect(() => { fetchPrompts(); }, [fetchPrompts]);
 
+    const copyTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => { return () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }; }, []);
+
     const handleCopy = (text: string, id: string) => {
         navigator.clipboard.writeText(text);
         setCopiedId(id);
-        setTimeout(() => setCopiedId(null), 1500);
+        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => setCopiedId(null), 1500);
     };
 
     const handleToggle = (key: string) => {

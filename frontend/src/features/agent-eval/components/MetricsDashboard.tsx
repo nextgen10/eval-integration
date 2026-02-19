@@ -35,11 +35,11 @@ export function MetricsDashboard({ metrics, rqsMetrics, batchResults }: MetricsD
     const tooltipBorder = theme.palette.divider;
     const tooltipColor = theme.palette.text.primary;
 
-    if (!metrics.length && !rqsMetrics) return null;
+    if ((!metrics || !metrics.length) && !rqsMetrics) return null;
 
-    // Group metrics for different views
-    const nlpMetrics = metrics.filter(m => m.category === "NLP");
-    const otherMetrics = metrics.filter(m => m.category !== "NLP");
+    const safeMetrics = metrics || [];
+    const nlpMetrics = safeMetrics.filter(m => m.category === "NLP");
+    const otherMetrics = safeMetrics.filter(m => m.category !== "NLP");
 
     const [tabValue, setTabValue] = React.useState(0);
 
@@ -47,10 +47,10 @@ export function MetricsDashboard({ metrics, rqsMetrics, batchResults }: MetricsD
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {rqsMetrics && (
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 2 }}>
-                    <MetricCard label="RQS Score" value={rqsMetrics.rqs.toFixed(3)} />
-                    <MetricCard label="Accuracy" value={rqsMetrics.accuracy.toFixed(3)} />
-                    <MetricCard label="Consistency" value={rqsMetrics.consistency.toFixed(3)} />
-                    <MetricCard label="PDF Support" value={rqsMetrics.pdf_support_rate.toFixed(3)} />
+                    <MetricCard label="RQS Score" value={(rqsMetrics.rqs ?? 0).toFixed(3)} />
+                    <MetricCard label="Accuracy" value={(rqsMetrics.accuracy ?? 0).toFixed(3)} />
+                    <MetricCard label="Consistency" value={(rqsMetrics.consistency ?? 0).toFixed(3)} />
+                    <MetricCard label="PDF Support" value={(rqsMetrics.pdf_support_rate ?? 0).toFixed(3)} />
                 </Box>
             )}
 
@@ -134,15 +134,15 @@ export function MetricsDashboard({ metrics, rqsMetrics, batchResults }: MetricsD
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                                 <Typography variant="subtitle1" fontWeight={600}>Run #{idx + 1}</Typography>
                                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                    {res.metrics.map((m: any, i: number) => (
-                                        <Typography key={i} component="span" variant="caption" sx={{ px: 1, py: 0.5, borderRadius: 1, bgcolor: (t) => m.success ? 'rgba(31, 138, 112, 0.25)' : 'rgba(194, 48, 48, 0.25)', color: m.success ? 'success.main' : 'error.main' }}>
-                                            {m.name}: {m.score.toFixed(2)}
+                                    {(res.metrics ?? []).map((m: any, i: number) => (
+                                        <Typography key={i} component="span" variant="caption" sx={{ px: 1, py: 0.5, borderRadius: 1, bgcolor: () => m.success ? 'rgba(31, 138, 112, 0.25)' : 'rgba(194, 48, 48, 0.25)', color: m.success ? 'success.main' : 'error.main' }}>
+                                            {m.name}: {(m.score ?? 0).toFixed(2)}
                                         </Typography>
                                     ))}
                                 </Box>
                             </Box>
                             <Box component="pre" sx={{ fontSize: '0.75rem', color: 'text.secondary', fontFamily: 'monospace', bgcolor: 'action.hover', p: 1.5, borderRadius: 1, overflow: 'auto' }}>
-                                {JSON.stringify(res.output)}
+                                {JSON.stringify(res.output ?? {})}
                             </Box>
                         </Paper>
                     ))}

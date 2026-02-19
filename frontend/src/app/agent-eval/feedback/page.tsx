@@ -26,7 +26,7 @@ export default function FeedbackPage() {
             const res = await fetch(`${API_BASE_URL}/feedback`);
             if (res.ok) {
                 const data = await res.json();
-                setFeedbacks(data);
+                if (Array.isArray(data)) setFeedbacks(data);
             }
         } catch (error) {
             console.error("Failed to fetch feedback", error);

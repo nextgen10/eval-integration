@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Button, Tabs, Tab, TextField, Accordion, AccordionSummary, AccordionDetails, Snackbar, Alert, Grid, Dialog, DialogTitle, DialogContent, IconButton, CircularProgress, Collapse, Tooltip as MuiTooltip, List, ListItem, ListItemText, InputAdornment, Card, CardContent, styled, tooltipClasses, TooltipProps, Divider } from '@mui/material';
+import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Button, Tabs, Tab, TextField, Accordion, AccordionSummary, AccordionDetails, Snackbar, Alert, Grid, Dialog, DialogTitle, DialogContent, IconButton, CircularProgress, Collapse, Tooltip as MuiTooltip, Card, CardContent, Divider } from '@mui/material';
 import { API_BASE_URL } from '@/features/agent-eval/utils/config';
 import { alpha, useTheme } from '@mui/material/styles';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -43,8 +43,12 @@ interface EvaluationResult {
     [key: string]: any;
 }
 
-// Custom Glassmorphic Tooltip -> Removed to revert to default grey style
 const Tooltip = MuiTooltip;
+
+function safeJsonParse<T>(raw: string | null, fallback: T): T {
+    if (!raw) return fallback;
+    try { return JSON.parse(raw); } catch { return fallback; }
+}
 
 const metricTooltips: { [key: string]: string } = {
     "Accuracy": "Measures correctness based on exact match or semantic similarity. (0-1)",
@@ -226,13 +230,18 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                     </Typography>
                 </TableCell>
                 <TableCell align="center">
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: run.avg.hallucination <= (thresholds.hallucination_threshold || 0.1) ? 'success.main' : 'error.main' }}>
+                        {(run.avg.hallucination * 100).toFixed(1)}%
+                    </Typography>
+                </TableCell>
+                <TableCell align="center">
                     <Typography variant="body2" sx={{ fontWeight: 'bold', color: run.avg.accuracy >= (thresholds.accuracy_threshold || 0.5) ? 'success.main' : 'error.main' }}>
                         {(run.avg.accuracy * 100).toFixed(1)}%
                     </Typography>
                 </TableCell>
                 <TableCell align="center">
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: run.avg.hallucination <= (thresholds.hallucination_threshold || 0.1) ? 'success.main' : 'error.main' }}>
-                        {(run.avg.hallucination * 100).toFixed(1)}%
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: (run.avg.consistency ?? 0) >= (thresholds.consistency_threshold || 0.5) ? 'success.main' : 'error.main' }}>
+                        {((run.avg.consistency ?? 0) * 100).toFixed(1)}%
                     </Typography>
                 </TableCell>
                 <TableCell align="center">
@@ -251,7 +260,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
             </TableRow>
 
             <TableRow>
-                <TableCell colSpan={8} style={{ paddingBottom: 0, paddingTop: 0 }}>
+                <TableCell colSpan={9} style={{ paddingBottom: 0, paddingTop: 0 }}>
                     <Collapse in={expanded} timeout="auto" unmountOnExit>
                         <Box sx={{ m: 2, p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' }}>
                             <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
@@ -263,15 +272,15 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                         sx={{ minHeight: 48, fontWeight: 'bold' }}
                                     />
                                     <Tab
-                                        icon={<FunctionsIcon sx={{ fontSize: 18 }} />}
-                                        iconPosition="start"
-                                        label="Accuracy"
-                                        sx={{ minHeight: 48, fontWeight: 'bold' }}
-                                    />
-                                    <Tab
                                         icon={<DifferenceIcon sx={{ fontSize: 18 }} />}
                                         iconPosition="start"
                                         label="Hallucination"
+                                        sx={{ minHeight: 48, fontWeight: 'bold' }}
+                                    />
+                                    <Tab
+                                        icon={<FunctionsIcon sx={{ fontSize: 18 }} />}
+                                        iconPosition="start"
+                                        label="Accuracy"
                                         sx={{ minHeight: 48, fontWeight: 'bold' }}
                                     />
                                     <Tab
@@ -283,7 +292,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                     <Tab
                                         icon={<PsychologyIcon sx={{ fontSize: 18 }} />}
                                         iconPosition="start"
-                                        label="Safety & Quality"
+                                        label="Safety & Toxicity"
                                         sx={{ minHeight: 48, fontWeight: 'bold' }}
                                     />
                                 </Tabs>
@@ -333,104 +342,8 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                 </Box>
                             )}
 
-                            {/* 2. ACCURACY TAB (FIELD LEVEL GROUPED BY STRATEGY) */}
+                            {/* 2. HALLUCINATION TAB (JSON LEVEL - FILE SUMMARY) */}
                             {activeTab === 1 && (
-                                <Box>
-                                    <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>Field Correlation & Accuracy Strategy Breakdown</Typography>
-                                    {Object.entries(accuracyGroups).length > 0 ? (
-                                        Object.entries(accuracyGroups).map(([strategy, fields]) => {
-                                            const stratUpper = strategy.toUpperCase();
-                                            const scoreColName = stratUpper === 'SEMANTIC' ? 'Semantic Score'
-                                                : stratUpper === 'FUZZY' ? 'Fuzzy Score'
-                                                : stratUpper === 'EXACT' ? 'Exact Match Score'
-                                                : `${strategy} Score`;
-                                            const threshold = stratUpper === 'SEMANTIC' ? (thresholds?.semantic_threshold || 0.72)
-                                                : stratUpper === 'FUZZY' ? (thresholds?.fuzzy_threshold || 0.85)
-                                                : null;
-
-                                            return (
-                                            <Accordion key={strategy} defaultExpanded sx={{ mb: 2, border: '1px solid', borderColor: alpha(theme.palette.info.main, 0.2), boxShadow: 'none' }}>
-                                                <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: alpha(theme.palette.info.main, 0.05) }}>
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                        <Typography sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>{strategy} Match</Typography>
-                                                        <Chip label={`${fields.length} Fields`} size="small" color="primary" variant="outlined" />
-                                                        <Chip label={threshold !== null ? `Threshold: ${(threshold * 100).toFixed(0)}%` : 'Binary'} size="small" variant="outlined" color="info" />
-                                                    </Box>
-                                                </AccordionSummary>
-                                                <AccordionDetails sx={{ p: 0 }}>
-                                                    <Table size="small" sx={{ tableLayout: 'fixed' }}>
-                                                        <TableHead sx={{ bgcolor: alpha(theme.palette.info.main, 0.02) }}>
-                                                            <TableRow>
-                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '12%' }}>Field Name</TableCell>
-                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '15%' }}>Query ID</TableCell>
-                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '23%' }}>Ground Truth</TableCell>
-                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '23%' }}>AI Output</TableCell>
-                                                                <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '18%' }}>{scoreColName}</TableCell>
-                                                                <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '9%' }}>Final Score</TableCell>
-                                                            </TableRow>
-                                                        </TableHead>
-                                                        <TableBody>
-                                                            {fields.map((f, i) => {
-                                                                const simPct = (f.similarity * 100).toFixed(1);
-                                                                const threshPct = threshold !== null ? (threshold * 100).toFixed(0) : null;
-                                                                const scoreDisplay = stratUpper === 'EXACT'
-                                                                    ? (f.similarity >= 1.0 ? 'true' : 'false')
-                                                                    : threshPct !== null
-                                                                        ? `${simPct} ${f.score >= 1.0 ? '>' : '<='} ${threshPct} (Threshold)`
-                                                                        : `${simPct}%`;
-                                                                const scoreColor = stratUpper === 'EXACT'
-                                                                    ? (f.similarity >= 1.0 ? 'success.main' : 'error.main')
-                                                                    : (f.score >= 1.0 ? 'success.main' : 'error.main');
-
-                                                                return (
-                                                                <TableRow key={i}>
-                                                                    <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'medium', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                        <Tooltip title={String(f.fieldName || '')} arrow>
-                                                                            <span>{String(f.fieldName || 'N/A')}</span>
-                                                                        </Tooltip>
-                                                                    </TableCell>
-                                                                    <TableCell sx={{ fontSize: '0.7rem', color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                        <Tooltip title={String(f.qid || '')} arrow>
-                                                                            <span>{String(f.qid || 'N/A')}</span>
-                                                                        </Tooltip>
-                                                                    </TableCell>
-                                                                    <TableCell sx={{ fontSize: '0.7rem', color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                        <Tooltip title={String(f.gt_value || '')} arrow>
-                                                                            <span>{String(f.gt_value || 'N/A')}</span>
-                                                                        </Tooltip>
-                                                                    </TableCell>
-                                                                    <TableCell sx={{ fontSize: '0.7rem', color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                        <Tooltip title={String(f.aio_value || '')} arrow>
-                                                                            <span>{String(f.aio_value || 'N/A')}</span>
-                                                                        </Tooltip>
-                                                                    </TableCell>
-                                                                    <TableCell align="center" sx={{ fontSize: '0.73rem', fontWeight: 'bold', color: scoreColor }}>
-                                                                        {scoreDisplay}
-                                                                    </TableCell>
-                                                                    <TableCell align="center">
-                                                                        <Chip
-                                                                            label={f.score >= 1.0 ? '1' : '0'}
-                                                                            size="small"
-                                                                            sx={{ height: 22, minWidth: 32, fontSize: '0.75rem', fontWeight: 'bold', bgcolor: f.score >= 1.0 ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.error.main, 0.1), color: f.score >= 1.0 ? 'success.main' : 'error.main' }}
-                                                                        />
-                                                                    </TableCell>
-                                                                </TableRow>
-                                                                );
-                                                            })}
-                                                        </TableBody>
-                                                    </Table>
-                                                </AccordionDetails>
-                                            </Accordion>
-                                            );
-                                        })
-                                    ) : (
-                                        <Typography variant="body2" color="text.secondary">No field-level accuracy data found.</Typography>
-                                    )}
-                                </Box>
-                            )}
-
-                            {/* 3. HALLUCINATION TAB (JSON LEVEL - FILE SUMMARY) */}
-                            {activeTab === 2 && (
                                 <Box sx={{ p: 1 }}>
                                     <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>Hallucination & Schema Compliance (Aggregate)</Typography>
                                     <Grid container spacing={3}>
@@ -469,6 +382,104 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                 </Box>
                             )}
 
+                            {/* 3. ACCURACY TAB (FIELD LEVEL GROUPED BY STRATEGY) */}
+                            {activeTab === 2 && (
+                                <Box>
+                                    <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>Field Correlation & Accuracy Strategy Breakdown</Typography>
+                                    {Object.entries(accuracyGroups).length > 0 ? (
+                                        Object.entries(accuracyGroups).map(([strategy, fields]) => {
+                                            const stratUpper = strategy.toUpperCase();
+                                            const scoreColName = stratUpper === 'SEMANTIC' ? 'Semantic Score'
+                                                : stratUpper === 'FUZZY' ? 'Fuzzy Score'
+                                                : stratUpper === 'EXACT' ? 'Exact Match Score'
+                                                : `${strategy} Score`;
+                                            const threshold = stratUpper === 'SEMANTIC' ? (thresholds?.semantic_threshold || 0.72)
+                                                : stratUpper === 'FUZZY' ? (thresholds?.fuzzy_threshold || 0.85)
+                                                : null;
+
+                                            return (
+                                            <Accordion key={strategy} defaultExpanded sx={{ mb: 2, border: '1px solid', borderColor: alpha(theme.palette.info.main, 0.2), boxShadow: 'none' }}>
+                                                <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: alpha(theme.palette.info.main, 0.05) }}>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                        <Typography sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>{strategy} Match</Typography>
+                                                        <Chip label={`${fields.length} Fields`} size="small" color="primary" variant="outlined" />
+                                                        <Chip label={threshold !== null ? `Threshold: ${(threshold * 100).toFixed(0)}%` : 'Binary'} size="small" variant="outlined" color="info" />
+                                                    </Box>
+                                                </AccordionSummary>
+                                                <AccordionDetails sx={{ p: 0 }}>
+                                                    <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                                                        <TableHead sx={{ bgcolor: alpha(theme.palette.info.main, 0.02) }}>
+                                                            <TableRow>
+                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '12%' }}>Field Name</TableCell>
+                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '15%' }}>Query ID</TableCell>
+                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '23%' }}>Ground Truth</TableCell>
+                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '23%' }}>AI Output</TableCell>
+                                                                <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '18%' }}>{scoreColName}</TableCell>
+                                                                <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '9%' }}>Final Score</TableCell>
+                                                            </TableRow>
+                                                        </TableHead>
+                                                        <TableBody>
+                                                            {fields.map((f, i) => {
+                                                                const sim = Number(f.similarity) || 0;
+                                                                const sc = Number(f.score) || 0;
+                                                                const simPct = (sim * 100).toFixed(1);
+                                                                const threshPct = threshold !== null ? (threshold * 100).toFixed(0) : null;
+                                                                const scoreDisplay = stratUpper === 'EXACT'
+                                                                    ? (sim >= 1.0 ? 'true' : 'false')
+                                                                    : threshPct !== null
+                                                                        ? `${simPct} ${sc >= 1.0 ? '>' : '<='} ${threshPct} (Threshold)`
+                                                                        : `${simPct}%`;
+                                                                const scoreColor = stratUpper === 'EXACT'
+                                                                    ? (sim >= 1.0 ? 'success.main' : 'error.main')
+                                                                    : (sc >= 1.0 ? 'success.main' : 'error.main');
+
+                                                                return (
+                                                                <TableRow key={i}>
+                                                                    <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'medium', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                        <Tooltip title={String(f.fieldName || '')} arrow>
+                                                                            <span>{String(f.fieldName || 'N/A')}</span>
+                                                                        </Tooltip>
+                                                                    </TableCell>
+                                                                    <TableCell sx={{ fontSize: '0.7rem', color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                        <Tooltip title={String(f.qid || '')} arrow>
+                                                                            <span>{String(f.qid || 'N/A')}</span>
+                                                                        </Tooltip>
+                                                                    </TableCell>
+                                                                    <TableCell sx={{ fontSize: '0.7rem', color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                        <Tooltip title={String(f.gt_value || '')} arrow>
+                                                                            <span>{String(f.gt_value || 'N/A')}</span>
+                                                                        </Tooltip>
+                                                                    </TableCell>
+                                                                    <TableCell sx={{ fontSize: '0.7rem', color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                        <Tooltip title={String(f.aio_value || '')} arrow>
+                                                                            <span>{String(f.aio_value || 'N/A')}</span>
+                                                                        </Tooltip>
+                                                                    </TableCell>
+                                                                    <TableCell align="center" sx={{ fontSize: '0.73rem', fontWeight: 'bold', color: scoreColor }}>
+                                                                        {scoreDisplay}
+                                                                    </TableCell>
+                                                                    <TableCell align="center">
+                                                                        <Chip
+                                                                            label={sc >= 1.0 ? '1' : '0'}
+                                                                            size="small"
+                                                                            sx={{ height: 22, minWidth: 32, fontSize: '0.75rem', fontWeight: 'bold', bgcolor: sc >= 1.0 ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.error.main, 0.1), color: sc >= 1.0 ? 'success.main' : 'error.main' }}
+                                                                        />
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                                );
+                                                            })}
+                                                        </TableBody>
+                                                    </Table>
+                                                </AccordionDetails>
+                                            </Accordion>
+                                            );
+                                        })
+                                    ) : (
+                                        <Typography variant="body2" color="text.secondary">No field-level accuracy data found.</Typography>
+                                    )}
+                                </Box>
+                            )}
+
                             {/* 4. CONSISTENCY TAB (PER QUERY BREAKDOWN) */}
                             {activeTab === 3 && (
                                 <Box sx={{ p: 1 }}>
@@ -489,8 +500,8 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                                     {(() => {
                                                         const entries = Object.entries(run.consistency_per_query || {});
                                                         if (entries.length === 0) return "N/A (Single Run)";
-                                                        const min = entries.reduce((a, b) => (a[1] as number) < (b[1] as number) ? a : b);
-                                                        return `${min[0].slice(0, 15)}... (${((min[1] as number) * 100).toFixed(1)}%)`;
+                                                        const min = entries.reduce((a, b) => (Number(a[1]) || 0) < (Number(b[1]) || 0) ? a : b);
+                                                        return `${min[0].slice(0, 15)}... (${((Number(min[1]) || 0) * 100).toFixed(1)}%)`;
                                                     })()}
                                                 </Typography>
                                             </Paper>
@@ -547,7 +558,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                 </Box>
                             )}
 
-                            {/* 5. SAFETY & QUALITY TAB (JSON LEVEL SUMMARY) */}
+                            {/* 5. SAFETY & TOXICITY TAB (JSON LEVEL SUMMARY) */}
                             {activeTab === 4 && (
                                 <Box sx={{ p: 1 }}>
                                     <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>JSON Payload Safety & Quality Analysis (Run Level)</Typography>
@@ -1118,13 +1129,15 @@ function TestEvaluationsPage() {
         setGtPath(localStorage.getItem('batch_gt_path') || '');
         setAiPath(localStorage.getItem('batch_ai_path') || '');
 
-        // Restore normalized data
-        // Restore normalized data
         const savedGt = localStorage.getItem('convertedGt');
-        if (savedGt) setConvertedGt(JSON.parse(savedGt));
+        if (savedGt) {
+            try { setConvertedGt(JSON.parse(savedGt)); } catch { /* corrupted localStorage */ }
+        }
 
         const savedAi = localStorage.getItem('convertedAi');
-        if (savedAi) setConvertedAi(JSON.parse(savedAi));
+        if (savedAi) {
+            try { setConvertedAi(JSON.parse(savedAi)); } catch { /* corrupted localStorage */ }
+        }
 
         const savedSource = localStorage.getItem('ground_truth_source');
         if (savedSource) setGtSource(savedSource);
@@ -1147,7 +1160,7 @@ function TestEvaluationsPage() {
             w_completeness: parseFloat(localStorage.getItem('config_w_completeness') || '0.25'),
             w_hallucination: parseFloat(localStorage.getItem('config_w_hallucination') || '0.15'),
             w_safety: parseFloat(localStorage.getItem('config_w_safety') || '0.15'),
-            field_strategies: JSON.parse(localStorage.getItem('config_field_strategies') || '{}')
+            field_strategies: safeJsonParse(localStorage.getItem('config_field_strategies'), {})
         });
 
         // Restore evaluation type
@@ -1191,7 +1204,7 @@ function TestEvaluationsPage() {
             w_completeness: parseFloat(localStorage.getItem('config_w_completeness') || '0.25'),
             w_hallucination: parseFloat(localStorage.getItem('config_w_hallucination') || '0.15'),
             w_safety: parseFloat(localStorage.getItem('config_w_safety') || '0.15'),
-            field_strategies: JSON.parse(localStorage.getItem('config_field_strategies') || '{}')
+            field_strategies: safeJsonParse(localStorage.getItem('config_field_strategies'), {})
         };
 
         try {
@@ -1236,8 +1249,9 @@ function TestEvaluationsPage() {
             });
 
             if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || "Batch evaluation failed");
+                let detail = "Batch evaluation failed";
+                try { const err = await response.json(); detail = err.detail || detail; } catch { /* non-JSON error body */ }
+                throw new Error(detail);
             }
 
             const data = await response.json();
@@ -1381,7 +1395,7 @@ function TestEvaluationsPage() {
                 w_completeness: parseFloat(localStorage.getItem('config_w_completeness') || '0.25'),
                 w_hallucination: parseFloat(localStorage.getItem('config_w_hallucination') || '0.15'),
                 w_safety: parseFloat(localStorage.getItem('config_w_safety') || '0.15'),
-                field_strategies: JSON.parse(localStorage.getItem('config_field_strategies') || '{}')
+                field_strategies: safeJsonParse(localStorage.getItem('config_field_strategies'), {})
             };
 
             // 3. Run Evaluation with CONVERTED data and FIXED keys
@@ -1403,8 +1417,9 @@ function TestEvaluationsPage() {
             });
 
             if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || "JSON evaluation failed");
+                let detail = "JSON evaluation failed";
+                try { const err = await response.json(); detail = err.detail || detail; } catch { /* non-JSON error body */ }
+                throw new Error(detail);
             }
 
             const data = await response.json();
@@ -1463,7 +1478,8 @@ function TestEvaluationsPage() {
                 const semanticThreshold = config.semantic_threshold || 0.72;
 
                 if (matchType === 'json_structured') {
-                    return `✓ Structured JSON Eval: Acc: ${accuracy.toFixed(2)}, Comp: ${out.completeness?.toFixed(2)}, Hall: ${out.hallucination?.toFixed(2)}, RQS: ${out.rqs?.toFixed(2)}`;
+                    const fmt = (v: any) => v != null ? Number(v).toFixed(2) : 'N/A';
+                    return `✓ Structured JSON Eval: Acc: ${accuracy.toFixed(2)}, Comp: ${fmt(out.completeness)}, Hall: ${fmt(out.hallucination)}, RQS: ${fmt(out.rqs)}`;
                 } else if (matchType === 'json') {
                     return accuracy === 1.0 ? '✓ JSON structural equality' : '✗ JSON structures differ';
                 } else if (matchType === 'number') {
@@ -2148,9 +2164,10 @@ function TestEvaluationsPage() {
                                         <TableCell width="50px" />
                                         <TableCell>JSON File Name</TableCell>
                                         <TableCell align="center">Completeness</TableCell>
-                                        <TableCell align="center">Accuracy</TableCell>
                                         <TableCell align="center">Hallucination</TableCell>
-                                        <TableCell align="center">Safety Score</TableCell>
+                                        <TableCell align="center">Accuracy</TableCell>
+                                        <TableCell align="center">Consistency</TableCell>
+                                        <TableCell align="center">Safety & Toxicity</TableCell>
                                         <TableCell align="center">Overall Status</TableCell>
                                     </TableRow>
                                 </TableHead>

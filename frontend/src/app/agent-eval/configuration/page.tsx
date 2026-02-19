@@ -23,6 +23,8 @@ interface FieldStrategyEntry {
 export default function ConfigurationPage() {
     const [mounted, setMounted] = useState(false);
     const [openSnackbar, setOpenSnackbar] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('Configuration saved successfully!');
+    const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [semanticThreshold, setSemanticThreshold] = useState('0.72');
@@ -126,6 +128,27 @@ export default function ConfigurationPage() {
     };
 
     const handleSave = () => {
+        const numericFields: [string, string][] = [
+            [semanticThreshold, 'Semantic Threshold'],
+            [alpha, 'Alpha'], [beta, 'Beta'], [gamma, 'Gamma'],
+            [accuracyThreshold, 'Accuracy Threshold'],
+            [consistencyThreshold, 'Consistency Threshold'],
+            [hallucinationThreshold, 'Hallucination Threshold'],
+            [rqsThreshold, 'RQS Threshold'],
+            [fuzzyThreshold, 'Fuzzy Threshold'],
+            [wAccuracy, 'Weight: Accuracy'], [wCompleteness, 'Weight: Completeness'],
+            [wHallucination, 'Weight: Hallucination'], [wSafety, 'Weight: Safety'],
+        ];
+        for (const [val, label] of numericFields) {
+            const n = parseFloat(val);
+            if (isNaN(n) || n < 0 || n > 1) {
+                setSnackbarMessage(`Invalid value for ${label}: must be a number between 0 and 1.`);
+                setSnackbarSeverity('error');
+                setOpenSnackbar(true);
+                return;
+            }
+        }
+
         localStorage.setItem('config_semantic_threshold', semanticThreshold);
         localStorage.setItem('config_alpha', alpha);
         localStorage.setItem('config_beta', beta);
@@ -150,6 +173,8 @@ export default function ConfigurationPage() {
             localStorage.setItem('config_field_strategies', JSON.stringify(obj));
         }
 
+        setSnackbarMessage('Configuration saved successfully!');
+        setSnackbarSeverity('success');
         setOpenSnackbar(true);
     };
 
@@ -573,20 +598,22 @@ export default function ConfigurationPage() {
             <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={() => setOpenSnackbar(false)}>
                 <Alert
                     onClose={() => setOpenSnackbar(false)}
-                    severity="success"
-                    icon={<CheckCircle2 size={18} />}
+                    severity={snackbarSeverity}
+                    icon={snackbarSeverity === 'success' ? <CheckCircle2 size={18} /> : undefined}
                     sx={{
                         width: '100%',
                         borderRadius: 2,
                         fontWeight: 700,
                         backdropFilter: 'blur(10px)',
-                        bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(208, 0, 0, 0.12)' : 'rgba(208, 0, 0, 0.06)',
-                        color: '#D00000',
-                        border: '1px solid rgba(208, 0, 0, 0.25)',
-                        '.MuiAlert-icon': { color: '#D00000' },
+                        ...(snackbarSeverity === 'success' ? {
+                            bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(208, 0, 0, 0.12)' : 'rgba(208, 0, 0, 0.06)',
+                            color: '#D00000',
+                            border: '1px solid rgba(208, 0, 0, 0.25)',
+                            '.MuiAlert-icon': { color: '#D00000' },
+                        } : {}),
                     }}
                 >
-                    Configuration saved successfully
+                    {snackbarMessage}
                 </Alert>
             </Snackbar>
         </Box>

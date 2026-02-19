@@ -53,26 +53,27 @@ export default function AgentSceneFallback({ events = [] }: AgentSceneFallbackPr
             // Update Agent Status
             setAgents(prev => prev.map(a => a.id === agentId ? { ...a, status: status === 'working' ? 'working' : status === 'failed' ? 'error' : 'success' } : a));
 
-            // Activate Connection (from Orchestrator usually)
+            const timers: ReturnType<typeof setTimeout>[] = [];
+
             if (agentId !== 'orchestrator' && status === 'working') {
                 setConnections(prev => prev.map(c =>
                     (c.start === 'orchestrator' && c.end === agentId) ? { ...c, active: true } : c
                 ));
 
-                // Deactivate after a while
-                setTimeout(() => {
+                timers.push(setTimeout(() => {
                     setConnections(prev => prev.map(c =>
                         (c.start === 'orchestrator' && c.end === agentId) ? { ...c, active: false } : c
                     ));
-                }, 2000);
+                }, 2000));
             }
 
-            // Reset Agent Status after success/fail
             if (status === 'completed' || status === 'failed') {
-                setTimeout(() => {
+                timers.push(setTimeout(() => {
                     setAgents(prev => prev.map(a => a.id === agentId ? { ...a, status: 'idle' } : a));
-                }, 3000);
+                }, 3000));
             }
+
+            return () => { timers.forEach(t => clearTimeout(t)); };
         }
     }, [events]);
 

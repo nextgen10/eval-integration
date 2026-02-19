@@ -1,8 +1,11 @@
 import asyncio
+import logging
 import os
 import json
 from typing import Dict, Any, List, Callable, Optional
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from .base_agent import BaseAgent
 from .consistency_agent import ConsistencyAgent
@@ -110,12 +113,11 @@ class OrchestratorAgent(BaseAgent):
                 
             await self.emit_status("Orchestrator", "working", f"Processing Query {query_id}")
             
-            # If doing aggregate run metrics, disable per-field expensive checks
-            if aggregate_run_metrics:
-                # We save original state in variables above, so we can clear here to avoid redundant field calls
-                req.enable_safety = False
+            effective_req = req
+            if aggregate_run_metrics and req.enable_safety:
+                effective_req = req.model_copy(update={"enable_safety": False})
 
-            output_detail = await self.run_single_test(req, query_id)
+            output_detail = await self.run_single_test(effective_req, query_id)
             
             if query_id not in per_query:
                 per_query[query_id] = QueryResult(outputs=[], n_runs=0)
@@ -150,23 +152,27 @@ class OrchestratorAgent(BaseAgent):
                 await self.emit_status("Orchestrator", "working", f"Calculating Run-Level Metrics for {rid}")
                 
                 # Reconstruct JSON/Text
+                def _safe_dumps(obj: Any) -> str:
+                    try:
+                        return json.dumps(obj, indent=2, default=str)
+                    except (ValueError, TypeError):
+                        return str(obj)
+
                 try:
-                    # Unflatten to restore original structure if possible
                     unflattened_aio = self.unflatten_json(data["aio"])
                     unflattened_gt = self.unflatten_json(data["gt"])
-                    aio_text = json.dumps(unflattened_aio, indent=2)
-                    gt_text = json.dumps(unflattened_gt, indent=2)
-                except Exception as e:
-                    print(f"DEBUG: Unflattening failed: {e}")
-                    aio_text = json.dumps(data["aio"], indent=2)
-                    gt_text = json.dumps(data["gt"], indent=2)
+                    aio_text = _safe_dumps(unflattened_aio)
+                    gt_text = _safe_dumps(unflattened_gt)
+                except Exception:
+                    aio_text = _safe_dumps(data["aio"])
+                    gt_text = _safe_dumps(data["gt"])
 
                 safe_res = {"score": 1.0, "issues": []}
                 
                 if any_safety_enabled:
-                    print(f"DEBUG: Triggering run-level safety check for {rid}...")
+                    logger.debug("Triggering run-level safety check for %s", rid)
                     safe_res = await self._run_metric_agent("safety", {"text": aio_text})
-                    print(f"DEBUG: Safety Result for {rid}: Score={safe_res.get('score')}")
+                    logger.debug("Safety result for %s: Score=%s", rid, safe_res.get('score'))
                 
                 run_details[rid] = {
                     "safety_score": safe_res.get("score", 1.0),
@@ -411,6 +417,7 @@ class OrchestratorAgent(BaseAgent):
                     w_hallucination=request.w_hallucination,
                     w_safety=request.w_safety,
                     enable_safety=request.enable_safety,
+                    llm_model=getattr(request, 'llm_model_name', 'gpt-4o'),
                     llm_api_key=os.getenv("OPENAI_API_KEY") or os.getenv("AZURE_OPENAI_API_KEY"),
                     field_strategies=getattr(request, 'field_strategies', {}) or {}
                 )
@@ -433,7 +440,7 @@ class OrchestratorAgent(BaseAgent):
                     "reason": f"Structure: {len(json_res.matching_keys)}/{len(json_res.gt_keys)} matched. Acc: {json_res.accuracy:.2f}"
                 }
             except Exception as e:
-                print(f"DEBUG: Json metadata extraction failed: {e}")
+                logger.debug("Json metadata extraction failed: %s", e)
         elif found and used_strategy != "IGNORE":
             display_field = query_id
             if request.ground_truth and request.ground_truth.metadata.get("column"):

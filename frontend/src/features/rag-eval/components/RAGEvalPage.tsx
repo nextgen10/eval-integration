@@ -107,6 +107,7 @@ import {
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { RAG_API_BASE_URL } from '../utils/config';
 
 // --- Helper Components ---
 import { MetricCard } from '@/components/shared/MetricCard';
@@ -276,10 +277,13 @@ function EnterpriseDashboardContent() {
   useEffect(() => {
     if (activeView === 'history') {
       setIsLoadingHistory(true);
-      fetch("http://localhost:8000/evaluations")
-        .then(res => res.json())
+      fetch(`${RAG_API_BASE_URL}/evaluations`)
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
         .then(data => {
-          setHistory(data);
+          if (Array.isArray(data)) setHistory(data);
           setIsLoadingHistory(false);
         })
         .catch(err => {
@@ -297,8 +301,8 @@ function EnterpriseDashboardContent() {
     const fetchData = async () => {
       try {
         const [latestRes, historyRes] = await Promise.all([
-          fetch("http://localhost:8000/latest"),
-          fetch("http://localhost:8000/evaluations")
+          fetch(`${RAG_API_BASE_URL}/latest`),
+          fetch(`${RAG_API_BASE_URL}/evaluations`)
         ]);
 
         if (latestRes.ok) {
@@ -329,7 +333,7 @@ function EnterpriseDashboardContent() {
   const handleLoadReport = async (runId: string) => {
     setIsLoadingReport(true);
     try {
-      const res = await fetch(`http://localhost:8000/evaluations/${runId}`);
+      const res = await fetch(`${RAG_API_BASE_URL}/evaluations/${runId}`);
       if (res.ok) {
         const fullData = await res.json();
         setData(fullData);
@@ -421,9 +425,9 @@ function EnterpriseDashboardContent() {
       const detailHeaders = ['TEST_CASE_ID', 'QUERY', 'GROUND_TRUTH', 'BOT_ID', 'RESPONSE', 'FAITHFULNESS', 'RELEVANCY', 'CONTEXT_PRECISION', 'CONTEXT_RECALL', 'ANSWER_CORRECTNESS', 'RQS'];
       const detailRows: any[] = [];
 
-      data.test_cases.forEach((tc: any) => {
-        Object.keys(data.summaries).forEach(botId => {
-          const m = data.bot_metrics[botId]?.[tc.id] || {};
+      (data.test_cases || []).forEach((tc: any) => {
+        Object.keys(data.summaries || {}).forEach(botId => {
+          const m = data.bot_metrics?.[botId]?.[tc.id] || {};
           const response = (tc.bot_responses?.[botId] || "").replace(/"/g, '""');
           const gt = (tc.ground_truth || "").replace(/"/g, '""');
           const s = (v: any) => {
@@ -432,7 +436,7 @@ function EnterpriseDashboardContent() {
           };
           detailRows.push([
             tc.id,
-            `"${tc.query.replace(/"/g, '""')}"`,
+            `"${(tc.query || "").replace(/"/g, '""')}"`,
             `"${gt}"`,
             botId,
             `"${response}"`,
@@ -518,7 +522,7 @@ function EnterpriseDashboardContent() {
         setStatusLogs(prev => [...prev, msg]);
       }, 1500);
 
-      const response = await fetch("http://localhost:8000/evaluate-excel", {
+      const response = await fetch(`${RAG_API_BASE_URL}/evaluate-excel`, {
         method: "POST",
         body: formData,
       });
@@ -535,15 +539,19 @@ function EnterpriseDashboardContent() {
       setStatusLogs(prev => [...prev, "✨ [SUCCESS] Full evaluation synchronized. Matrix data outputted to internal DB."]);
 
       // Refresh history to show the new evaluation
-      fetch("http://localhost:8000/evaluations")
-        .then(res => res.json())
-        .then(data => setHistory(data))
+      fetch(`${RAG_API_BASE_URL}/evaluations`)
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then(data => { if (Array.isArray(data)) setHistory(data); })
         .catch(err => console.error("Failed to refresh history", err));
 
       setTimeout(() => setIsEvaluating(false), 1200);
 
     } catch (err: any) {
-      setStatusLogs(prev => [...prev, `🛑 [CRITICAL] pipeline failed: ${err.message}`]);
+      clearInterval(timeout);
+      setStatusLogs(prev => [...prev, `[CRITICAL] pipeline failed: ${err.message}`]);
       setTimeout(() => setIsEvaluating(false), 3000);
     }
   };

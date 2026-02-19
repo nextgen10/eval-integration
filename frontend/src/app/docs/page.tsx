@@ -322,16 +322,11 @@ export default function DocumentationPage() {
                                                 </TableRow>
                                             </TableHead>
                                             <TableBody>
-                                                {[
-                                                    { name: 'gpt-4o', metric: 'Semantic Similarity / Fuzzy Match / Consistency', provider: 'OpenAI / Azure' },
-                                                    { name: 'gpt-4o-mini', metric: 'Safety & Toxicity Analysis', provider: 'OpenAI / Azure' }
-                                                ].map((row) => (
-                                                    <TableRow key={row.name}>
-                                                        <TableCell sx={{ color: 'text.primary', fontWeight: 600 }}>{row.name}</TableCell>
-                                                        <TableCell><Chip label={row.metric} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} /></TableCell>
-                                                        <TableCell color="text.secondary">{row.provider}</TableCell>
-                                                    </TableRow>
-                                                ))}
+                                                <TableRow>
+                                                    <TableCell sx={{ color: 'text.primary', fontWeight: 600 }}>gpt-4o</TableCell>
+                                                    <TableCell><Chip label="Semantic, Fuzzy, Consistency, Safety" size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} /></TableCell>
+                                                    <TableCell color="text.secondary">OpenAI / Azure</TableCell>
+                                                </TableRow>
                                             </TableBody>
                                         </Table>
                                     </TableContainer>
@@ -339,8 +334,8 @@ export default function DocumentationPage() {
                                         Agent Eval API: <code style={{ padding: '2px 6px', background: 'rgba(0,0,0,0.1)', borderRadius: 4 }}>/agent-eval</code>. RAG Eval backend: port 8000.
                                     </Typography>
                                     <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-                                        <Button variant="outlined" startIcon={<Code />} href="http://localhost:8000/docs" target="_blank" rel="noopener noreferrer" sx={{ borderColor: 'divider', color: 'text.primary', '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(208,0,0,0.04)' } }}>Swagger UI</Button>
-                                        <Button variant="outlined" startIcon={<Terminal />} href="http://localhost:8000/redoc" target="_blank" rel="noopener noreferrer" sx={{ borderColor: 'divider', color: 'text.primary', '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(208,0,0,0.04)' } }}>ReDoc</Button>
+                                        <Button variant="outlined" startIcon={<Code />} href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/docs`} target="_blank" rel="noopener noreferrer" sx={{ borderColor: 'divider', color: 'text.primary', '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(208,0,0,0.04)' } }}>Swagger UI</Button>
+                                        <Button variant="outlined" startIcon={<Terminal />} href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/redoc`} target="_blank" rel="noopener noreferrer" sx={{ borderColor: 'divider', color: 'text.primary', '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(208,0,0,0.04)' } }}>ReDoc</Button>
                                     </Box>
                                 </Box>
 

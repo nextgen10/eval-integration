@@ -26,8 +26,12 @@ export default function Dashboard({ latestResult }: DashboardProps) {
         setMounted(true);
 
         fetch(`${API_BASE_URL}/history`)
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
             .then(data => {
+                if (!Array.isArray(data)) return;
                 const chartData = data.map((item: any) => {
                     return {
                         id: item.id,

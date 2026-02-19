@@ -1,8 +1,12 @@
 import sqlite3
 import json
+import logging
+import re
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 import math
+
+logger = logging.getLogger(__name__)
 
 DB_NAME = "evaluations.db"
 
@@ -20,33 +24,12 @@ def sanitize_floats(obj):
 def init_db():
     """Initialize the SQLite database and create the table if it doesn't exist."""
     conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    # Check if table exists to handle migration (simple check)
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='evaluations'")
-    table_exists = cursor.fetchone()
-    
-    if not table_exists:
-        # Create new table with correct schema
-        cursor.execute('''
-            CREATE TABLE evaluations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT NOT NULL,
-                result_json TEXT NOT NULL,
-                events_json TEXT,
-                run_id TEXT
-            )
-        ''')
-    else:
-        # Check current schema and migrate if needed
-        cursor.execute("PRAGMA table_info(evaluations)")
-        columns = {info[1]: info[2] for info in cursor.fetchall()}
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='evaluations'")
+        table_exists = cursor.fetchone()
         
-        # Check if this is the old schema (has 'name' column instead of 'result_json')
-        if 'name' in columns and 'result_json' not in columns:
-            print("Detected old schema. Migrating to new schema...")
-            # Rename old table
-            cursor.execute("ALTER TABLE evaluations RENAME TO evaluations_old")
-            # Create new table with correct schema
+        if not table_exists:
             cursor.execute('''
                 CREATE TABLE evaluations (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,33 +39,44 @@ def init_db():
                     run_id TEXT
                 )
             ''')
-            print("Migration complete. Old data preserved in evaluations_old table.")
         else:
-            # New schema exists, just check for missing columns
-            if "events_json" not in columns:
-                cursor.execute("ALTER TABLE evaluations ADD COLUMN events_json TEXT")
-            if "run_id" not in columns:
-                cursor.execute("ALTER TABLE evaluations ADD COLUMN run_id TEXT")
+            cursor.execute("PRAGMA table_info(evaluations)")
+            columns = {info[1]: info[2] for info in cursor.fetchall()}
             
-    conn.commit()
-    
-    # Initialize Feedback Table
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='feedback'")
-    feedback_table_exists = cursor.fetchone()
-    
-    if not feedback_table_exists:
-        cursor.execute('''
-            CREATE TABLE feedback (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT NOT NULL,
-                rating INTEGER NOT NULL,
-                suggestion TEXT
-            )
-        ''')
-    conn.commit()
-
-    conn.commit()
-    conn.close()
+            if 'name' in columns and 'result_json' not in columns:
+                logger.info("Detected old schema. Migrating to new schema...")
+                cursor.execute("ALTER TABLE evaluations RENAME TO evaluations_old")
+                cursor.execute('''
+                    CREATE TABLE evaluations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        timestamp TEXT NOT NULL,
+                        result_json TEXT NOT NULL,
+                        events_json TEXT,
+                        run_id TEXT
+                    )
+                ''')
+                logger.info("Migration complete. Old data preserved in evaluations_old table.")
+            else:
+                if "events_json" not in columns:
+                    cursor.execute("ALTER TABLE evaluations ADD COLUMN events_json TEXT")
+                if "run_id" not in columns:
+                    cursor.execute("ALTER TABLE evaluations ADD COLUMN run_id TEXT")
+        
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='feedback'")
+        feedback_table_exists = cursor.fetchone()
+        
+        if not feedback_table_exists:
+            cursor.execute('''
+                CREATE TABLE feedback (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT NOT NULL,
+                    rating INTEGER NOT NULL,
+                    suggestion TEXT
+                )
+            ''')
+        conn.commit()
+    finally:
+        conn.close()
 
 
 # --------------- Prompts (file-based) ---------------
@@ -91,14 +85,28 @@ import os as _os
 
 _PROMPTS_DIR = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "prompts")
 
+_SAFE_KEY_RE = re.compile(r'^[a-zA-Z0-9_-]+$')
+
+
+def _validate_prompt_key(prompt_key: str) -> bool:
+    """Reject keys with path separators or directory traversal."""
+    return bool(_SAFE_KEY_RE.match(prompt_key))
+
 
 def get_prompt(prompt_key: str) -> Optional[Dict[str, Any]]:
     """Load a single prompt from its JSON file in the prompts/ folder."""
+    if not _validate_prompt_key(prompt_key):
+        logger.warning("Rejected invalid prompt key: %s", prompt_key)
+        return None
     path = _os.path.join(_PROMPTS_DIR, f"{prompt_key}.json")
     if not _os.path.isfile(path):
         return None
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        logger.error("Failed to load prompt '%s': %s", prompt_key, e)
+        return None
 
 
 def get_all_prompts() -> List[Dict[str, Any]]:
@@ -115,19 +123,26 @@ def get_all_prompts() -> List[Dict[str, Any]]:
                     data.setdefault("prompt_key", fname.replace(".json", ""))
                     results.append(data)
             except Exception as e:
-                print(f"Error loading prompt {fname}: {e}")
+                logger.error("Error loading prompt %s: %s", fname, e)
     return results
 
 
 def update_prompt(prompt_key: str, updates: Dict[str, Any]) -> bool:
     """Update a prompt JSON file. Merges updates into the existing file."""
+    if not _validate_prompt_key(prompt_key):
+        logger.warning("Rejected invalid prompt key for update: %s", prompt_key)
+        return False
     path = _os.path.join(_PROMPTS_DIR, f"{prompt_key}.json")
     if not _os.path.isfile(path):
         return False
     allowed = {"title", "description", "model", "temperature", "max_tokens",
                "response_format", "used_in", "system_message", "user_message_template"}
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        logger.error("Failed to read prompt '%s' for update: %s", prompt_key, e)
+        return False
     changed = False
     for k, v in updates.items():
         if k in allowed and data.get(k) != v:
@@ -145,51 +160,55 @@ def update_prompt(prompt_key: str, updates: Dict[str, Any]) -> bool:
 def save_result(result_json: str, events_json: str = "[]", run_id: Optional[str] = None):
     """Save a batch test result and events to the database."""
     conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    timestamp = datetime.now().isoformat()
-    cursor.execute('INSERT INTO evaluations (timestamp, result_json, events_json, run_id) VALUES (?, ?, ?, ?)', (timestamp, result_json, events_json, run_id))
-    new_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
-    return new_id
+    try:
+        cursor = conn.cursor()
+        timestamp = datetime.now().isoformat()
+        cursor.execute('INSERT INTO evaluations (timestamp, result_json, events_json, run_id) VALUES (?, ?, ?, ?)', (timestamp, result_json, events_json, run_id))
+        new_id = cursor.lastrowid
+        conn.commit()
+        return new_id
+    finally:
+        conn.close()
 
 def get_latest_result() -> Optional[Dict[str, Any]]:
     """Retrieve the most recent evaluation result and events."""
     conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('SELECT id, result_json, events_json FROM evaluations ORDER BY id DESC LIMIT 1')
-    row = cursor.fetchone()
-    conn.close()
-    
-    if row:
-        result = json.loads(row[1])
-        events = json.loads(row[2]) if row[2] else []
-        # Inject ID into result object or wrap it
-        result['id'] = row[0] 
-        return sanitize_floats({"result": result, "events": events})
-    return None
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, result_json, events_json FROM evaluations ORDER BY id DESC LIMIT 1')
+        row = cursor.fetchone()
+        
+        if row:
+            try:
+                result = json.loads(row[1])
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.error("Corrupt result_json in record %s: %s", row[0], e)
+                return None
+            events = json.loads(row[2]) if row[2] else []
+            result['id'] = row[0] 
+            return sanitize_floats({"result": result, "events": events})
+        return None
+    finally:
+        conn.close()
 
 def get_all_results() -> List[Dict[str, Any]]:
     """Retrieve all historical evaluation results."""
+    conn = sqlite3.connect(DB_NAME)
     try:
-        conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute('SELECT id, timestamp, result_json, run_id FROM evaluations ORDER BY id DESC')
         rows = cursor.fetchall()
-        conn.close()
         
         results = []
         for row in rows:
             try:
                 res_data = json.loads(row[2])
-                # Add metadata
                 if isinstance(res_data, dict):
                     res_data['id'] = row[0]
                     res_data['timestamp'] = row[1]
                     res_data['run_id'] = row[3] if len(row) > 3 else None
                     results.append(res_data)
                 else:
-                    # If it's not a dict, wrap it
                     results.append({
                         "id": row[0],
                         "timestamp": row[1],
@@ -197,42 +216,43 @@ def get_all_results() -> List[Dict[str, Any]]:
                         "run_id": row[3] if len(row) > 3 else None
                     })
             except Exception as e:
-                print(f"Error parsing record {row[0]}: {e}")
+                logger.error("Error parsing record %s: %s", row[0], e)
                 continue
                 
         return sanitize_floats(results)
     except Exception as e:
-        print(f"Database error in get_all_results: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error("Database error in get_all_results: %s", e, exc_info=True)
         return []
-
-
-    return results
+    finally:
+        conn.close()
 
 def save_feedback(rating: int, suggestion: str):
     """Save user feedback to the database."""
     conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    timestamp = datetime.now().isoformat()
-    cursor.execute('INSERT INTO feedback (timestamp, rating, suggestion) VALUES (?, ?, ?)', (timestamp, rating, suggestion))
-    conn.commit()
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        timestamp = datetime.now().isoformat()
+        cursor.execute('INSERT INTO feedback (timestamp, rating, suggestion) VALUES (?, ?, ?)', (timestamp, rating, suggestion))
+        conn.commit()
+    finally:
+        conn.close()
 
 def get_all_feedback() -> List[Dict[str, Any]]:
     """Retrieve all feedback entries."""
     conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('SELECT id, timestamp, rating, suggestion FROM feedback ORDER BY id DESC')
-    rows = cursor.fetchall()
-    conn.close()
-    
-    feedback_list = []
-    for row in rows:
-        feedback_list.append({
-            "id": row[0],
-            "timestamp": row[1],
-            "rating": row[2],
-            "suggestion": row[3]
-        })
-    return feedback_list
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, timestamp, rating, suggestion FROM feedback ORDER BY id DESC')
+        rows = cursor.fetchall()
+        
+        feedback_list = []
+        for row in rows:
+            feedback_list.append({
+                "id": row[0],
+                "timestamp": row[1],
+                "rating": row[2],
+                "suggestion": row[3]
+            })
+        return feedback_list
+    finally:
+        conn.close()

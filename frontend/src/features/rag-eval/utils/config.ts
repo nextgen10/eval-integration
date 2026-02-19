@@ -1,6 +1,5 @@
 let rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-// Handle Render's "host" property which might just be the slug (e.g. "my-app-slug")
 if (!rawUrl.startsWith('http')) {
     if (!rawUrl.includes('.') && !rawUrl.includes(':')) {
         rawUrl += '.onrender.com';
@@ -8,4 +7,4 @@ if (!rawUrl.startsWith('http')) {
     rawUrl = `https://${rawUrl}`;
 }
 
-export const API_BASE_URL = `${rawUrl}/agent-eval`;
+export const RAG_API_BASE_URL = rawUrl;

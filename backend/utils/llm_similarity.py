@@ -4,11 +4,20 @@ Uses OpenAI / Azure OpenAI to score semantic and fuzzy similarity between texts.
 Prompts are loaded from the SQLite prompts table (managed via the Prompts API).
 Returns a float 0.0–1.0.
 """
+import math
 import os
 import json
+import logging
 from typing import Optional
 
 from agent_database import get_prompt
+
+
+def _safe_score(val: float) -> float:
+    """Clamp to [0.0, 1.0] and replace NaN/Inf with 0.0."""
+    if not math.isfinite(val):
+        return 0.0
+    return max(0.0, min(1.0, val))
 
 
 async def _get_llm_client():
@@ -70,11 +79,13 @@ async def llm_semantic_similarity(text_a: str, text_b: str) -> float:
             temperature=temperature,
             max_tokens=max_tokens,
         )
-        content = resp.choices[0].message.content.strip()
+        if not resp.choices:
+            return 0.0
+        content = (resp.choices[0].message.content or "").strip()
         data = json.loads(content)
-        return max(0.0, min(1.0, float(data.get("score", 0.0))))
+        return _safe_score(float(data.get("score", 0.0)))
     except Exception as e:
-        print(f"[llm_semantic_similarity] Error: {e}")
+        logging.getLogger(__name__).warning("[llm_semantic_similarity] Error: %s", e)
         return 0.0
 
 
@@ -105,11 +116,13 @@ async def llm_fuzzy_similarity(text_a: str, text_b: str) -> float:
             temperature=temperature,
             max_tokens=max_tokens,
         )
-        content = resp.choices[0].message.content.strip()
+        if not resp.choices:
+            return 0.0
+        content = (resp.choices[0].message.content or "").strip()
         data = json.loads(content)
-        return max(0.0, min(1.0, float(data.get("score", 0.0))))
+        return _safe_score(float(data.get("score", 0.0)))
     except Exception as e:
-        print(f"[llm_fuzzy_similarity] Error: {e}")
+        logging.getLogger(__name__).warning("[llm_fuzzy_similarity] Error: %s", e)
         return 0.0
 
 
@@ -144,9 +157,11 @@ async def llm_consistency_score(texts: list[str]) -> float:
             temperature=temperature,
             max_tokens=max_tokens,
         )
-        content = resp.choices[0].message.content.strip()
+        if not resp.choices:
+            return 0.0
+        content = (resp.choices[0].message.content or "").strip()
         data = json.loads(content)
-        return max(0.0, min(1.0, float(data.get("score", 0.0))))
+        return _safe_score(float(data.get("score", 0.0)))
     except Exception as e:
-        print(f"[llm_consistency_score] Error: {e}")
+        logging.getLogger(__name__).warning("[llm_consistency_score] Error: %s", e)
         return 0.0

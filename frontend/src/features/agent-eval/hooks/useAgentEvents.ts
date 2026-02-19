@@ -44,13 +44,11 @@ export function useAgentEvents() {
             }
 
             const streamUrl = `${API_BASE_URL}/events`;
-            console.log("Connecting to SSE at:", streamUrl);
             const source = new EventSource(streamUrl);
             eventSource = source;
 
             eventSource.onopen = () => {
                 setIsConnected(true);
-                console.log("Connected to SSE");
             };
 
             eventSource.onmessage = (event) => {
@@ -61,7 +59,6 @@ export function useAgentEvents() {
                     }
 
                     if (data.message && data.message.includes('Starting batch evaluation')) {
-                        console.log("New evaluation detected, clearing old events");
                         setEvents([data]);
                     } else {
                         setEvents((prev) => [...prev, data]);
@@ -72,7 +69,6 @@ export function useAgentEvents() {
             };
 
             eventSource.onerror = () => {
-                console.log("SSE Connection lost, retrying in 3s...");
                 setIsConnected(false);
                 if (eventSource) {
                     eventSource.close();

@@ -162,7 +162,7 @@ export const PrintOnlyReport: React.FC<PrintOnlyReportProps> = ({ data, leaderbo
                         02. GRANULAR DRILLDOWN (PER TEST CASE)
                     </Typography>
 
-                    {data.test_cases.map((tc: any, index: number) => (
+                    {(data.test_cases || []).map((tc: any, index: number) => (
                         <Box key={tc.id} sx={{ mb: 5, breakInside: 'avoid' }}>
                             <Box sx={{ p: 2.5, bgcolor: '#f8fafc', border: '1px solid #e2e8f0', borderBottom: 'none', borderTopLeftRadius: '12px', borderTopRightRadius: '12px' }}>
                                 <Typography variant="caption" sx={{ fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -190,7 +190,7 @@ export const PrintOnlyReport: React.FC<PrintOnlyReportProps> = ({ data, leaderbo
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {Object.keys(data.summaries).map((botId) => {
+                                        {Object.keys(data.summaries || {}).map((botId) => {
                                             const m = data.bot_metrics[botId]?.[tc.id] || {};
                                             const response = tc.bot_responses?.[botId] || 'No response captured.';
                                             return (

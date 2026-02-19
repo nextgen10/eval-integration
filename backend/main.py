@@ -33,9 +33,10 @@ def sanitize_floats(obj):
 
 app = FastAPI(title="RagEval Backend")
 
+_cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -208,34 +209,47 @@ async def evaluate_excel(
 
 @app.post("/evaluate", response_model=EvaluationResult)
 async def run_evaluation(request: EvaluationRequest, background_tasks: BackgroundTasks):
+    if not request.dataset:
+        raise HTTPException(status_code=400, detail="Dataset is empty. Provide at least one test case.")
+
     if background_tasks:
         background_tasks.add_task(cleanup_cache)
-    evaluator = RagEvaluator(
-        alpha=request.alpha, 
-        beta=request.beta, 
-        gamma=request.gamma, 
-        temperature=request.temperature
-    )
-    results = await evaluator.run_multi_bot_evaluation(request.dataset)
 
-    eval_id = str(uuid.uuid4())
-    result = EvaluationResult(
-        id=eval_id,
-        name=request.name,
-        timestamp=datetime.now(),
-        test_cases=request.dataset,
-        bot_metrics=results["bot_metrics"],
-        summaries=results["summaries"],
-        leaderboard=results["leaderboard"],
-        winner=results["winner"]
-    )
-    
-    # Sanitize for JSON compliance
-    sanitized_result_data = sanitize_floats(result.model_dump())
-    sanitized_result = EvaluationResult(**sanitized_result_data)
-    
-    save_to_db(sanitized_result)
-    return sanitized_result
+    try:
+        evaluator = RagEvaluator(
+            alpha=request.alpha, 
+            beta=request.beta, 
+            gamma=request.gamma, 
+            temperature=request.temperature
+        )
+        results = await evaluator.run_multi_bot_evaluation(request.dataset)
+
+        if "error" in results:
+            raise HTTPException(status_code=400, detail=results["error"])
+
+        eval_id = str(uuid.uuid4())
+        result = EvaluationResult(
+            id=eval_id,
+            name=request.name,
+            timestamp=datetime.now(),
+            test_cases=request.dataset,
+            bot_metrics=results["bot_metrics"],
+            summaries=results["summaries"],
+            leaderboard=results["leaderboard"],
+            winner=results["winner"]
+        )
+        
+        sanitized_result_data = sanitize_floats(result.model_dump())
+        sanitized_result = EvaluationResult(**sanitized_result_data)
+        
+        save_to_db(sanitized_result)
+        return sanitized_result
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Evaluation failed: {str(e)}")
 
 @app.get("/evaluations", response_model=List[EvaluationSummary])
 async def get_all_evaluations():

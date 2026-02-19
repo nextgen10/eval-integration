@@ -28,7 +28,7 @@ class ExactMatchAgent(BaseMetricAgent):
                 c = float(re.sub(r"[^\d\.\-eE]", "", str(candidate)))
                 r = float(re.sub(r"[^\d\.\-eE]", "", str(reference)))
                 is_match = math.isclose(c, r, rel_tol=0.01)
-            except:
+            except (ValueError, TypeError):
                 is_match = False
         elif match_type == "email":
             is_match = self.normalize_email(candidate) == self.normalize_email(reference)

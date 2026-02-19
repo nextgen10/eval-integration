@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from fastapi.responses import StreamingResponse
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Literal, Optional
 import os
 import json
 import asyncio
+import logging
 import uuid
 from datetime import datetime
 
@@ -17,33 +18,53 @@ from agent_models_json import (
     JsonBatchEvalRequest, JsonBatchEvalResponse
 )
 from agents.orchestrator_agent import OrchestratorAgent
-# from agents.json_evaluator_agent import JsonEvaluatorAgent # Imported inside orchestrator?
 from agent_convert_json import flatten_json, convert_to_expected_format, convert_to_actual_format, safe_json_dumps
 
 from agent_database import init_db, save_result, get_latest_result, save_feedback, get_all_feedback, get_all_results, get_all_prompts, get_prompt
 
-# Initialize DB (might want to do this at startup)
+logger = logging.getLogger(__name__)
+
 init_db()
 
 router = APIRouter(prefix="/agent-eval", tags=["Agent Evaluation"])
 
-# Global event manager for SSE broadcasting
+# Allowed base directory for file-path-based evaluations
+_ALLOWED_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+
 class ConnectionManager:
+    MAX_QUEUE_SIZE = 256
+
     def __init__(self):
+        self._lock = asyncio.Lock()
         self.active_connections: List[asyncio.Queue] = []
 
     async def connect(self):
-        queue = asyncio.Queue()
-        self.active_connections.append(queue)
+        queue: asyncio.Queue = asyncio.Queue(maxsize=self.MAX_QUEUE_SIZE)
+        async with self._lock:
+            self.active_connections.append(queue)
         return queue
 
-    def disconnect(self, queue: asyncio.Queue):
-        if queue in self.active_connections:
-            self.active_connections.remove(queue)
+    async def disconnect(self, queue: asyncio.Queue):
+        async with self._lock:
+            if queue in self.active_connections:
+                self.active_connections.remove(queue)
 
     async def broadcast(self, event: AgentStatus):
-        for queue in self.active_connections:
-            await queue.put(event)
+        async with self._lock:
+            connections = list(self.active_connections)
+        for queue in connections:
+            try:
+                queue.put_nowait(event)
+            except asyncio.QueueFull:
+                try:
+                    queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+                try:
+                    queue.put_nowait(event)
+                except asyncio.QueueFull:
+                    pass
 
 manager = ConnectionManager()
 
@@ -51,22 +72,20 @@ async def event_generator(request: Request):
     queue = await manager.connect()
     try:
         while True:
-            # Check if client disconnected
             if await request.is_disconnected():
                 break
-                
-            # Wait for new events
-            event = await queue.get()
-            # Handle both AgentStatus objects and plain dicts
+            try:
+                event = await asyncio.wait_for(queue.get(), timeout=15.0)
+            except asyncio.TimeoutError:
+                yield ": heartbeat\n\n"
+                continue
             if isinstance(event, dict):
-                import json
                 event_data = json.dumps(event)
             else:
-                event_data = event.model_dump_json() # Pydantic v2 use model_dump_json
-            # Yield event as SSE format
+                event_data = event.model_dump_json()
             yield f"data: {event_data}\n\n"
     finally:
-        manager.disconnect(queue)
+        await manager.disconnect(queue)
 
 @router.get("/events")
 async def sse_endpoint(request: Request):
@@ -102,12 +121,15 @@ def ensure_string(value: Any) -> str:
 from pydantic import BaseModel
 class ConvertRequestModel(BaseModel):
     data: Any
-    mode: str  # 'gt' or 'ai'
+    mode: Literal["gt", "ai"]
     run_id: str = "manual_run"
+
+MAX_BATCH_SIZE = 500
 
 @router.post("/run-batch", response_model=BatchTestResult)
 async def run_batch(requests: List[TestRequest]):
-    # Generate run_id early
+    if len(requests) > MAX_BATCH_SIZE:
+        raise HTTPException(status_code=400, detail=f"Batch size exceeds limit of {MAX_BATCH_SIZE}")
     run_id = str(uuid.uuid4())
     
     # Capture events locally for persistence
@@ -197,6 +219,10 @@ async def convert_json_endpoint(request: ConvertRequestModel):
 
 @router.post("/evaluate-from-json", response_model=BatchTestResult)
 async def evaluate_from_json(request: JsonEvaluationRequest):
+    if len(request.ground_truth) > MAX_BATCH_SIZE:
+        raise HTTPException(status_code=400, detail=f"Ground truth size exceeds limit of {MAX_BATCH_SIZE}")
+    if len(request.ai_outputs) > MAX_BATCH_SIZE:
+        raise HTTPException(status_code=400, detail=f"AI outputs size exceeds limit of {MAX_BATCH_SIZE}")
     run_id = str(uuid.uuid4())
     events_log = []
     
@@ -316,23 +342,32 @@ async def evaluate_from_json(request: JsonEvaluationRequest):
         ))
         raise HTTPException(status_code=500, detail=str(e))
 
+def _validate_file_path(path: str) -> str:
+    """Resolve and validate that a file path stays within the allowed data directory."""
+    resolved = os.path.abspath(path)
+    if not resolved.startswith(_ALLOWED_DATA_DIR):
+        raise HTTPException(status_code=400, detail=f"Path is outside allowed directory: {path}")
+    return resolved
+
 @router.post("/evaluate-from-paths", response_model=BatchTestResult)
 async def evaluate_from_paths(request: BatchPathRequest):
     """
     Evaluate from local file paths.
     """
     try:
-        if not os.path.exists(request.ground_truth_path):
+        gt_path = _validate_file_path(request.ground_truth_path)
+        ai_path = _validate_file_path(request.ai_outputs_path)
+
+        if not os.path.exists(gt_path):
             raise HTTPException(status_code=400, detail=f"Ground Truth path not found: {request.ground_truth_path}")
         
-        with open(request.ground_truth_path, "r", encoding="utf-8") as f:
+        with open(gt_path, "r", encoding="utf-8") as f:
             gt_data = json.load(f)
             
         ai_outputs_data = []
-        if os.path.isdir(request.ai_outputs_path):
-            # Load all .json files in the directory
+        if os.path.isdir(ai_path):
             import glob
-            files = glob.glob(os.path.join(request.ai_outputs_path, "*.json"))
+            files = glob.glob(os.path.join(ai_path, "*.json"))
             for fpath in files:
                 with open(fpath, "r", encoding="utf-8") as f:
                     try:
@@ -341,10 +376,11 @@ async def evaluate_from_paths(request: BatchPathRequest):
                             ai_outputs_data.extend(content)
                         else:
                             ai_outputs_data.append(content)
-                    except:
+                    except (json.JSONDecodeError, OSError) as e:
+                        logger.warning("Skipping unreadable file %s: %s", fpath, e)
                         continue
-        elif os.path.exists(request.ai_outputs_path):
-            with open(request.ai_outputs_path, "r", encoding="utf-8") as f:
+        elif os.path.exists(ai_path):
+            with open(ai_path, "r", encoding="utf-8") as f:
                 ai_outputs_data = json.load(f)
         else:
             raise HTTPException(status_code=400, detail=f"AI Outputs path not found: {request.ai_outputs_path}")
@@ -400,5 +436,20 @@ async def read_prompt(prompt_key: str):
     if not p:
         raise HTTPException(status_code=404, detail=f"Prompt '{prompt_key}' not found")
     return p
+
+
+# ─── Feedback API ────────────────────────────────────────────
+
+@router.post("/feedback")
+async def submit_feedback(request: FeedbackRequest):
+    if not 1 <= request.rating <= 5:
+        raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+    save_feedback(request.rating, request.suggestion or "")
+    return {"status": "ok"}
+
+
+@router.get("/feedback")
+async def list_feedback():
+    return get_all_feedback()
 
 

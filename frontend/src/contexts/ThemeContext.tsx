@@ -12,8 +12,8 @@ export const ThemeModeProvider = ({ children }: { children: React.ReactNode }) =
     const [mode, setMode] = useState<'light' | 'dark'>('light');
 
     useEffect(() => {
-        const savedMode = localStorage.getItem('themeMode') as 'light' | 'dark';
-        if (savedMode) {
+        const savedMode = localStorage.getItem('themeMode');
+        if (savedMode === 'light' || savedMode === 'dark') {
             setMode(savedMode);
         }
     }, []);
