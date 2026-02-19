@@ -8,6 +8,7 @@ import {
     Activity,
     Settings,
     History,
+    FileText,
 } from 'lucide-react';
 
 import CopyProtection from '@/features/agent-eval/components/CopyProtection';
@@ -30,6 +31,7 @@ export default function AgentEvalLayout({
         icon: item.id === 'dashboard' ? <LayoutDashboard size={16} /> :
               item.id === 'test-evaluations' ? <Activity size={16} /> :
               item.id === 'configuration' ? <Settings size={16} /> :
+              item.id === 'prompts' ? <FileText size={16} /> :
               <History size={16} />,
         path: item.path,
     }));

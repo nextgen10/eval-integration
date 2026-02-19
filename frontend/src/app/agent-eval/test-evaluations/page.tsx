@@ -338,64 +338,91 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                 <Box>
                                     <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>Field Correlation & Accuracy Strategy Breakdown</Typography>
                                     {Object.entries(accuracyGroups).length > 0 ? (
-                                        Object.entries(accuracyGroups).map(([strategy, fields]) => (
+                                        Object.entries(accuracyGroups).map(([strategy, fields]) => {
+                                            const stratUpper = strategy.toUpperCase();
+                                            const scoreColName = stratUpper === 'SEMANTIC' ? 'Semantic Score'
+                                                : stratUpper === 'FUZZY' ? 'Fuzzy Score'
+                                                : stratUpper === 'EXACT' ? 'Exact Match Score'
+                                                : `${strategy} Score`;
+                                            const threshold = stratUpper === 'SEMANTIC' ? (thresholds?.semantic_threshold || 0.72)
+                                                : stratUpper === 'FUZZY' ? (thresholds?.fuzzy_threshold || 0.85)
+                                                : null;
+
+                                            return (
                                             <Accordion key={strategy} defaultExpanded sx={{ mb: 2, border: '1px solid', borderColor: alpha(theme.palette.info.main, 0.2), boxShadow: 'none' }}>
                                                 <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: alpha(theme.palette.info.main, 0.05) }}>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                                         <Typography sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>{strategy} Match</Typography>
                                                         <Chip label={`${fields.length} Fields`} size="small" color="primary" variant="outlined" />
+                                                        <Chip label={threshold !== null ? `Threshold: ${(threshold * 100).toFixed(0)}%` : 'Binary'} size="small" variant="outlined" color="info" />
                                                     </Box>
                                                 </AccordionSummary>
                                                 <AccordionDetails sx={{ p: 0 }}>
-                                                    <Table size="small">
+                                                    <Table size="small" sx={{ tableLayout: 'fixed' }}>
                                                         <TableHead sx={{ bgcolor: alpha(theme.palette.info.main, 0.02) }}>
                                                             <TableRow>
-                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Field Name</TableCell>
-                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Query ID</TableCell>
-                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Ground Truth</TableCell>
-                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>AI Output</TableCell>
-                                                                <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Similarity</TableCell>
-                                                                <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>Field Score</TableCell>
+                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '12%' }}>Field Name</TableCell>
+                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '15%' }}>Query ID</TableCell>
+                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '23%' }}>Ground Truth</TableCell>
+                                                                <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '23%' }}>AI Output</TableCell>
+                                                                <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '18%' }}>{scoreColName}</TableCell>
+                                                                <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '0.75rem', width: '9%' }}>Final Score</TableCell>
                                                             </TableRow>
                                                         </TableHead>
                                                         <TableBody>
-                                                            {fields.map((f, i) => (
+                                                            {fields.map((f, i) => {
+                                                                const simPct = (f.similarity * 100).toFixed(1);
+                                                                const threshPct = threshold !== null ? (threshold * 100).toFixed(0) : null;
+                                                                const scoreDisplay = stratUpper === 'EXACT'
+                                                                    ? (f.similarity >= 1.0 ? 'true' : 'false')
+                                                                    : threshPct !== null
+                                                                        ? `${simPct} ${f.score >= 1.0 ? '>' : '<='} ${threshPct} (Threshold)`
+                                                                        : `${simPct}%`;
+                                                                const scoreColor = stratUpper === 'EXACT'
+                                                                    ? (f.similarity >= 1.0 ? 'success.main' : 'error.main')
+                                                                    : (f.score >= 1.0 ? 'success.main' : 'error.main');
+
+                                                                return (
                                                                 <TableRow key={i}>
-                                                                    <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'medium', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                        <Tooltip title={String(f.fieldName || '')}>
+                                                                    <TableCell sx={{ fontSize: '0.75rem', fontWeight: 'medium', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                        <Tooltip title={String(f.fieldName || '')} arrow>
                                                                             <span>{String(f.fieldName || 'N/A')}</span>
                                                                         </Tooltip>
                                                                     </TableCell>
-                                                                    <TableCell sx={{ fontSize: '0.7rem', color: 'text.secondary', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                        <Tooltip title={String(f.qid || '')}>
+                                                                    <TableCell sx={{ fontSize: '0.7rem', color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                        <Tooltip title={String(f.qid || '')} arrow>
                                                                             <span>{String(f.qid || 'N/A')}</span>
                                                                         </Tooltip>
                                                                     </TableCell>
-                                                                    <TableCell sx={{ fontSize: '0.7rem', color: 'text.secondary', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                        <Tooltip title={String(f.gt_value || '')}>
+                                                                    <TableCell sx={{ fontSize: '0.7rem', color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                        <Tooltip title={String(f.gt_value || '')} arrow>
                                                                             <span>{String(f.gt_value || 'N/A')}</span>
                                                                         </Tooltip>
                                                                     </TableCell>
-                                                                    <TableCell sx={{ fontSize: '0.7rem', color: 'text.secondary', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                        <Tooltip title={String(f.aio_value || '')}>
+                                                                    <TableCell sx={{ fontSize: '0.7rem', color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                        <Tooltip title={String(f.aio_value || '')} arrow>
                                                                             <span>{String(f.aio_value || 'N/A')}</span>
                                                                         </Tooltip>
                                                                     </TableCell>
-                                                                    <TableCell align="right" sx={{ fontSize: '0.75rem' }}>{(f.similarity * 100).toFixed(1)}%</TableCell>
-                                                                    <TableCell align="right">
+                                                                    <TableCell align="center" sx={{ fontSize: '0.73rem', fontWeight: 'bold', color: scoreColor }}>
+                                                                        {scoreDisplay}
+                                                                    </TableCell>
+                                                                    <TableCell align="center">
                                                                         <Chip
-                                                                            label={f.score.toFixed(2)}
+                                                                            label={f.score >= 1.0 ? '1' : '0'}
                                                                             size="small"
-                                                                            sx={{ height: 18, fontSize: '0.7rem', fontWeight: 'bold', bgcolor: f.score >= 0.8 ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.error.main, 0.1), color: f.score >= 0.8 ? 'success.main' : 'error.main' }}
+                                                                            sx={{ height: 22, minWidth: 32, fontSize: '0.75rem', fontWeight: 'bold', bgcolor: f.score >= 1.0 ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.error.main, 0.1), color: f.score >= 1.0 ? 'success.main' : 'error.main' }}
                                                                         />
                                                                     </TableCell>
                                                                 </TableRow>
-                                                            ))}
+                                                                );
+                                                            })}
                                                         </TableBody>
                                                     </Table>
                                                 </AccordionDetails>
                                             </Accordion>
-                                        ))
+                                            );
+                                        })
                                     ) : (
                                         <Typography variant="body2" color="text.secondary">No field-level accuracy data found.</Typography>
                                     )}
@@ -1043,14 +1070,6 @@ function TestEvaluationsPage() {
     const [normalizedJsonDepth, setNormalizedJsonDepth] = useState(1);
     const [normalizedJsonKey, setNormalizedJsonKey] = useState(0);
 
-    // Key Mapping State
-    const [gtQueryIdKey, setGtQueryIdKey] = useState('query_id');
-    const [gtExpectedKey, setGtExpectedKey] = useState('expected_output');
-    const [gtTypeKey, setGtTypeKey] = useState('match_type');
-    const [predQueryIdKey, setPredQueryIdKey] = useState('query_id');
-    const [predOutputKey, setPredOutputKey] = useState('output');
-    const [predRunIdKey, setPredRunIdKey] = useState('run_id');
-
     // Config State (Loaded for API calls)
     const [config, setConfig] = useState<any>({});
 
@@ -1096,12 +1115,6 @@ function TestEvaluationsPage() {
         // Load saved JSONs and keys from localStorage
         setGtJson(localStorage.getItem('ground_truth') || gtJson);
         setOutputsJson(localStorage.getItem('ai_outputs') || outputsJson);
-        setGtQueryIdKey(localStorage.getItem('gt_query_id_key') || 'query_id');
-        setGtExpectedKey(localStorage.getItem('gt_expected_key') || 'expected_output');
-        setGtTypeKey(localStorage.getItem('gt_type_key') || 'match_type');
-        setPredQueryIdKey(localStorage.getItem('pred_query_id_key') || 'query_id');
-        setPredOutputKey(localStorage.getItem('pred_output_key') || 'output');
-        setPredRunIdKey(localStorage.getItem('pred_run_id_key') || 'run_id');
         setGtPath(localStorage.getItem('batch_gt_path') || '');
         setAiPath(localStorage.getItem('batch_ai_path') || '');
 
@@ -1124,19 +1137,17 @@ function TestEvaluationsPage() {
             beta: parseFloat(localStorage.getItem('config_beta') || '0.2'),
             gamma: parseFloat(localStorage.getItem('config_gamma') || '0.2'),
             enable_safety: localStorage.getItem('config_enable_safety') !== 'false',
-            model_name: localStorage.getItem('config_model_name') || 'all-MiniLM-L12-v2',
             llm_model_name: localStorage.getItem('config_llm_model_name') || 'gpt-4o',
             accuracy_threshold: parseFloat(localStorage.getItem('config_accuracy_threshold') || '0.5'),
             consistency_threshold: parseFloat(localStorage.getItem('config_consistency_threshold') || '0.5'),
             hallucination_threshold: parseFloat(localStorage.getItem('config_hallucination_threshold') || '0.5'),
             rqs_threshold: parseFloat(localStorage.getItem('config_rqs_threshold') || '0.5'),
-            llm_threshold: parseFloat(localStorage.getItem('config_llm_threshold') || '0.75'),
-            short_text_length: parseInt(localStorage.getItem('config_short_text_length') || '40'),
             fuzzy_threshold: parseFloat(localStorage.getItem('config_fuzzy_threshold') || '0.85'),
             w_accuracy: parseFloat(localStorage.getItem('config_w_accuracy') || '0.45'),
             w_completeness: parseFloat(localStorage.getItem('config_w_completeness') || '0.25'),
             w_hallucination: parseFloat(localStorage.getItem('config_w_hallucination') || '0.15'),
-            w_safety: parseFloat(localStorage.getItem('config_w_safety') || '0.15')
+            w_safety: parseFloat(localStorage.getItem('config_w_safety') || '0.15'),
+            field_strategies: JSON.parse(localStorage.getItem('config_field_strategies') || '{}')
         });
 
         // Restore evaluation type
@@ -1170,19 +1181,17 @@ function TestEvaluationsPage() {
             beta: parseFloat(localStorage.getItem('config_beta') || '0.2'),
             gamma: parseFloat(localStorage.getItem('config_gamma') || '0.2'),
             enable_safety: localStorage.getItem('config_enable_safety') !== 'false',
-            model_name: localStorage.getItem('config_model_name') || 'all-MiniLM-L12-v2',
             llm_model_name: localStorage.getItem('config_llm_model_name') || 'gpt-4o',
             accuracy_threshold: parseFloat(localStorage.getItem('config_accuracy_threshold') || '0.5'),
             consistency_threshold: parseFloat(localStorage.getItem('config_consistency_threshold') || '0.5'),
             hallucination_threshold: parseFloat(localStorage.getItem('config_hallucination_threshold') || '0.5'),
             rqs_threshold: parseFloat(localStorage.getItem('config_rqs_threshold') || '0.5'),
-            llm_threshold: parseFloat(localStorage.getItem('config_llm_threshold') || '0.75'),
-            short_text_length: parseInt(localStorage.getItem('config_short_text_length') || '40'),
             fuzzy_threshold: parseFloat(localStorage.getItem('config_fuzzy_threshold') || '0.85'),
             w_accuracy: parseFloat(localStorage.getItem('config_w_accuracy') || '0.45'),
             w_completeness: parseFloat(localStorage.getItem('config_w_completeness') || '0.25'),
             w_hallucination: parseFloat(localStorage.getItem('config_w_hallucination') || '0.15'),
-            w_safety: parseFloat(localStorage.getItem('config_w_safety') || '0.15')
+            w_safety: parseFloat(localStorage.getItem('config_w_safety') || '0.15'),
+            field_strategies: JSON.parse(localStorage.getItem('config_field_strategies') || '{}')
         };
 
         try {
@@ -1362,19 +1371,17 @@ function TestEvaluationsPage() {
                 beta: parseFloat(localStorage.getItem('config_beta') || '0.2'),
                 gamma: parseFloat(localStorage.getItem('config_gamma') || '0.2'),
                 enable_safety: true,
-                model_name: localStorage.getItem('config_model_name') || 'all-MiniLM-L12-v2',
                 llm_model_name: localStorage.getItem('config_llm_model_name') || 'gpt-4o',
                 accuracy_threshold: parseFloat(localStorage.getItem('config_accuracy_threshold') || '0.5'),
                 consistency_threshold: parseFloat(localStorage.getItem('config_consistency_threshold') || '0.5'),
                 hallucination_threshold: parseFloat(localStorage.getItem('config_hallucination_threshold') || '0.5'),
                 rqs_threshold: parseFloat(localStorage.getItem('config_rqs_threshold') || '0.5'),
-                llm_threshold: parseFloat(localStorage.getItem('config_llm_threshold') || '0.75'),
-                short_text_length: parseInt(localStorage.getItem('config_short_text_length') || '40'),
                 fuzzy_threshold: parseFloat(localStorage.getItem('config_fuzzy_threshold') || '0.85'),
                 w_accuracy: parseFloat(localStorage.getItem('config_w_accuracy') || '0.45'),
                 w_completeness: parseFloat(localStorage.getItem('config_w_completeness') || '0.25'),
                 w_hallucination: parseFloat(localStorage.getItem('config_w_hallucination') || '0.15'),
-                w_safety: parseFloat(localStorage.getItem('config_w_safety') || '0.15')
+                w_safety: parseFloat(localStorage.getItem('config_w_safety') || '0.15'),
+                field_strategies: JSON.parse(localStorage.getItem('config_field_strategies') || '{}')
             };
 
             // 3. Run Evaluation with CONVERTED data and FIXED keys
@@ -1452,10 +1459,8 @@ function TestEvaluationsPage() {
                 const getNum = (v: any, def = 0) => (v === 'NA' || v == null) ? def : Number(v);
                 const semanticScore = getNum(out.semantic_score);
                 const accuracy = getNum(out.accuracy);
-                const llmScore = getNum(out.llm_score, -1);
 
                 const semanticThreshold = config.semantic_threshold || 0.72;
-                const llmThreshold = config.llm_threshold || 0.75;
 
                 if (matchType === 'json_structured') {
                     return `✓ Structured JSON Eval: Acc: ${accuracy.toFixed(2)}, Comp: ${out.completeness?.toFixed(2)}, Hall: ${out.hallucination?.toFixed(2)}, RQS: ${out.rqs?.toFixed(2)}`;
@@ -1470,24 +1475,16 @@ function TestEvaluationsPage() {
                 } else if (matchType === 'exact') {
                     return accuracy === 1.0 ? '✓ Exact match (String equality)' : `✗ Strings do not match exactly. Semantic Score: ${out.semantic_score !== 'NA' ? semanticScore.toFixed(3) : 'NA'}`;
                 } else {
-                    // text/paragraph type
                     if (accuracy === 1.0) {
                         if (out.expected === out.output) {
                             return `✓ Exact match (String equality)`;
                         } else if (semanticScore > semanticThreshold) {
                             return `✓ Semantic Score: ${semanticScore.toFixed(3)} > ${semanticThreshold} (Threshold)`;
-                        } else if (llmScore !== -1 && llmScore >= llmThreshold) {
-                            return `✓ LLM Judge overrides result based on Score: ${llmScore.toFixed(3)} ≥ ${llmThreshold} (Threshold)`;
                         } else {
                             return `✓ Accuracy: 1.0`;
                         }
                     } else {
-                        if (semanticScore <= semanticThreshold) {
-                            return `✗ Semantic Score: ${semanticScore.toFixed(3)} ≤ ${semanticThreshold} (Threshold)`;
-                        } else {
-                            const llmNote = llmScore !== -1 ? ` LLM Judge: ${llmScore.toFixed(3)} < ${llmThreshold} (Threshold).` : '';
-                            return `✗ Semantic Score: ${semanticScore.toFixed(3)} > ${semanticThreshold} (Threshold) (passed).${llmNote} Check evaluation logic.`;
-                        }
+                        return `✗ Semantic Score: ${semanticScore.toFixed(3)} ≤ ${semanticThreshold} (Threshold)`;
                     }
                 }
             };
@@ -1660,8 +1657,8 @@ function TestEvaluationsPage() {
                 <svg width={0} height={0} style={{ position: 'absolute', visibility: 'hidden' }}>
                     <defs>
                         <linearGradient id="export_icon_gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="30%" stopColor={theme.palette.secondary.main} />
-                            <stop offset="90%" stopColor={theme.palette.info.main} />
+                            <stop offset="0%" stopColor={theme.palette.primary.main} />
+                            <stop offset="100%" stopColor={theme.palette.primary.dark} />
                         </linearGradient>
                     </defs>
                 </svg>
@@ -1786,41 +1783,6 @@ function TestEvaluationsPage() {
                                     </Grid>
                                 </Grid>
 
-                                <Accordion sx={{ mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-                                    <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />}>
-                                        <Typography variant="subtitle2">Advanced: Key Mapping</Typography>
-                                    </AccordionSummary>
-                                    <AccordionDetails>
-                                        <Grid container spacing={2}>
-                                            <Grid size={{ xs: 12 }}>
-                                                <Typography variant="caption" sx={{ color: 'info.main', fontWeight: 'bold' }}>Ground Truth Keys</Typography>
-                                            </Grid>
-                                            <Grid size={{ xs: 4 }}>
-                                                <TextField label="Query ID Key" size="small" fullWidth value={gtQueryIdKey} onChange={(e) => setGtQueryIdKey(e.target.value)} />
-                                            </Grid>
-                                            <Grid size={{ xs: 4 }}>
-                                                <TextField label="Ground Truth Key" size="small" fullWidth value={gtExpectedKey} onChange={(e) => setGtExpectedKey(e.target.value)} />
-                                            </Grid>
-                                            <Grid size={{ xs: 4 }}>
-                                                <TextField label="Match Type Key" size="small" fullWidth value={gtTypeKey} onChange={(e) => setGtTypeKey(e.target.value)} />
-                                            </Grid>
-
-                                            <Grid size={{ xs: 12 }}>
-                                                <Typography variant="caption" color="secondary" fontWeight="bold">AI Output Keys</Typography>
-                                            </Grid>
-                                            <Grid size={{ xs: 4 }}>
-                                                <TextField label="Query ID Key" size="small" fullWidth value={predQueryIdKey} onChange={(e) => setPredQueryIdKey(e.target.value)} />
-                                            </Grid>
-                                            <Grid size={{ xs: 4 }}>
-                                                <TextField label="AI Output Key" size="small" fullWidth value={predOutputKey} onChange={(e) => setPredOutputKey(e.target.value)} />
-                                            </Grid>
-                                            <Grid size={{ xs: 4 }}>
-                                                <TextField label="Run ID Key" size="small" fullWidth value={predRunIdKey} onChange={(e) => setPredRunIdKey(e.target.value)} />
-                                            </Grid>
-                                        </Grid>
-                                    </AccordionDetails>
-                                </Accordion>
-
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                     <Button
                                         variant="contained"
@@ -1920,12 +1882,6 @@ function TestEvaluationsPage() {
                                                         if (parsed.ai_outputs && Array.isArray(parsed.ai_outputs)) {
                                                             setOutputsJson(JSON.stringify(parsed.ai_outputs, null, 2));
                                                         }
-                                                        if (parsed.gt_query_id_key) setGtQueryIdKey(parsed.gt_query_id_key);
-                                                        if (parsed.gt_expected_key) setGtExpectedKey(parsed.gt_expected_key);
-                                                        if (parsed.gt_type_key) setGtTypeKey(parsed.gt_type_key);
-                                                        if (parsed.pred_query_id_key) setPredQueryIdKey(parsed.pred_query_id_key);
-                                                        if (parsed.pred_output_key) setPredOutputKey(parsed.pred_output_key);
-                                                        if (parsed.pred_run_id_key) setPredRunIdKey(parsed.pred_run_id_key);
                                                     }
                                                 } catch (err) {
                                                     // Not a full JSON object, ignore
@@ -1948,41 +1904,6 @@ function TestEvaluationsPage() {
                                         />
                                     </Grid>
                                 </Grid>
-
-                                <Accordion sx={{ mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
-                                    <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ fontSize: 20, fill: "url(#export_icon_gradient)" }} />}>
-                                        <Typography variant="subtitle2">Advanced: Key Mapping</Typography>
-                                    </AccordionSummary>
-                                    <AccordionDetails>
-                                        <Grid container spacing={2}>
-                                            <Grid size={{ xs: 12 }}>
-                                                <Typography variant="caption" sx={{ color: 'info.main', fontWeight: 'bold' }}>Ground Truth Keys</Typography>
-                                            </Grid>
-                                            <Grid size={{ xs: 4 }}>
-                                                <TextField label="Query ID Key" size="small" fullWidth value={gtQueryIdKey} onChange={(e) => setGtQueryIdKey(e.target.value)} />
-                                            </Grid>
-                                            <Grid size={{ xs: 4 }}>
-                                                <TextField label="Ground Truth Key" size="small" fullWidth value={gtExpectedKey} onChange={(e) => setGtExpectedKey(e.target.value)} />
-                                            </Grid>
-                                            <Grid size={{ xs: 4 }}>
-                                                <TextField label="Match Type Key" size="small" fullWidth value={gtTypeKey} onChange={(e) => setGtTypeKey(e.target.value)} />
-                                            </Grid>
-
-                                            <Grid size={{ xs: 12 }}>
-                                                <Typography variant="caption" color="secondary" fontWeight="bold">AI Output Keys</Typography>
-                                            </Grid>
-                                            <Grid size={{ xs: 4 }}>
-                                                <TextField label="Query ID Key" size="small" fullWidth value={predQueryIdKey} onChange={(e) => setPredQueryIdKey(e.target.value)} />
-                                            </Grid>
-                                            <Grid size={{ xs: 4 }}>
-                                                <TextField label="AI Output Key" size="small" fullWidth value={predOutputKey} onChange={(e) => setPredOutputKey(e.target.value)} />
-                                            </Grid>
-                                            <Grid size={{ xs: 4 }}>
-                                                <TextField label="Run ID Key" size="small" fullWidth value={predRunIdKey} onChange={(e) => setPredRunIdKey(e.target.value)} />
-                                            </Grid>
-                                        </Grid>
-                                    </AccordionDetails>
-                                </Accordion>
 
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                     <Button
@@ -2069,7 +1990,7 @@ function TestEvaluationsPage() {
                                     sx={{
                                         '&:hover': {
                                             transform: 'scale(1.1)',
-                                            bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                            bgcolor: alpha(theme.palette.primary.main, 0.08),
                                         }
                                     }}
                                 >
@@ -2083,7 +2004,7 @@ function TestEvaluationsPage() {
                                     sx={{
                                         '&:hover': {
                                             transform: 'scale(1.1)',
-                                            bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                            bgcolor: alpha(theme.palette.primary.main, 0.08),
                                         }
                                     }}
                                 >
@@ -2171,7 +2092,7 @@ function TestEvaluationsPage() {
                                             sx={{
                                                 '&:hover': {
                                                     transform: 'scale(1.1)',
-                                                    bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                                    bgcolor: alpha(theme.palette.primary.main, 0.08),
                                                 }
                                             }}
                                         >
@@ -2185,7 +2106,7 @@ function TestEvaluationsPage() {
                                         sx={{
                                             '&:hover': {
                                                 transform: 'scale(1.1)',
-                                                bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                                bgcolor: alpha(theme.palette.primary.main, 0.08),
                                             }
                                         }}
                                     >
@@ -2198,7 +2119,7 @@ function TestEvaluationsPage() {
                                         sx={{
                                             '&:hover': {
                                                 transform: 'scale(1.1)',
-                                                bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                                bgcolor: alpha(theme.palette.primary.main, 0.08),
                                             }
                                         }}
                                     >
@@ -2211,7 +2132,7 @@ function TestEvaluationsPage() {
                                         sx={{
                                             '&:hover': {
                                                 transform: 'scale(1.1)',
-                                                bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                                bgcolor: alpha(theme.palette.primary.main, 0.08),
                                             }
                                         }}
                                     >
@@ -2261,7 +2182,7 @@ function TestEvaluationsPage() {
                                     sx={{
                                         '&:hover': {
                                             transform: 'scale(1.1)',
-                                            bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                            bgcolor: alpha(theme.palette.primary.main, 0.08),
                                         }
                                     }}
                                 >
@@ -2275,7 +2196,7 @@ function TestEvaluationsPage() {
                                     sx={{
                                         '&:hover': {
                                             transform: 'scale(1.1)',
-                                            bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                            bgcolor: alpha(theme.palette.primary.main, 0.08),
                                         }
                                     }}
                                 >
@@ -2292,7 +2213,7 @@ function TestEvaluationsPage() {
                                     top: 8,
                                     '&:hover': {
                                         transform: 'scale(1.1)',
-                                        bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                        bgcolor: alpha(theme.palette.primary.main, 0.08),
                                     }
                                 }}
                             >

@@ -1,53 +1,66 @@
-from datetime import datetime
-from rapidfuzz import fuzz
-from sentence_transformers import SentenceTransformer, util
-# Note: For long text (semantic match), we need a loaded model. 
-# We'll handle model loading lazily or via dependency injection in the main agent to avoid overhead here.
-# But for simplicity, we can load a default if not provided, or better, pass the model instance.
+import json
+from utils.llm_similarity import llm_fuzzy_similarity, llm_semantic_similarity
+from utils.field_detector import detect_type
 
-def calculate_similarity(gt_value, aio_value, field_type, config, model=None):
-    """
-    Calculates similarity score based on field type and matching strategy.
-    
-    Returns: (score (0.0-1.0), similarity(0.0-1.0), strategy_name)
-    """
-    
-    # 1. Exact Match Strategy
-    if field_type in ['numeric', 'boolean', 'date', 'email', 'array', 'object', 'null']:
-        strategy = 'exact'
-        
-        # Handle stringified numbers/dates if needed, but assuming parsed JSON types or normalized strings
-        is_match = (str(gt_value).strip().lower() == str(aio_value).strip().lower())
-        
-        return (1.0 if is_match else 0.0), (1.0 if is_match else 0.0), strategy
 
-    # 2. Fuzzy Match Strategy (Short Text)
-    if field_type == 'short_text':
-        strategy = 'fuzzy'
-        similarity = fuzz.token_sort_ratio(str(gt_value), str(aio_value)) / 100.0
-        
+def is_null(value) -> bool:
+    """A value is null if it is None, empty string, or whitespace-only."""
+    if value is None:
+        return True
+    if isinstance(value, str) and value.strip() == "":
+        return True
+    return False
+
+
+def resolve_strategy(field_name: str, gt_value, config) -> str:
+    """
+    Determine the matching strategy for a field.
+    Priority: explicit field_strategies config > auto-detect from value type.
+    Returns one of: 'EXACT', 'FUZZY', 'SEMANTIC', 'IGNORE'
+    """
+    raw = config.field_strategies.get(field_name, "")
+    explicit = str(raw).upper() if isinstance(raw, str) else ""
+    if explicit in ("EXACT", "FUZZY", "SEMANTIC", "IGNORE"):
+        return explicit
+
+    field_type = detect_type(gt_value)
+    if field_type in ('numeric', 'boolean', 'date', 'email'):
+        return 'EXACT'
+    if field_type in ('array', 'object'):
+        return 'EXACT'
+    if field_type == 'text':
+        return 'SEMANTIC'
+    return 'EXACT'
+
+
+async def calculate_similarity(gt_value, aio_value, strategy: str, config):
+    """
+    Calculates similarity score using the given strategy.
+    Returns: (score (0.0 or 1.0), similarity (0.0-1.0), strategy_name)
+    """
+    strategy = strategy.upper()
+
+    if strategy == 'IGNORE':
+        return 1.0, 1.0, 'ignore'
+
+    if strategy == 'EXACT':
+        gt_str = json.dumps(gt_value, sort_keys=True) if isinstance(gt_value, (dict, list)) else str(gt_value).strip().lower()
+        aio_str = json.dumps(aio_value, sort_keys=True) if isinstance(aio_value, (dict, list)) else str(aio_value).strip().lower()
+        is_match = (gt_str == aio_str)
+        return (1.0 if is_match else 0.0), (1.0 if is_match else 0.0), 'exact'
+
+    if strategy == 'FUZZY':
+        similarity = await llm_fuzzy_similarity(str(gt_value), str(aio_value))
         if similarity >= config.fuzzy_threshold:
-            return 1.0, similarity, strategy
+            return 1.0, similarity, 'fuzzy'
         else:
-            return 0.0, similarity, strategy
+            return 0.0, similarity, 'fuzzy'
 
-    # 3. Semantic Match Strategy (Long Text)
-    if field_type == 'long_text':
-        strategy = 'semantic'
-        if model is None:
-            # Fallback if model not provided (e.g. unit tests without model loading)
-            # Use fuzzy as backup or load model (expensive)
-            similarity = fuzz.token_sort_ratio(str(gt_value), str(aio_value)) / 100.0
-        else:
-            # Calculate embeddings
-            emb1 = model.encode(str(gt_value), convert_to_tensor=True)
-            emb2 = model.encode(str(aio_value), convert_to_tensor=True)
-            similarity = float(util.pytorch_cos_sim(emb1, emb2)[0][0])
-            
+    if strategy == 'SEMANTIC':
+        similarity = await llm_semantic_similarity(str(gt_value), str(aio_value))
         if similarity >= config.semantic_threshold:
-            return 1.0, similarity, strategy
+            return 1.0, similarity, 'semantic'
         else:
-            return 0.0, similarity, strategy
+            return 0.0, similarity, 'semantic'
 
-    # Default fallback
     return 0.0, 0.0, 'unknown'

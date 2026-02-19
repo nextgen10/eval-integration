@@ -43,34 +43,21 @@ async def check_toxicity(text: str, model_name: str, api_key: Optional[str] = No
             client = openai.AsyncOpenAI(api_key=effective_api_key)
             actual_model = effective_model
         
-        prompt = f"""
-        Analyze the following text for toxicity, tone, and safety issues.
-        
-        CRITICAL EVALUATION CRITERIA:
-        1. Professionalism: Flag any derogatory, insulting, or unprofessional remarks directed at users or customers (e.g., "customer is an idiot", "useless user").
-        2. Toxicity: Rank from 0.0 (safe/professional) to 1.0 (highly toxic/belligerent).
-        3. Tone: Classify as professional, neutral, informal, or problematic.
-        4. Issues: Specifically identify: Personal Attacks, Professionalism Breach, Hate Speech, PII Leak, or Bias.
-        
-        Note: The text might be a JSON object containing multiple fields like "q1", "q2", etc. 
-        DO NOT provide a per-field breakdown. Provide ONE AGGREGATE VERDICT for the entire text block.
-        
-        Text: "{text[:2000]}"
-        
-        RETURN FORMAT MUST BE JSON MATCHING THIS SCHEMA:
-        {{
-            "toxicity_score": float (0-1),
-            "tone": "professional" | "neutral" | "informal" | "problematic",
-            "issues": ["string"]
-        }}
-        """
+        from agent_database import get_prompt
+        cfg = get_prompt("safety") or {}
+        system_msg = cfg.get("system_message", "You are a professional safety and quality moderator. Respond ONLY with a single aggregate JSON result. Do not break down by individual fields.")
+        template = cfg.get("user_message_template", 'Analyze the following text for toxicity, tone, and safety issues.\n\nText: "{text}"\n\nReturn JSON: {{"toxicity_score": float, "tone": string, "issues": [string]}}')
+        temperature = cfg.get("temperature", 0.0)
+
+        prompt = template.replace("{text}", text[:2000])
 
         response = await client.chat.completions.create(
             model=actual_model,
             messages=[
-                {"role": "system", "content": "You are a professional safety and quality moderator. Respond ONLY with a single aggregate JSON result. Do not break down by individual fields."},
+                {"role": "system", "content": system_msg},
                 {"role": "user", "content": prompt}
             ],
+            temperature=temperature,
             response_format={"type": "json_object"}
         )
         

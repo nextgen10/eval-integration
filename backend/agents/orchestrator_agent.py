@@ -14,28 +14,25 @@ from agent_models import (
 )
 
 class OrchestratorAgent(BaseAgent):
-    def __init__(self, event_callback: Optional[Callable[[AgentStatus], None]] = None, model_name: str = "all-MiniLM-L12-v2"):
+    def __init__(self, event_callback: Optional[Callable[[AgentStatus], None]] = None, **kwargs):
         super().__init__(name="Orchestrator Agent")
         self.event_callback = event_callback
-        self.model_name = model_name
         
-        # Initialize Sub-Agents
+        # Initialize Sub-Agents (all LLM-based — no local embedding model)
         self.target_agent = TargetAgent()
-        self.consistency_agent = ConsistencyAgent(model_name=model_name)
-        self.json_evaluator = JsonEvaluatorAgent(model_name=model_name)
+        self.consistency_agent = ConsistencyAgent()
+        self.json_evaluator = JsonEvaluatorAgent()
         
-        # Lazy load Metric Agents to save startup memory
         from .metric_agents import (
-            ExactMatchAgent, SemanticSimilarityAgent, SafetyAgent, LLMJudgeAgent
+            ExactMatchAgent, SemanticSimilarityAgent, SafetyAgent
         )
         from agent_convert_json import unflatten_json
         self.unflatten_json = unflatten_json
 
         self.metric_agents = {
             "exact": ExactMatchAgent(),
-            "semantic": SemanticSimilarityAgent(model_name=model_name),
+            "semantic": SemanticSimilarityAgent(),
             "safety": SafetyAgent(),
-            "llm_judge": LLMJudgeAgent()
         }
 
     async def run(self, input_data: Any) -> Any:
@@ -164,56 +161,23 @@ class OrchestratorAgent(BaseAgent):
                     aio_text = json.dumps(data["aio"], indent=2)
                     gt_text = json.dumps(data["gt"], indent=2)
 
-                # Safety Check (Unified Toxicity + LLM Judge for safety)
                 safe_res = {"score": 1.0, "issues": []}
-                llm_judge_res = {}
                 
                 if any_safety_enabled:
                     print(f"DEBUG: Triggering run-level safety check for {rid}...")
-                    
-                    # 1. Toxicity Check
                     safe_res = await self._run_metric_agent("safety", {"text": aio_text})
-                    
-                    # 2. LLM Judge Check
-                    # Calculate average accuracy for this run to give context to judge
-                    run_accuracies = [o.accuracy for o in data["outputs"]]
-                    avg_run_acc = sum(run_accuracies) / len(run_accuracies) if run_accuracies else 0.0
-                    
-                    metrics_for_judge = {
-                        "accuracy": avg_run_acc,
-                        "toxicity": 1.0 - safe_res.get("score", 1.0),
-                        "match_type": "json_aggregate"
-                    }
-                    
-                    print(f"DEBUG: Triggering run-level LLM Judge for {rid}...")
-                    llm_judge_res = await self._run_metric_agent("llm_judge", {
-                        "candidate": aio_text,
-                        "reference": gt_text,
-                        "metrics": metrics_for_judge
-                    })
-                    print(f"DEBUG: Aggregate Safety/LLM Result for {rid}: Safety={safe_res.get('score')}, LLM={llm_judge_res.get('score')}")
+                    print(f"DEBUG: Safety Result for {rid}: Score={safe_res.get('score')}")
                 
                 run_details[rid] = {
                     "safety_score": safe_res.get("score", 1.0),
                     "safety_issues": safe_res.get("issues", []),
-                    "llm_score": llm_judge_res.get("score"),
-                    "llm_explanation": llm_judge_res.get("reason"),
                     "reconstructed_aio": aio_text,
                     "reconstructed_gt": gt_text
                 }
 
-                # Selective Back-populate: Only mark a field as toxic if it contains hostile keywords
-                # This prevents "clean" fields from appearing toxic in the UI drillsdown.
                 for out in data["outputs"]:
-                    out.llm_score = llm_judge_res.get("score")
-                    # Explanation is shared for the run, but we only set it if the run is failing
-                    if llm_judge_res.get("score", 1.0) < 0.7:
-                        out.llm_explanation = llm_judge_res.get("reason")
-
-                    # Heuristic for attributing toxicity to specific fields within an aggregate run
                     is_field_toxic = False
                     if safe_res.get("score", 1.0) < 0.5:
-                        # Simple keyword check for attribution
                         hostile_words = ["idiot", "stupid", "hate", "dumb", "useless", "garbage", "trash", "retard", "moron"]
                         if any(w in out.output.lower() for w in hostile_words):
                             is_field_toxic = True
@@ -352,68 +316,77 @@ class OrchestratorAgent(BaseAgent):
             expected_text = request.ground_truth.expected
             match_type = request.ground_truth.expected_type
         
-        # 3. Run Metric Agents in Parallel
+        # 3. Resolve field strategy from config (flattened key = query_id)
+        from agent_models_json import _flatten_strategies
+        flat_strategies = _flatten_strategies(request.field_strategies) if request.field_strategies else {}
+        field_strategy = flat_strategies.get(query_id, "").upper()
+
+        # 4. Run Metric Agents in Parallel
         sem_res = {"score": 0.0}
         tox_res = {"score": 1.0, "issues": []}
         
-        if found:
+        if found and field_strategy != "IGNORE":
             await self.emit_status("Orchestrator", "working", "Dispatching to metric agents")
             tasks = []
             
-            # Semantic always runs if found
-            tasks.append(self._run_metric_agent("semantic", {"candidate": target_output_str, "reference": expected_text}))
+            if field_strategy == "FUZZY":
+                from utils.llm_similarity import llm_fuzzy_similarity
+                tasks.append(llm_fuzzy_similarity(expected_text, target_output_str))
+            elif field_strategy != "EXACT":
+                tasks.append(self._run_metric_agent("semantic", {"candidate": target_output_str, "reference": expected_text}))
             
-            # Safety only if enabled for this query
             if request.enable_safety:
                 tasks.append(self._run_metric_agent("safety", {"text": target_output_str}))
             
             results = await asyncio.gather(*tasks)
-            sem_res = results[0]
-            if request.enable_safety:
-                tox_res = results[1]
+            
+            result_idx = 0
+            if field_strategy == "FUZZY" and results:
+                sem_res = {"score": results[result_idx]}
+                result_idx += 1
+            elif field_strategy != "EXACT" and results:
+                sem_res = results[result_idx]
+                result_idx += 1
+            
+            if request.enable_safety and result_idx < len(results):
+                tox_res = results[result_idx]
         
-        # 4. Accuracy Logic
+        # 5. Accuracy Logic — respects field_strategy override
         accuracy = 0.0
+        similarity_value = 0.0
+        used_strategy = field_strategy or ("EXACT" if match_type in ["email", "number", "date", "exact"] else "SEMANTIC")
+
         if not found:
             accuracy = 0.0
-        elif match_type in ["email", "number", "date", "exact"]:
-            agent_match_type = "text" if match_type == "exact" else match_type
-            exact_res = await self._run_metric_agent("exact", {
-                "candidate": target_output_str, 
-                "reference": expected_text,
-                "match_type": agent_match_type
-            })
-            accuracy = exact_res["score"]
+            similarity_value = 0.0
+        elif field_strategy == "IGNORE":
+            accuracy = 1.0
+            similarity_value = 1.0
+        elif used_strategy == "EXACT":
+            normalized_expected = ' '.join(expected_text.split()).lower()
+            normalized_output = ' '.join(target_output_str.split()).lower()
+            is_match = normalized_expected == normalized_output
+            accuracy = 1.0 if is_match else 0.0
+            similarity_value = 1.0 if is_match else 0.0
+        elif used_strategy == "FUZZY":
+            raw_fuzzy = sem_res.get("score", 0.0)
+            if raw_fuzzy >= request.fuzzy_threshold:
+                accuracy = 1.0
+                similarity_value = 1.0
+            else:
+                accuracy = 0.0
+                similarity_value = raw_fuzzy
         else:
             normalized_expected = ' '.join(expected_text.split())
             normalized_output = ' '.join(target_output_str.split())
+            similarity_value = sem_res.get("score", 0.0)
             
             if normalized_expected.lower() == normalized_output.lower():
                 accuracy = 1.0
+                similarity_value = 1.0
             elif sem_res.get("score") is not None and sem_res["score"] > request.semantic_threshold:
                 accuracy = 1.0
         
-        # 5. LLM Judge - META JUDGE
-        llm_judge_score = None
-        judge_res = {}
-        if found and request.enable_safety:
-            # Send all scores to judge
-            metrics_for_judge = {
-                "accuracy": accuracy,
-                "semantic_score": sem_res.get("score", 0.0),
-                "toxicity": tox_res.get("score", 0.0),
-                "match_type": match_type
-            }
-            judge_res = await self._run_metric_agent("llm_judge", {
-                "candidate": target_output_str,
-                "reference": expected_text,
-                "metrics": metrics_for_judge
-            })
-            llm_judge_score = judge_res.get("score")
-            
-            if llm_judge_score is not None and llm_judge_score >= request.llm_threshold:
-                 accuracy = 1.0
-
         # 6. JSON Specific detailed evaluation
         json_meta = {
             "gt_keys": [query_id] if request.ground_truth else [],
@@ -433,14 +406,13 @@ class OrchestratorAgent(BaseAgent):
                 json_config = JsonEvalConfig(
                     semantic_threshold=request.semantic_threshold,
                     fuzzy_threshold=request.fuzzy_threshold,
-                    short_text_length=request.short_text_length,
                     w_accuracy=request.w_accuracy,
                     w_completeness=request.w_completeness,
                     w_hallucination=request.w_hallucination,
                     w_safety=request.w_safety,
-                    model_name=self.model_name,
                     enable_safety=request.enable_safety,
-                    llm_api_key=os.getenv("OPENAI_API_KEY") or os.getenv("AZURE_OPENAI_API_KEY")
+                    llm_api_key=os.getenv("OPENAI_API_KEY") or os.getenv("AZURE_OPENAI_API_KEY"),
+                    field_strategies=getattr(request, 'field_strategies', {}) or {}
                 )
                 
                 json_res = await self.json_evaluator.evaluate_single(gt_dict, aio_dict, json_config)
@@ -455,24 +427,22 @@ class OrchestratorAgent(BaseAgent):
                     "aio_keys": json_res.aio_keys,
                     "extra_keys": json_res.extra_keys,
                     "missing_keys": json_res.missing_keys,
-                    "field_scores": {k: v.model_dump() for k, v in zip(json_res.matching_keys, json_res.field_scores)},
+                    "field_scores": {fs.field_name: fs.model_dump() for fs in json_res.field_scores},
                     "safety_score": json_res.safety_score,
                     "toxic_issues": [f"Tone: {json_res.tone}"],
                     "reason": f"Structure: {len(json_res.matching_keys)}/{len(json_res.gt_keys)} matched. Acc: {json_res.accuracy:.2f}"
                 }
             except Exception as e:
                 print(f"DEBUG: Json metadata extraction failed: {e}")
-        elif found:
-            # Use full query_id path as display field to preserve context
+        elif found and used_strategy != "IGNORE":
             display_field = query_id
             if request.ground_truth and request.ground_truth.metadata.get("column"):
                 display_field = request.ground_truth.metadata["column"]
 
-            strategy = "SEMANTIC" if match_type in ["text", "paragraph", "context"] else "EXACT"
             json_meta["field_scores"] = {
                 display_field: {
-                    "match_strategy": strategy,
-                    "similarity": sem_res.get("score", 0.0),
+                    "match_strategy": used_strategy,
+                    "similarity": similarity_value,
                     "score": accuracy,
                     "gt_value": expected_text,
                     "aio_value": target_output_str
@@ -492,7 +462,6 @@ class OrchestratorAgent(BaseAgent):
             toxicity=1.0 - json_meta.get("safety_score", tox_res.get("score", 1.0)),
             error_type="correct" if accuracy == 1.0 else "hallucination",
             semantic_score=sem_res.get("score"),
-            llm_score=llm_judge_score,
             completeness=json_meta.get("completeness", 1.0 if found else 0.0),
             hallucination=json_meta.get("hallucination", 1.0 if (found and not request.ground_truth) else 0.0),
             rqs=json_meta.get("rqs", accuracy),
@@ -503,12 +472,11 @@ class OrchestratorAgent(BaseAgent):
             field_scores=json_meta.get("field_scores"),
             reason=json_meta.get("reason") or (
                 "Field missing" if not found else
-                f"LLM Judge approved (Reason: {judge_res.get('reason')})" if llm_judge_score and llm_judge_score >= request.llm_threshold else
-                "Exact string match" if accuracy == 1.0 and match_type in ["text", "exact"] else
-                f"High semantic similarity ({sem_res.get('score'):.3f} > {request.semantic_threshold})" if accuracy == 1.0 and match_type in ["text", "paragraph"] else
-                f"Low semantic similarity ({sem_res.get('score', 0.0):.3f} <= {request.semantic_threshold})" if accuracy < 1.0 and match_type in ["text", "paragraph"] else
+                f"IGNORE strategy — skipped" if used_strategy == "IGNORE" else
+                f"EXACT match — {'matched' if accuracy == 1.0 else 'mismatch'}" if used_strategy == "EXACT" else
+                f"FUZZY match ({sem_res.get('score', 0.0):.3f} {'>' if accuracy == 1.0 else '<='} {request.fuzzy_threshold})" if used_strategy == "FUZZY" else
+                f"SEMANTIC match ({sem_res.get('score', 0.0):.3f} {'>' if accuracy == 1.0 else '<='} {request.semantic_threshold})" if used_strategy == "SEMANTIC" else
                 f"Success ({match_type} match)" if accuracy == 1.0 else f"Failed {match_type} comparison"
             ),
             toxicity_issues=json_meta.get("toxic_issues", tox_res.get("issues")),
-            llm_explanation=judge_res.get("reason") if request.enable_safety else None
         )

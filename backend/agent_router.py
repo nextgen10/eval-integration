@@ -20,7 +20,7 @@ from agents.orchestrator_agent import OrchestratorAgent
 # from agents.json_evaluator_agent import JsonEvaluatorAgent # Imported inside orchestrator?
 from agent_convert_json import flatten_json, convert_to_expected_format, convert_to_actual_format, safe_json_dumps
 
-from agent_database import init_db, save_result, get_latest_result, save_feedback, get_all_feedback, get_all_results
+from agent_database import init_db, save_result, get_latest_result, save_feedback, get_all_feedback, get_all_results, get_all_prompts, get_prompt
 
 # Initialize DB (might want to do this at startup)
 init_db()
@@ -119,9 +119,7 @@ async def run_batch(requests: List[TestRequest]):
         # 2. Append to local log
         events_log.append(event.model_dump(mode='json'))
 
-    # Initialize Orchestrator
-    model_name = requests[0].model_name if requests else "all-MiniLM-L12-v2"
-    orchestrator = OrchestratorAgent(event_callback=event_callback, model_name=model_name)
+    orchestrator = OrchestratorAgent(event_callback=event_callback)
     
     try:
         result = await orchestrator.run_batch_test(requests) # run_batch calls run_batch_test internally in Orchestrator?
@@ -206,7 +204,7 @@ async def evaluate_from_json(request: JsonEvaluationRequest):
         await manager.broadcast(event)
         events_log.append(event.model_dump(mode='json'))
 
-    orchestrator = OrchestratorAgent(event_callback=event_callback, model_name=request.model_name)
+    orchestrator = OrchestratorAgent(event_callback=event_callback)
     
     test_requests = []
     gt_map = {}
@@ -234,12 +232,14 @@ async def evaluate_from_json(request: JsonEvaluationRequest):
                 ground_truth=gt_record,
                 run_id=str(item.get(request.pred_run_id_key, "r1")),
                 semantic_threshold=request.semantic_threshold,
-                model_name=request.model_name,
                 enable_safety=request.enable_safety,
                 llm_model_name=request.llm_model_name,
-                llm_threshold=request.llm_threshold,
                 fuzzy_threshold=request.fuzzy_threshold,
-                short_text_length=request.short_text_length,
+                w_accuracy=request.w_accuracy,
+                w_completeness=request.w_completeness,
+                w_hallucination=request.w_hallucination,
+                w_safety=request.w_safety,
+                field_strategies=request.field_strategies,
             )
             test_requests.append(req)
 
@@ -251,12 +251,14 @@ async def evaluate_from_json(request: JsonEvaluationRequest):
                 ground_truth=gt_record,
                 run_id="manual_run",
                 semantic_threshold=request.semantic_threshold,
-                model_name=request.model_name,
                 enable_safety=request.enable_safety,
                 llm_model_name=request.llm_model_name,
-                llm_threshold=request.llm_threshold,
                 fuzzy_threshold=request.fuzzy_threshold,
-                short_text_length=request.short_text_length,
+                w_accuracy=request.w_accuracy,
+                w_completeness=request.w_completeness,
+                w_hallucination=request.w_hallucination,
+                w_safety=request.w_safety,
+                field_strategies=request.field_strategies,
             )
             test_requests.append(req)
 
@@ -357,7 +359,6 @@ async def evaluate_from_paths(request: BatchPathRequest):
             pred_query_id_key=request.pred_query_id_key,
             pred_output_key=request.pred_output_key,
             pred_run_id_key=request.pred_run_id_key,
-            model_name=request.model_name,
             semantic_threshold=request.semantic_threshold,
             alpha=request.alpha,
             beta=request.beta,
@@ -372,9 +373,8 @@ async def evaluate_from_paths(request: BatchPathRequest):
             consistency_threshold=request.consistency_threshold,
             hallucination_threshold=request.hallucination_threshold,
             rqs_threshold=request.rqs_threshold,
-            llm_threshold=request.llm_threshold,
             fuzzy_threshold=request.fuzzy_threshold,
-            short_text_length=request.short_text_length
+            field_strategies=request.field_strategies
         )
         
         result = await evaluate_from_json(json_req)
@@ -385,3 +385,20 @@ async def evaluate_from_paths(request: BatchPathRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── Prompts API ────────────────────────────────────────────
+
+@router.get("/prompts")
+async def list_prompts():
+    return get_all_prompts()
+
+
+@router.get("/prompts/{prompt_key}")
+async def read_prompt(prompt_key: str):
+    p = get_prompt(prompt_key)
+    if not p:
+        raise HTTPException(status_code=404, detail=f"Prompt '{prompt_key}' not found")
+    return p
+
+

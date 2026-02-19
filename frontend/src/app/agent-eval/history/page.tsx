@@ -121,8 +121,8 @@ export default function HistoryPage() {
             <svg width={0} height={0}>
                 <defs>
                     <linearGradient id="history_icon_gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor={theme.palette.secondary.main} />
-                        <stop offset="100%" stopColor={theme.palette.info.main} />
+                        <stop offset="0%" stopColor={theme.palette.primary.main} />
+                        <stop offset="100%" stopColor={theme.palette.primary.dark} />
                     </linearGradient>
                 </defs>
             </svg>
@@ -345,7 +345,7 @@ export default function HistoryPage() {
                                 sx={{
                                     '&:hover': {
                                         transform: 'scale(1.1)',
-                                        bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                        bgcolor: alpha(theme.palette.primary.main, 0.08),
                                     }
                                 }}
                             >
@@ -359,7 +359,7 @@ export default function HistoryPage() {
                                 sx={{
                                     '&:hover': {
                                         transform: 'scale(1.1)',
-                                        bgcolor: 'rgba(103, 58, 183, 0.08)',
+                                        bgcolor: alpha(theme.palette.primary.main, 0.08),
                                     }
                                 }}
                             >

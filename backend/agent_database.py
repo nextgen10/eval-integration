@@ -80,7 +80,65 @@ def init_db():
             )
         ''')
     conn.commit()
+
+    conn.commit()
     conn.close()
+
+
+# --------------- Prompts (file-based) ---------------
+
+import os as _os
+
+_PROMPTS_DIR = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "prompts")
+
+
+def get_prompt(prompt_key: str) -> Optional[Dict[str, Any]]:
+    """Load a single prompt from its JSON file in the prompts/ folder."""
+    path = _os.path.join(_PROMPTS_DIR, f"{prompt_key}.json")
+    if not _os.path.isfile(path):
+        return None
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def get_all_prompts() -> List[Dict[str, Any]]:
+    """Load all prompt JSON files from the prompts/ folder, sorted by filename."""
+    results = []
+    if not _os.path.isdir(_PROMPTS_DIR):
+        return results
+    for fname in sorted(_os.listdir(_PROMPTS_DIR)):
+        if fname.endswith(".json"):
+            path = _os.path.join(_PROMPTS_DIR, fname)
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    data.setdefault("prompt_key", fname.replace(".json", ""))
+                    results.append(data)
+            except Exception as e:
+                print(f"Error loading prompt {fname}: {e}")
+    return results
+
+
+def update_prompt(prompt_key: str, updates: Dict[str, Any]) -> bool:
+    """Update a prompt JSON file. Merges updates into the existing file."""
+    path = _os.path.join(_PROMPTS_DIR, f"{prompt_key}.json")
+    if not _os.path.isfile(path):
+        return False
+    allowed = {"title", "description", "model", "temperature", "max_tokens",
+               "response_format", "used_in", "system_message", "user_message_template"}
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    changed = False
+    for k, v in updates.items():
+        if k in allowed and data.get(k) != v:
+            data[k] = v
+            changed = True
+    if changed:
+        data["updated_at"] = datetime.now().isoformat()
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+    return changed
 
     
 

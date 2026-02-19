@@ -14,7 +14,6 @@ import {
 } from '@mui/material';
 import {
   Activity,
-  ChevronRight,
   ShieldCheck,
   Zap,
   BarChart3,
@@ -146,13 +145,6 @@ export default function NexusEvalLanding() {
                       document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
                     }}>
                       Start Evaluating
-                    </Button>
-                    <Button variant="outlined" size="large" endIcon={<ChevronRight />} sx={{
-                      borderColor: 'divider', color: 'text.primary', height: 52, px: 4,
-                      fontSize: '0.95rem', fontWeight: 500, borderRadius: 2,
-                      '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(208,0,0,0.04)' }
-                    }}>
-                      View Demo
                     </Button>
                   </Box>
 
@@ -651,7 +643,7 @@ export default function NexusEvalLanding() {
                 POWERED BY
               </Typography>
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: { xs: 2, md: 0 }, flexWrap: 'wrap', alignItems: 'center' }}>
-                {['FastAPI', 'Next.js', 'Ragas', 'Azure OpenAI', 'Sentence Transformers'].map((tech, i, arr) => (
+                {['FastAPI', 'Next.js', 'Ragas', 'Azure OpenAI', 'LLM Scoring'].map((tech, i, arr) => (
                   <Box key={tech} sx={{ display: 'flex', alignItems: 'center' }}>
                     <Typography variant="h6" sx={{ fontWeight: 600, letterSpacing: '-0.02em', color: 'text.secondary', fontSize: { xs: '0.85rem', md: '1rem' }, opacity: 0.75, px: { xs: 1, md: 3 } }}>{tech}</Typography>
                     {i < arr.length - 1 && <Box sx={{ width: '1px', height: 16, bgcolor: 'divider', display: { xs: 'none', md: 'block' } }} />}
@@ -683,9 +675,9 @@ export default function NexusEvalLanding() {
               <Grid size={{ xs: 6, md: 2 }}>
                 <Typography variant="subtitle2" sx={{ color: 'text.primary', mb: 2, fontWeight: 600 }}>About</Typography>
                 <Stack spacing={1.5}>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>RAG Evaluation</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>Agent Evaluation</Typography>
-                  <Typography variant="body2" sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s' }} onClick={() => router.push('/docs#contact-support')}>Contact</Typography>
+                  <Box component="a" href="/docs#rag-eval" sx={{ textDecoration: 'none', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s', fontSize: '0.875rem', display: 'block' }}>RAG Evaluation</Box>
+                  <Box component="a" href="/docs#agent-eval" sx={{ textDecoration: 'none', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s', fontSize: '0.875rem', display: 'block' }}>Agent Evaluation</Box>
+                  <Box component="a" href="/docs#contact-support" sx={{ textDecoration: 'none', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s', fontSize: '0.875rem', display: 'block' }}>Contact</Box>
                 </Stack>
               </Grid>
               <Grid size={{ xs: 6, md: 2 }}>

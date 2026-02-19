@@ -6,7 +6,6 @@ sqlalchemy
 pandas
 python-dotenv
 openai
-sentence-transformers
 numpy
 langchain-openai
 openpyxl
@@ -15,6 +14,5 @@ datasets
 nest-asyncio
 langchain-huggingface
 chromadb
-rapidfuzz
 pytest
 pytest-asyncio

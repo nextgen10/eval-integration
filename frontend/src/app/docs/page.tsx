@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Container,
@@ -50,6 +50,15 @@ import { useRouter } from 'next/navigation';
 export default function DocumentationPage() {
     const theme = useTheme();
     const router = useRouter();
+
+    useEffect(() => {
+        const hash = window.location.hash.replace('#', '');
+        if (hash) {
+            setTimeout(() => {
+                document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' });
+            }, 300);
+        }
+    }, []);
 
     return (
         <Box sx={{
@@ -181,7 +190,7 @@ export default function DocumentationPage() {
                                         />
                                         <MetricDetail
                                             title="Configuration"
-                                            description="Set thresholds (semantic, accuracy, hallucination, RQS), model names (all-MiniLM-L12-v2, gpt-4o), and JSON weights (accuracy, completeness, hallucination, safety) for the weighted RQS formula."
+                                            description="Set thresholds (semantic, fuzzy, accuracy, hallucination, RQS), LLM model (gpt-4o), and JSON weights (accuracy, completeness, hallucination, safety) for the weighted RQS formula."
                                         />
                                     </Stack>
                                 </Box>
@@ -241,7 +250,7 @@ export default function DocumentationPage() {
                                         <MetricDetail
                                             title="Safety Score"
                                             description="Unified score (0–1) for content safety (non-toxicity) and qualitative judge results. 1.0 = perfectly safe."
-                                            example="LLM Judge evaluates response for harmful, biased, or unsafe content. Score &lt; 0.8 triggers safety issues list."
+                                            example="LLM evaluates response for harmful, biased, or unsafe content. Score &lt; 0.8 triggers safety issues list."
                                         />
                                     </Stack>
                                 </Box>
@@ -294,9 +303,8 @@ export default function DocumentationPage() {
                                         </Typography>
                                         <Stack spacing={1.5}>
                                             <StepItem step="1" title="Exact Match" desc="Case-insensitive equality check. If true, Accuracy = 100%." />
-                                            <StepItem step="2" title="Semantic Similarity" desc="Cosine similarity vs. threshold (default 0.72). Uses all-MiniLM-L12-v2 embeddings. If below threshold, Accuracy = 0%." />
+                                            <StepItem step="2" title="Semantic Similarity" desc="LLM-based semantic similarity vs. threshold (default 0.72). If below threshold, Accuracy = 0%." />
                                             <StepItem step="3" title="Match Type" desc="Per-field match_type (exact, number, text, semantic) determines comparison logic. JSON keys are validated against ground truth." />
-                                            <StepItem step="4" title="LLM Judge (Optional)" desc="Qualitative override using GPT-4o for nuanced reasoning when enabled in configuration." />
                                         </Stack>
                                     </Paper>
                                 </Box>
@@ -315,9 +323,8 @@ export default function DocumentationPage() {
                                             </TableHead>
                                             <TableBody>
                                                 {[
-                                                    { name: 'all-MiniLM-L12-v2', metric: 'Semantic Similarity (Agent/RAG)', provider: 'HuggingFace' },
-                                                    { name: 'gpt-4o', metric: 'LLM Judge / Reasoning', provider: 'OpenAI / Azure' },
-                                                    { name: 'Sentence Transformers', metric: 'Embeddings for similarity', provider: 'HuggingFace' }
+                                                    { name: 'gpt-4o', metric: 'Semantic Similarity / Fuzzy Match / Consistency', provider: 'OpenAI / Azure' },
+                                                    { name: 'gpt-4o-mini', metric: 'Safety & Toxicity Analysis', provider: 'OpenAI / Azure' }
                                                 ].map((row) => (
                                                     <TableRow key={row.name}>
                                                         <TableCell sx={{ color: 'text.primary', fontWeight: 600 }}>{row.name}</TableCell>

@@ -27,23 +27,20 @@ class TestRequest(BaseModel):
     expected_keys: List[str] = [] # Keys expected in the JSON output
     context: Optional[str] = None
     expected_output: Optional[str] = None # For NLP metrics comparison
-    enable_llm_judge: bool = False
     ground_truth: Optional[GroundTruthRecord] = None
-    pre_computed_output: Optional[str] = None # For evaluating existing outputs
-    run_id: Optional[str] = None # For NLP metrics comparison
+    pre_computed_output: Optional[str] = None
+    run_id: Optional[str] = None
     
     # Evaluation Config
     semantic_threshold: float = 0.72
-    model_name: str = "all-MiniLM-L12-v2"
     enable_safety: bool = False
-    llm_threshold: float = 0.75
     fuzzy_threshold: float = 0.85
-    short_text_length: int = 40
     w_accuracy: float = 0.45
     w_completeness: float = 0.25
     w_hallucination: float = 0.15
     w_safety: float = 0.15
     llm_model_name: str = "gpt-4o"
+    field_strategies: Dict[str, Any] = Field(default_factory=dict)
 
 class OutputDetail(BaseModel):
     found: bool
@@ -137,8 +134,6 @@ class JsonEvaluationRequest(BaseModel):
     w_completeness: float = 0.25
     w_hallucination: float = 0.15
     w_safety: float = 0.15
-    model_name: str = "all-MiniLM-L12-v2"
-    enable_llm_judge: bool = False
     llm_model_name: str = "gpt-4o"
     
     # Evaluation Thresholds
@@ -146,9 +141,8 @@ class JsonEvaluationRequest(BaseModel):
     consistency_threshold: float = 0.5
     hallucination_threshold: float = 0.5
     rqs_threshold: float = 0.5
-    llm_threshold: float = 0.75
     fuzzy_threshold: float = 0.85
-    short_text_length: int = 40
+    field_strategies: Dict[str, Any] = Field(default_factory=dict)
 
 class BatchPathRequest(BaseModel):
     ground_truth_path: str
@@ -172,8 +166,6 @@ class BatchPathRequest(BaseModel):
     w_completeness: float = 0.25
     w_hallucination: float = 0.15
     w_safety: float = 0.15
-    model_name: str = "all-MiniLM-L12-v2"
-    enable_llm_judge: bool = False
     llm_model_name: str = "gpt-4o"
     
     # Evaluation Thresholds
@@ -181,9 +173,8 @@ class BatchPathRequest(BaseModel):
     consistency_threshold: float = 0.5
     hallucination_threshold: float = 0.5
     rqs_threshold: float = 0.5
-    llm_threshold: float = 0.75
     fuzzy_threshold: float = 0.85
-    short_text_length: int = 40
+    field_strategies: Dict[str, Any] = Field(default_factory=dict)
 
 class FeedbackRequest(BaseModel):
     rating: int
