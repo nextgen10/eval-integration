@@ -1,6 +1,7 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { API_BASE_URL } from '../utils/config';
+import { authFetch } from '../utils/authFetch';
 
 interface EvaluationContextType {
     latestResult: any;
@@ -16,7 +17,7 @@ export function EvaluationProvider({ children }: { children: ReactNode }) {
 
     const fetchLatestResult = async () => {
         try {
-            const res = await fetch(`${API_BASE_URL}/latest-result`);
+            const res = await authFetch(`${API_BASE_URL}/latest-result`);
             if (!res.ok) return;
             const data = await res.json();
             if (data && data.result) {

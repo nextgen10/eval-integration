@@ -3,14 +3,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
     Box, Typography, Chip, Accordion, AccordionSummary,
     AccordionDetails, useTheme, alpha, Tooltip, IconButton,
-    CircularProgress, Snackbar, Alert
+    CircularProgress,
 } from '@mui/material';
+import UBSSnackbar from '@/components/UBSSnackbar';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import {
     Brain, ShieldCheck, GitCompare, Gauge
 } from 'lucide-react';
 import { API_BASE_URL } from '@/features/agent-eval/utils/config';
+import { authFetch } from '@/features/agent-eval/utils/authFetch';
 
 interface PromptData {
     prompt_key: string;
@@ -113,7 +115,7 @@ export default function PromptsPage() {
 
     const fetchPrompts = useCallback(async () => {
         try {
-            const res = await fetch(`${API_BASE_URL}/prompts`);
+            const res = await authFetch(`${API_BASE_URL}/prompts`);
             if (!res.ok) throw new Error('Failed to fetch prompts');
             const data = await res.json();
             if (Array.isArray(data)) setPrompts(data);
@@ -230,15 +232,12 @@ export default function PromptsPage() {
                 ))}
             </Box>
 
-            <Snackbar
-                open={snackbar.open} autoHideDuration={3000}
+            <UBSSnackbar
+                open={snackbar.open}
+                message={snackbar.message}
+                severity={snackbar.severity}
                 onClose={() => setSnackbar(s => ({ ...s, open: false }))}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-            >
-                <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))} sx={{ width: '100%' }}>
-                    {snackbar.message}
-                </Alert>
-            </Snackbar>
+            />
         </Box>
     );
 }

@@ -1,5 +1,18 @@
 import { useEffect, useState } from 'react';
 import { API_BASE_URL } from '../utils/config';
+import { authFetch } from '../utils/authFetch';
+
+const SESSION_KEY = 'nexus_eval_session';
+
+function getStoredApiKey(): string | null {
+    try {
+        const raw = localStorage.getItem(SESSION_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw)?.api_key || null;
+    } catch {
+        return null;
+    }
+}
 
 export interface AgentEvent {
     agent_name: string;
@@ -17,7 +30,7 @@ export function useAgentEvents() {
     useEffect(() => {
         const fetchLatest = async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/latest-result`);
+                const response = await authFetch(`${API_BASE_URL}/latest-result`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.events && Array.isArray(data.events)) {
@@ -28,7 +41,7 @@ export function useAgentEvents() {
                     }
                 }
             } catch (error) {
-                console.error("Failed to fetch latest result:", error);
+                // Silently fail - user may not have run evaluations yet
             }
         };
         fetchLatest();
@@ -43,7 +56,10 @@ export function useAgentEvents() {
                 eventSource.close();
             }
 
-            const streamUrl = `${API_BASE_URL}/events`;
+            const apiKey = getStoredApiKey();
+            if (!apiKey) return;
+
+            const streamUrl = `${API_BASE_URL}/events?token=${encodeURIComponent(apiKey)}`;
             const source = new EventSource(streamUrl);
             eventSource = source;
 
@@ -63,8 +79,8 @@ export function useAgentEvents() {
                     } else {
                         setEvents((prev) => [...prev, data]);
                     }
-                } catch (e) {
-                    console.error("Error parsing event data", e);
+                } catch {
+                    // Skip malformed event data
                 }
             };
 

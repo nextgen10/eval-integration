@@ -20,7 +20,8 @@ import {
     TableContainer,
     TableHead,
     TableRow,
-    Tooltip
+    Tooltip,
+    IconButton,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import {
@@ -40,11 +41,17 @@ import {
     Brain,
     History,
     Compass,
-    ArrowRight
+    ArrowRight,
+    Key,
+    Cloud,
+    Lock,
+    Users,
+    Copy,
 } from 'lucide-react';
 import { UbsLogo } from '../../components/UbsLogo';
 import { UnifiedNavBar } from '../../components/UnifiedNavBar';
 import ThemeToggle from '@/components/ThemeToggle';
+import { API_ROOT } from '@/utils/apiBase';
 import { useRouter } from 'next/navigation';
 
 export default function DocumentationPage() {
@@ -118,7 +125,7 @@ export default function DocumentationPage() {
                                     ON THIS PAGE
                                 </Typography>
                                 <Stack spacing={1}>
-                                    {['Overview', 'Agent Eval', 'RAG Eval', 'Agent Metrics', 'RAG Metrics', 'Decision Engine', 'Models & API', 'Contact Support'].map((item) => (
+                                    {['Overview', 'Agent Eval', 'RAG Eval', 'Agent Metrics', 'RAG Metrics', 'Decision Engine', 'Models & API', 'API as a Service', 'Authentication', 'API Reference', 'Contact Support'].map((item) => (
                                         <Typography
                                             key={item}
                                             variant="body2"
@@ -334,12 +341,479 @@ export default function DocumentationPage() {
                                         Agent Eval API: <code style={{ padding: '2px 6px', background: 'rgba(0,0,0,0.1)', borderRadius: 4 }}>/agent-eval</code>. RAG Eval backend: port 8000.
                                     </Typography>
                                     <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-                                        <Button variant="outlined" startIcon={<Code />} href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/docs`} target="_blank" rel="noopener noreferrer" sx={{ borderColor: 'divider', color: 'text.primary', '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(208,0,0,0.04)' } }}>Swagger UI</Button>
-                                        <Button variant="outlined" startIcon={<Terminal />} href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/redoc`} target="_blank" rel="noopener noreferrer" sx={{ borderColor: 'divider', color: 'text.primary', '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(208,0,0,0.04)' } }}>ReDoc</Button>
+                                        <Button variant="outlined" startIcon={<Code />} href={`${API_ROOT}/docs`} target="_blank" rel="noopener noreferrer" sx={{ borderColor: 'divider', color: 'text.primary', '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(208,0,0,0.04)' } }}>Swagger UI</Button>
+                                        <Button variant="outlined" startIcon={<Terminal />} href={`${API_ROOT}/redoc`} target="_blank" rel="noopener noreferrer" sx={{ borderColor: 'divider', color: 'text.primary', '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(208,0,0,0.04)' } }}>ReDoc</Button>
                                     </Box>
                                 </Box>
 
-                                {/* 8. Contact Support */}
+                                {/* 8. API as a Service */}
+                                <Box id="api-as-a-service" sx={{ scrollMarginTop: '80px' }}>
+                                    <SectionHeader icon={<Cloud size={24} />} title="API as a Service" />
+                                    <Typography variant="body1" paragraph color="text.secondary">
+                                        Nexus Eval is designed to be consumed as a <strong>multi-tenant evaluation service</strong> by any team in your organization.
+                                        Each application gets its own isolated environment — evaluations, history, and feedback are scoped to the registered app.
+                                    </Typography>
+                                    <Grid container spacing={2} sx={{ mb: 3 }}>
+                                        <Grid size={{ xs: 12, sm: 4 }}>
+                                            <DocCard title="Register Once" icon={<Key size={20} />} content="Register your application to receive a unique API key. Use this key to authenticate all requests — from the dashboard UI or programmatic API calls." />
+                                        </Grid>
+                                        <Grid size={{ xs: 12, sm: 4 }}>
+                                            <DocCard title="Data Isolation" icon={<Lock size={20} />} content="Each API key scopes all data access. Your evaluations, history, and feedback are completely isolated from other applications." />
+                                        </Grid>
+                                        <Grid size={{ xs: 12, sm: 4 }}>
+                                            <DocCard title="Multi-Team" icon={<Users size={20} />} content="Multiple teams can use the same Nexus Eval instance. Each team registers their app and sees only their data through the dashboard or API." />
+                                        </Grid>
+                                    </Grid>
+
+                                    <Paper sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+                                        <Typography variant="h6" fontWeight={800} gutterBottom>Quick Start</Typography>
+                                        <Stack spacing={2}>
+                                            <StepItem step="1" title="Register your application" desc="POST /agent-eval/apps/register with your app name. You'll receive an API key (nxe_...) — store it securely." />
+                                            <StepItem step="2" title="Authenticate" desc="Include the header X-API-Key: nxe_your_key in every request, or sign in via the dashboard login page." />
+                                            <StepItem step="3" title="Run evaluations" desc="Agent Eval: POST /agent-eval/evaluate-from-json with JSON ground truth + AI outputs. RAG Eval: POST /evaluate-excel with an Excel file or POST /evaluate with JSON test cases." />
+                                            <StepItem step="4" title="View results" desc="Use the dashboard (scoped to your app) or fetch programmatically: GET /agent-eval/history (Agent) or GET /evaluations (RAG)." />
+                                        </Stack>
+                                    </Paper>
+
+                                    <Paper sx={{ p: 3, mt: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+                                        <Typography variant="h6" fontWeight={800} gutterBottom>Two Platforms, One API Key</Typography>
+                                        <Typography variant="body2" color="text.secondary" paragraph>
+                                            Your single API key works across both evaluation platforms. Use the same <code style={{ padding: '2px 6px', background: 'rgba(0,0,0,0.08)', borderRadius: 4 }}>X-API-Key</code> header for both.
+                                        </Typography>
+                                        <Grid container spacing={2}>
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <Box sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                                                    <Typography variant="subtitle2" fontWeight={700} gutterBottom>Agent Eval</Typography>
+                                                    <Typography variant="caption" color="text.secondary" component="div">
+                                                        Base: <code>/agent-eval</code><br />
+                                                        Input: JSON ground truth + AI outputs<br />
+                                                        Metrics: Accuracy, Completeness, Hallucination, Consistency, Safety, RQS<br />
+                                                        Use for: Autonomous agent JSON outputs
+                                                    </Typography>
+                                                </Box>
+                                            </Grid>
+                                            <Grid size={{ xs: 12, sm: 6 }}>
+                                                <Box sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                                                    <Typography variant="subtitle2" fontWeight={700} gutterBottom>RAG Eval</Typography>
+                                                    <Typography variant="caption" color="text.secondary" component="div">
+                                                        Base: <code>/</code> (root)<br />
+                                                        Input: Excel file or JSON test cases<br />
+                                                        Metrics: Faithfulness, Relevancy, Context Precision/Recall, Answer Correctness, RQS<br />
+                                                        Use for: RAG pipeline comparison
+                                                    </Typography>
+                                                </Box>
+                                            </Grid>
+                                        </Grid>
+                                    </Paper>
+                                </Box>
+
+                                {/* 9. Authentication */}
+                                <Box id="authentication" sx={{ scrollMarginTop: '80px' }}>
+                                    <SectionHeader icon={<Shield size={24} />} title="Authentication" />
+                                    <Typography variant="body1" paragraph color="text.secondary">
+                                        All data endpoints require authentication via the <code style={{ padding: '2px 6px', background: 'rgba(0,0,0,0.08)', borderRadius: 4 }}>X-API-Key</code> header.
+                                        The only unauthenticated endpoints are <strong>registration</strong> and <strong>login</strong>.
+                                    </Typography>
+
+                                    <Stack spacing={3}>
+                                        <Paper sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                                            <Typography variant="h6" fontWeight={800} gutterBottom>Register Application</Typography>
+                                            <CodeBlock>{`POST /agent-eval/apps/register
+Content-Type: application/json
+
+{
+  "app_name": "My Trading Bot",
+  "owner_email": "team@company.com"
+}
+
+# Response:
+{
+  "app_id": "my-trading-bot",
+  "app_name": "My Trading Bot",
+  "api_key": "nxe_abc123..."   ← Save this! Shown only once.
+}`}</CodeBlock>
+                                            <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 1, fontWeight: 600 }}>
+                                                ⚠ The API key is returned only once at registration. Store it securely.
+                                            </Typography>
+                                        </Paper>
+
+                                        <Paper sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                                            <Typography variant="h6" fontWeight={800} gutterBottom>Login (Validate Key)</Typography>
+                                            <CodeBlock>{`POST /agent-eval/apps/login
+Content-Type: application/json
+
+{
+  "api_key": "nxe_abc123..."
+}
+
+# Response (200):
+{
+  "app_id": "my-trading-bot",
+  "app_name": "My Trading Bot",
+  "owner_email": "team@company.com"
+}
+
+# Response (401):
+{ "detail": "Invalid API key" }`}</CodeBlock>
+                                        </Paper>
+
+                                        <Paper sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                                            <Typography variant="h6" fontWeight={800} gutterBottom>Using the API Key</Typography>
+                                            <CodeBlock>{`# Include in every request:
+curl -H "X-API-Key: nxe_abc123..." \\
+     https://your-server/agent-eval/history
+
+# Python example:
+import requests
+
+headers = {"X-API-Key": "nxe_abc123..."}
+response = requests.get(
+    "https://your-server/agent-eval/history",
+    headers=headers
+)
+print(response.json())`}</CodeBlock>
+                                        </Paper>
+
+                                        <Paper sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                                            <Typography variant="h6" fontWeight={800} gutterBottom>Rotate API Key</Typography>
+                                            <CodeBlock>{`POST /agent-eval/apps/{app_id}/rotate-key
+X-API-Key: nxe_current_key...
+
+# Response:
+{
+  "app_id": "my-trading-bot",
+  "api_key": "nxe_new_key..."   ← Old key is immediately invalidated
+}`}</CodeBlock>
+                                        </Paper>
+                                    </Stack>
+                                </Box>
+
+                                {/* 10. API Reference */}
+                                <Box id="api-reference" sx={{ scrollMarginTop: '80px' }}>
+                                    <SectionHeader icon={<Code size={24} />} title="API Reference" />
+                                    <Typography variant="body1" paragraph color="text.secondary">
+                                        All endpoints require the <code style={{ padding: '2px 6px', background: 'rgba(0,0,0,0.08)', borderRadius: 4 }}>X-API-Key</code> header unless noted.
+                                        The server exposes two groups of endpoints: <strong>Agent Eval</strong> (under <code>/agent-eval</code>) and <strong>RAG Eval</strong> (root-level).
+                                    </Typography>
+
+                                    {/* --- Agent Eval Endpoints --- */}
+                                    <Typography variant="h6" fontWeight={800} sx={{ mt: 2, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Brain size={18} /> Agent Eval Endpoints
+                                        <Chip label="/agent-eval" size="small" sx={{ ml: 1, fontFamily: 'monospace', fontSize: '0.7rem' }} />
+                                    </Typography>
+                                    <EndpointTable rows={[
+                                        { method: 'POST', path: '/apps/register', desc: 'Register a new application and receive an API key', auth: 'None' },
+                                        { method: 'POST', path: '/apps/login', desc: 'Validate API key and get app info', auth: 'None' },
+                                        { method: 'GET', path: '/apps/me', desc: 'Get current authenticated app info', auth: 'Required' },
+                                        { method: 'POST', path: '/apps/{id}/rotate-key', desc: 'Rotate API key (invalidates old key immediately)', auth: 'Required' },
+                                        { method: 'DELETE', path: '/apps/{id}', desc: 'Deactivate your application', auth: 'Required' },
+                                        { method: 'POST', path: '/convert-json', desc: 'Convert/normalize JSON data for evaluation', auth: 'Required' },
+                                        { method: 'POST', path: '/evaluate-from-json', desc: 'Run evaluation on JSON ground truth + AI outputs', auth: 'Required' },
+                                        { method: 'POST', path: '/run-batch', desc: 'Run batch evaluation from test requests', auth: 'Required' },
+                                        { method: 'POST', path: '/evaluate-from-paths', desc: 'Run evaluation from local file paths', auth: 'Required' },
+                                        { method: 'GET', path: '/latest-result', desc: 'Get most recent evaluation result', auth: 'Required' },
+                                        { method: 'GET', path: '/history', desc: 'List all evaluation runs for your app', auth: 'Required' },
+                                        { method: 'GET', path: '/events?token={key}', desc: 'SSE stream for real-time progress', auth: 'Token (query)' },
+                                        { method: 'POST', path: '/feedback', desc: 'Submit feedback (1-5 rating)', auth: 'Optional' },
+                                        { method: 'GET', path: '/feedback', desc: 'List all feedback entries', auth: 'None' },
+                                        { method: 'GET', path: '/prompts', desc: 'List all LLM prompts', auth: 'None' },
+                                    ]} />
+
+                                    {/* --- RAG Eval Endpoints --- */}
+                                    <Typography variant="h6" fontWeight={800} sx={{ mt: 4, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Activity size={18} /> RAG Eval Endpoints
+                                        <Chip label="/ (root)" size="small" sx={{ ml: 1, fontFamily: 'monospace', fontSize: '0.7rem' }} />
+                                    </Typography>
+                                    <EndpointTable rows={[
+                                        { method: 'POST', path: '/evaluate-excel', desc: 'Upload Excel file and run RAG evaluation across bots', auth: 'Required' },
+                                        { method: 'POST', path: '/evaluate', desc: 'Run RAG evaluation from JSON test cases', auth: 'Required' },
+                                        { method: 'GET', path: '/latest', desc: 'Get the most recent RAG evaluation result', auth: 'Required' },
+                                        { method: 'GET', path: '/evaluations', desc: 'List all RAG evaluation summaries', auth: 'Required' },
+                                        { method: 'GET', path: '/evaluations/{id}', desc: 'Get full RAG evaluation by ID', auth: 'Required' },
+                                        { method: 'DELETE', path: '/cache/cleanup', desc: 'Clean up metric cache older than 30 days', auth: 'Required' },
+                                    ]} />
+
+                                    {/* --- Agent Eval Examples --- */}
+                                    <Typography variant="h6" fontWeight={800} sx={{ mt: 5, mb: 2 }}>
+                                        Agent Eval — Usage Examples
+                                    </Typography>
+                                    <Stack spacing={3}>
+                                        <Paper sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                                            <Typography variant="subtitle1" fontWeight={800} gutterBottom>JSON Evaluation Request</Typography>
+                                            <Typography variant="body2" color="text.secondary" paragraph>
+                                                Evaluate structured agent outputs against ground truth with per-field matching strategies.
+                                            </Typography>
+                                            <CodeBlock>{`POST /agent-eval/evaluate-from-json
+X-API-Key: nxe_abc123...
+Content-Type: application/json
+
+{
+  "ground_truth": [
+    {
+      "query_id": "q1",
+      "expected_output": {
+        "customer_name": "John Doe",
+        "account_balance": 15000.50,
+        "status": "Active",
+        "notes": "Premium customer since 2019"
+      }
+    }
+  ],
+  "ai_outputs": [
+    {
+      "query_id": "q1",
+      "actual_output": {
+        "customer_name": "John Doe",
+        "account_balance": 15000.50,
+        "status": "active",
+        "notes": "High-value customer, member since 2019"
+      }
+    }
+  ],
+  "field_strategies": {
+    "customer_name": "EXACT",
+    "account_balance": "EXACT",
+    "status": "FUZZY",
+    "notes": "SEMANTIC"
+  },
+  "semantic_threshold": 0.72,
+  "fuzzy_threshold": 0.75,
+  "enable_safety": true,
+  "llm_model_name": "gpt-4o"
+}`}</CodeBlock>
+                                        </Paper>
+
+                                        <Paper sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                                            <Typography variant="subtitle1" fontWeight={800} gutterBottom>Field Strategies</Typography>
+                                            <Typography variant="body2" color="text.secondary" paragraph>
+                                                Control how each field is compared.
+                                            </Typography>
+                                            <TableContainer>
+                                                <Table size="small">
+                                                    <TableHead sx={{ bgcolor: (t) => alpha(t.palette.primary.main, 0.05) }}>
+                                                        <TableRow>
+                                                            <TableCell sx={{ fontWeight: 800 }}>Strategy</TableCell>
+                                                            <TableCell sx={{ fontWeight: 800 }}>Behavior</TableCell>
+                                                            <TableCell sx={{ fontWeight: 800 }}>Score</TableCell>
+                                                        </TableRow>
+                                                    </TableHead>
+                                                    <TableBody>
+                                                        <TableRow><TableCell><Chip label="EXACT" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} /></TableCell><TableCell sx={{ fontSize: '0.8rem' }}>Case-insensitive string/number equality</TableCell><TableCell sx={{ fontSize: '0.8rem' }}>1 (match) or 0</TableCell></TableRow>
+                                                        <TableRow><TableCell><Chip label="FUZZY" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} /></TableCell><TableCell sx={{ fontSize: '0.8rem' }}>LLM-based fuzzy match (abbreviations, typos)</TableCell><TableCell sx={{ fontSize: '0.8rem' }}>1 if score ≥ threshold, else 0</TableCell></TableRow>
+                                                        <TableRow><TableCell><Chip label="SEMANTIC" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} /></TableCell><TableCell sx={{ fontSize: '0.8rem' }}>LLM-based meaning comparison</TableCell><TableCell sx={{ fontSize: '0.8rem' }}>1 if score ≥ threshold, else 0</TableCell></TableRow>
+                                                        <TableRow><TableCell><Chip label="IGNORE" size="small" sx={{ fontWeight: 700, fontSize: '0.7rem' }} /></TableCell><TableCell sx={{ fontSize: '0.8rem' }}>Skip field entirely (not scored)</TableCell><TableCell sx={{ fontSize: '0.8rem' }}>N/A</TableCell></TableRow>
+                                                    </TableBody>
+                                                </Table>
+                                            </TableContainer>
+                                        </Paper>
+
+                                        <Paper sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                                            <Typography variant="subtitle1" fontWeight={800} gutterBottom>Agent Eval — Python Example</Typography>
+                                            <CodeBlock>{`import requests
+
+NEXUS_URL = "https://your-server/agent-eval"
+API_KEY = "nxe_abc123..."
+headers = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
+
+# Run evaluation
+result = requests.post(f"{NEXUS_URL}/evaluate-from-json", json={
+    "ground_truth": ground_truth_list,
+    "ai_outputs": ai_output_list,
+    "field_strategies": {
+        "customer_name": "EXACT",
+        "summary": "SEMANTIC",
+        "amount": "EXACT",
+        "notes": "IGNORE"
+    },
+    "semantic_threshold": 0.72,
+    "enable_safety": True
+}, headers=headers).json()
+
+# Check results
+print(f"RQS: {result['aggregate']['rqs']:.2f}")
+print(f"Accuracy: {result['aggregate']['accuracy']:.2f}")
+print(f"Completeness: {result['aggregate']['completeness']:.2f}")
+print(f"Hallucination: {result['aggregate']['hallucination']:.2f}")
+
+# Fetch run history
+history = requests.get(f"{NEXUS_URL}/history", headers=headers).json()
+print(f"Total runs: {len(history)}")`}</CodeBlock>
+                                        </Paper>
+                                    </Stack>
+
+                                    {/* --- RAG Eval Examples --- */}
+                                    <Typography variant="h6" fontWeight={800} sx={{ mt: 5, mb: 2 }}>
+                                        RAG Eval — Usage Examples
+                                    </Typography>
+                                    <Stack spacing={3}>
+                                        <Paper sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                                            <Typography variant="subtitle1" fontWeight={800} gutterBottom>Excel Upload Evaluation</Typography>
+                                            <Typography variant="body2" color="text.secondary" paragraph>
+                                                Upload an Excel file with columns: Query, Ground_Truth, Bot_A, Bot_B, Context_A, Context_B, etc.
+                                                The system auto-detects bot columns and evaluates each against ground truth.
+                                            </Typography>
+                                            <CodeBlock>{`POST /evaluate-excel
+X-API-Key: nxe_abc123...
+Content-Type: multipart/form-data
+
+# Form fields:
+#   file:        Excel file (.xlsx)
+#   model:       "gpt-4o" (judge model)
+#   alpha:       0.4 (Answer Correctness weight)
+#   beta:        0.3 (Faithfulness weight)
+#   gamma:       0.3 (Relevancy weight)
+#   max_rows:    200 (safety limit)
+#   temperature: 0.0
+#   concurrency: 5
+#   strictness:  0.7
+#   safety:      true
+
+# Excel format:
+# | Query          | Ground_Truth     | Bot_A         | Bot_B         | Context_A    | Context_B    |
+# |----------------|------------------|---------------|---------------|--------------|--------------|
+# | What is X?     | X is defined as..| X means...    | X refers to...| Source doc...| Source doc...|`}</CodeBlock>
+                                        </Paper>
+
+                                        <Paper sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                                            <Typography variant="subtitle1" fontWeight={800} gutterBottom>JSON Evaluation Request</Typography>
+                                            <Typography variant="body2" color="text.secondary" paragraph>
+                                                Evaluate RAG pipelines programmatically with JSON test cases.
+                                            </Typography>
+                                            <CodeBlock>{`POST /evaluate
+X-API-Key: nxe_abc123...
+Content-Type: application/json
+
+{
+  "name": "Q3 RAG Benchmark",
+  "dataset": [
+    {
+      "query": "What was Q3 revenue?",
+      "bot_responses": {
+        "Bot A": "Q3 revenue was $50M, up 12% YoY.",
+        "Bot B": "Revenue in the third quarter reached fifty million."
+      },
+      "bot_contexts": {
+        "Bot A": ["Q3 financial report: Revenue $50M..."],
+        "Bot B": ["Annual report excerpt: Q3 revenue..."]
+      },
+      "ground_truth": "Q3 revenue was $50 million."
+    }
+  ],
+  "alpha": 0.4,
+  "beta": 0.3,
+  "gamma": 0.3,
+  "temperature": 0.0
+}
+
+# Response includes per-bot metrics:
+# - faithfulness, answer_relevancy
+# - context_precision, context_recall
+# - semantic_similarity, rqs
+# - leaderboard with winner`}</CodeBlock>
+                                        </Paper>
+
+                                        <Paper sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                                            <Typography variant="subtitle1" fontWeight={800} gutterBottom>RAG Eval — Python Example</Typography>
+                                            <CodeBlock>{`import requests
+
+NEXUS_URL = "https://your-server"
+API_KEY = "nxe_abc123..."
+headers = {"X-API-Key": API_KEY}
+
+# Option 1: Upload Excel file
+with open("rag_test_data.xlsx", "rb") as f:
+    result = requests.post(f"{NEXUS_URL}/evaluate-excel", files={
+        "file": ("rag_test_data.xlsx", f, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    }, data={
+        "model": "gpt-4o",
+        "alpha": 0.4,
+        "beta": 0.3,
+        "gamma": 0.3,
+        "max_rows": 200,
+        "temperature": 0.0,
+        "safety": "true"
+    }, headers=headers).json()
+
+print(f"Winner: {result['winner']}")
+for bot, summary in result['summaries'].items():
+    print(f"  {bot}: RQS={summary['rqs']:.3f}")
+
+# Option 2: JSON test cases
+result = requests.post(f"{NEXUS_URL}/evaluate", json={
+    "name": "Pipeline Comparison",
+    "dataset": test_cases,
+    "alpha": 0.4,
+    "beta": 0.3,
+    "gamma": 0.3
+}, headers={**headers, "Content-Type": "application/json"}).json()
+
+# Fetch history
+evaluations = requests.get(
+    f"{NEXUS_URL}/evaluations", headers=headers
+).json()
+print(f"Total RAG evaluations: {len(evaluations)}")
+
+# Get specific evaluation
+eval_detail = requests.get(
+    f"{NEXUS_URL}/evaluations/{evaluations[0]['id']}",
+    headers=headers
+).json()`}</CodeBlock>
+                                        </Paper>
+
+                                        <Paper sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
+                                            <Typography variant="subtitle1" fontWeight={800} gutterBottom>cURL Examples — Both Platforms</Typography>
+                                            <CodeBlock>{`# ──── Registration & Auth ────
+# Register your application (one-time)
+curl -X POST https://your-server/agent-eval/apps/register \\
+  -H "Content-Type: application/json" \\
+  -d '{"app_name": "My App", "owner_email": "me@co.com"}'
+
+# ──── Agent Eval ────
+# Run Agent evaluation
+curl -X POST https://your-server/agent-eval/evaluate-from-json \\
+  -H "X-API-Key: nxe_abc123..." \\
+  -H "Content-Type: application/json" \\
+  -d @agent_eval_payload.json
+
+# Get Agent evaluation history
+curl https://your-server/agent-eval/history \\
+  -H "X-API-Key: nxe_abc123..."
+
+# Get latest Agent result
+curl https://your-server/agent-eval/latest-result \\
+  -H "X-API-Key: nxe_abc123..."
+
+# ──── RAG Eval ────
+# Upload Excel for RAG evaluation
+curl -X POST https://your-server/evaluate-excel \\
+  -H "X-API-Key: nxe_abc123..." \\
+  -F "file=@rag_dataset.xlsx" \\
+  -F "model=gpt-4o" \\
+  -F "alpha=0.4" -F "beta=0.3" -F "gamma=0.3"
+
+# Run RAG evaluation from JSON
+curl -X POST https://your-server/evaluate \\
+  -H "X-API-Key: nxe_abc123..." \\
+  -H "Content-Type: application/json" \\
+  -d @rag_eval_payload.json
+
+# Get RAG evaluation history
+curl https://your-server/evaluations \\
+  -H "X-API-Key: nxe_abc123..."
+
+# Get specific RAG evaluation
+curl https://your-server/evaluations/{eval_id} \\
+  -H "X-API-Key: nxe_abc123..."
+
+# ──── Key Management ────
+# Rotate key (invalidates current key)
+curl -X POST https://your-server/agent-eval/apps/my-app/rotate-key \\
+  -H "X-API-Key: nxe_current_key..."`}</CodeBlock>
+                                        </Paper>
+                                    </Stack>
+                                </Box>
+
+                                {/* 11. Contact Support */}
                                 <Box id="contact-support" sx={{ scrollMarginTop: '80px' }}>
                                     <SectionHeader icon={<Mail size={24} />} title="Technical Ownership" />
                                     <Paper sx={{ p: 4, borderRadius: 4, bgcolor: (t) => alpha(t.palette.primary.main, 0.04), border: '1px solid', borderColor: (t) => alpha(t.palette.primary.main, 0.2) }}>
@@ -415,6 +889,93 @@ function StepItem({ step, title, desc }: { step: string, title: string, desc: st
                 <Typography variant="body2" fontWeight={700}>{title}</Typography>
                 <Typography variant="caption" color="text.secondary">{desc}</Typography>
             </Box>
+        </Box>
+    );
+}
+
+function EndpointTable({ rows }: { rows: { method: string; path: string; desc: string; auth: string }[] }) {
+    return (
+        <TableContainer component={Paper} sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider', mb: 2 }}>
+            <Table size="small">
+                <TableHead sx={{ bgcolor: (t) => alpha(t.palette.primary.main, 0.05) }}>
+                    <TableRow>
+                        <TableCell sx={{ fontWeight: 800, width: '8%' }}>Method</TableCell>
+                        <TableCell sx={{ fontWeight: 800, width: '30%' }}>Endpoint</TableCell>
+                        <TableCell sx={{ fontWeight: 800, width: '47%' }}>Description</TableCell>
+                        <TableCell sx={{ fontWeight: 800, width: '15%' }}>Auth</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {rows.map((row) => (
+                        <TableRow key={row.method + row.path}>
+                            <TableCell>
+                                <Chip label={row.method} size="small" sx={{
+                                    fontWeight: 700, fontSize: '0.7rem',
+                                    bgcolor: row.method === 'GET' ? 'rgba(45,108,223,0.1)' : row.method === 'POST' ? 'rgba(31,138,112,0.1)' : 'rgba(194,48,48,0.1)',
+                                    color: row.method === 'GET' ? '#2D6CDF' : row.method === 'POST' ? '#1F8A70' : '#C23030',
+                                }} />
+                            </TableCell>
+                            <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem', fontWeight: 600 }}>{row.path}</TableCell>
+                            <TableCell sx={{ fontSize: '0.8rem' }}>{row.desc}</TableCell>
+                            <TableCell>
+                                <Chip label={row.auth} size="small" variant="outlined" sx={{
+                                    fontSize: '0.65rem',
+                                    borderColor: row.auth === 'None' ? 'text.disabled' : 'primary.main',
+                                    color: row.auth === 'None' ? 'text.disabled' : 'primary.main',
+                                }} />
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </TableContainer>
+    );
+}
+
+function CodeBlock({ children }: { children: string }) {
+    const theme = useTheme();
+    const [copied, setCopied] = React.useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(children);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <Box sx={{ position: 'relative' }}>
+            <Box
+                component="pre"
+                sx={{
+                    p: 2.5,
+                    borderRadius: 2,
+                    bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    overflow: 'auto',
+                    fontFamily: '"SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace',
+                    fontSize: '0.78rem',
+                    lineHeight: 1.7,
+                    m: 0,
+                    whiteSpace: 'pre',
+                    color: 'text.primary',
+                }}
+            >
+                {children}
+            </Box>
+            <IconButton
+                size="small"
+                onClick={handleCopy}
+                sx={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                    '&:hover': { bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' },
+                }}
+            >
+                {copied ? <CheckCircle2 size={14} color={theme.palette.success.main} /> : <Copy size={14} />}
+            </IconButton>
         </Box>
     );
 }

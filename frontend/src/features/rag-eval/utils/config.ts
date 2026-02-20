@@ -1,10 +1,3 @@
-let rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { API_ROOT } from '@/utils/apiBase';
 
-if (!rawUrl.startsWith('http')) {
-    if (!rawUrl.includes('.') && !rawUrl.includes(':')) {
-        rawUrl += '.onrender.com';
-    }
-    rawUrl = `https://${rawUrl}`;
-}
-
-export const RAG_API_BASE_URL = rawUrl;
+export const RAG_API_BASE_URL = API_ROOT;

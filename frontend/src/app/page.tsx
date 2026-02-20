@@ -10,7 +10,17 @@ import {
   Button,
   alpha,
   Stack,
-  useTheme
+  useTheme,
+  TextField,
+  Rating,
+  Chip,
+  Card,
+  CardContent,
+  Fade,
+  Grow,
+  IconButton,
+  Skeleton,
+  LinearProgress,
 } from '@mui/material';
 import {
   Activity,
@@ -29,6 +39,18 @@ import {
   Wrench,
   MessageCircle,
   Gauge,
+  MessageSquare,
+  Send,
+  Star,
+  ThumbsUp,
+  ThumbsDown,
+  Minus,
+  Clock,
+  Sparkles,
+  TrendingUp,
+  Reply,
+  ShieldCheck as ShieldAdmin,
+  X,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -37,6 +59,12 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { UbsLogoFull } from '../components/UbsLogoFull';
 import { BrandPipe } from '@/components/BrandPipe';
 import { UnifiedNavBar } from '@/components/UnifiedNavBar';
+import { useAuth } from '@/contexts/AuthContext';
+import AppIdentityBadge from '@/components/AppIdentityBadge';
+import { API_ROOT } from '@/utils/apiBase';
+import { authFetch } from '@/features/agent-eval/utils/authFetch';
+import { useCallback } from 'react';
+import UBSSnackbar from '@/components/UBSSnackbar';
 
 const MotionPaper = motion(Paper);
 
@@ -45,6 +73,7 @@ export default function NexusEvalLanding() {
   const theme = useTheme();
   const isLight = theme.palette.mode === 'light';
   const [mounted, setMounted] = useState(false);
+  const { isAuthenticated, session } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -82,6 +111,17 @@ export default function NexusEvalLanding() {
               >
                 Documentation
               </Button>
+              {isAuthenticated && session ? (
+                <AppIdentityBadge appName={session.app_name} appId={session.app_id} />
+              ) : (
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={() => router.push('/login')}
+                >
+                  Sign In
+                </Button>
+              )}
               <ThemeToggle />
             </>
           }
@@ -635,6 +675,13 @@ export default function NexusEvalLanding() {
           </Container>
         </Box>
 
+        {/* Feedback Section */}
+        <Box id="feedback-section" sx={{ borderTop: '1px solid', borderColor: 'divider', py: 10, bgcolor: 'background.default', scrollMarginTop: '80px' }}>
+          <Container maxWidth="xl" sx={{ px: { xs: 2, md: 3 } }}>
+            <FeedbackSection />
+          </Container>
+        </Box>
+
         {/* Tech Stack Strip */}
         <Box sx={{ borderTop: '1px solid', borderColor: 'divider', py: 6, bgcolor: 'background.default' }}>
           <Container maxWidth="xl" sx={{ px: { xs: 2, md: 3 } }}>
@@ -677,15 +724,17 @@ export default function NexusEvalLanding() {
                 <Stack spacing={1.5}>
                   <Box component="a" href="/docs#rag-eval" sx={{ textDecoration: 'none', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s', fontSize: '0.875rem', display: 'block' }}>RAG Evaluation</Box>
                   <Box component="a" href="/docs#agent-eval" sx={{ textDecoration: 'none', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s', fontSize: '0.875rem', display: 'block' }}>Agent Evaluation</Box>
+                  <Box component="a" href="#feedback-section" sx={{ textDecoration: 'none', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s', fontSize: '0.875rem', display: 'block' }}>Feedback</Box>
                   <Box component="a" href="/docs#contact-support" sx={{ textDecoration: 'none', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s', fontSize: '0.875rem', display: 'block' }}>Contact</Box>
                 </Stack>
               </Grid>
               <Grid size={{ xs: 6, md: 2 }}>
                 <Typography variant="subtitle2" sx={{ color: 'text.primary', mb: 2, fontWeight: 600 }}>Resources</Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Stack spacing={1.5}>
                   <Typography variant="body2" sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s' }} onClick={() => router.push('/docs')}>Documentation</Typography>
-                  <Typography variant="body2" sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s' }} onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/docs`, '_blank')}>API Reference</Typography>
-                </Box>
+                  <Typography variant="body2" sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s' }} onClick={() => window.open(`${API_ROOT}/docs`, '_blank')}>API Reference</Typography>
+                  <Typography variant="body2" sx={{ cursor: 'pointer', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s' }} onClick={() => document.getElementById('feedback-section')?.scrollIntoView({ behavior: 'smooth' })}>Feedback</Typography>
+                </Stack>
               </Grid>
             </Grid>
             <Box sx={{ mt: 8, pt: 4, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
@@ -707,5 +756,408 @@ function MetricItem({ title, desc }: { title: string; desc: string }) {
       <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>{title}</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>{desc}</Typography>
     </Box>
+  );
+}
+
+/* ─── Feedback Section ─── */
+
+const FEEDBACK_API = `${API_ROOT}/agent-eval/feedback`;
+
+const RATING_LABELS: Record<number, { label: string; color: string }> = {
+  1: { label: 'Needs Work', color: '#C23030' },
+  2: { label: 'Below Average', color: '#E67E22' },
+  3: { label: 'Average', color: '#F1C40F' },
+  4: { label: 'Good', color: '#27AE60' },
+  5: { label: 'Excellent', color: '#2D6CDF' },
+};
+
+interface FeedbackEntry {
+  id: number; timestamp: string; rating: number; suggestion: string;
+  admin_response?: string | null; admin_responded_at?: string | null;
+}
+
+function formatTimeAgo(ts: string): string {
+  const diff = Date.now() - new Date(ts).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(ts).toLocaleDateString();
+}
+
+function FeedbackSection() {
+  const theme = useTheme();
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  const [rating, setRating] = useState<number | null>(0);
+  const [hoverRating, setHoverRating] = useState(-1);
+  const [suggestion, setSuggestion] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [feedbacks, setFeedbacks] = useState<FeedbackEntry[]>([]);
+  const [fetchLoading, setFetchLoading] = useState(true);
+  const [submitted, setSubmitted] = useState(false);
+  const [snackOpen, setSnackOpen] = useState(false);
+  const [snackMsg, setSnackMsg] = useState('');
+  const [snackSev, setSnackSev] = useState<'success' | 'error'>('success');
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [replyLoading, setReplyLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) { setIsAdminUser(false); return; }
+    authFetch(`${FEEDBACK_API}/admin-check`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setIsAdminUser(d.is_admin); })
+      .catch(() => {});
+  }, [isAuthenticated]);
+
+  const fetchFeedback = useCallback(async () => {
+    try {
+      const res = await fetch(FEEDBACK_API);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) setFeedbacks(data);
+      }
+    } catch { /* silent */ } finally { setFetchLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchFeedback(); }, [fetchFeedback]);
+
+  const handleSubmit = async () => {
+    if (!rating) { setSnackMsg('Please select a rating.'); setSnackSev('error'); setSnackOpen(true); return; }
+    if (loading) return;
+    setLoading(true);
+    try {
+      const res = await authFetch(FEEDBACK_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, suggestion }),
+      });
+      if (!res.ok) throw new Error();
+      setSnackMsg('Thank you for your feedback!'); setSnackSev('success'); setSnackOpen(true);
+      setRating(0); setSuggestion('');
+      setSubmitted(true); setTimeout(() => setSubmitted(false), 2500);
+      fetchFeedback();
+    } catch { setSnackMsg('Failed to submit. Please try again.'); setSnackSev('error'); setSnackOpen(true); }
+    finally { setLoading(false); }
+  };
+
+  const handleReply = async (feedbackId: number) => {
+    if (!replyText.trim() || replyLoading) return;
+    setReplyLoading(true);
+    try {
+      const res = await authFetch(`${FEEDBACK_API}/${feedbackId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ response: replyText.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      setReplyingTo(null); setReplyText('');
+      setSnackMsg('Response posted.'); setSnackSev('success'); setSnackOpen(true);
+      fetchFeedback();
+    } catch { setSnackMsg('Failed to post response.'); setSnackSev('error'); setSnackOpen(true); }
+    finally { setReplyLoading(false); }
+  };
+
+  const avgRating = feedbacks.length > 0 ? feedbacks.reduce((s, f) => s + f.rating, 0) / feedbacks.length : 0;
+  const positive = feedbacks.filter(f => f.rating >= 4).length;
+  const activeLabel = RATING_LABELS[hoverRating > 0 ? hoverRating : (rating || 0)];
+
+  return (
+    <>
+      <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} transition={{ duration: 0.5 }}>
+        <Box sx={{ textAlign: 'center', mb: 6 }}>
+          <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 800, letterSpacing: '0.1em' }}>
+            FEEDBACK
+          </Typography>
+          <Typography variant="h3" sx={{ fontWeight: 600, mt: 2, mb: 2 }}>
+            Help Us <Box component="span" sx={{ color: 'primary.main' }}>Improve</Box>
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto', lineHeight: 1.7 }}>
+            Your feedback directly shapes our roadmap. Rate your experience and share suggestions.
+          </Typography>
+        </Box>
+      </motion.div>
+
+      {/* Stats Row */}
+          {feedbacks.length > 0 && (
+            <Grid container spacing={2} sx={{ mb: 4 }}>
+              {[
+                { icon: <Star size={20} />, label: 'Avg Rating', value: avgRating.toFixed(1), color: '#F1C40F' },
+                { icon: <BarChart3 size={20} />, label: 'Total Responses', value: feedbacks.length, color: theme.palette.primary.main },
+                { icon: <TrendingUp size={20} />, label: 'Positive', value: `${Math.round((positive / feedbacks.length) * 100)}%`, color: '#27AE60' },
+                { icon: <Sparkles size={20} />, label: 'With Comments', value: feedbacks.filter(f => f.suggestion).length, color: '#9B59B6' },
+              ].map((s, i) => (
+                <Grid key={s.label} size={{ xs: 6, md: 3 }}>
+                  <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.4 }}>
+                    <Paper sx={{
+                      p: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider',
+                      display: 'flex', alignItems: 'center', gap: 2,
+                      transition: 'all 0.2s', '&:hover': { borderColor: s.color, transform: 'translateY(-2px)' },
+                    }}>
+                      <Box sx={{
+                        p: 1.5, borderRadius: 2,
+                        bgcolor: alpha(s.color, theme.palette.mode === 'dark' ? 0.15 : 0.08),
+                        color: s.color, display: 'flex',
+                      }}>
+                        {s.icon}
+                      </Box>
+                      <Box>
+                        <Typography variant="h5" fontWeight={800} sx={{ lineHeight: 1.2 }}>{s.value}</Typography>
+                        <Typography variant="caption" color="text.secondary" fontWeight={600}>{s.label}</Typography>
+                      </Box>
+                    </Paper>
+                  </motion.div>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+
+          <Grid container spacing={4}>
+            {/* Form */}
+            <Grid size={{ xs: 12, md: 5 }}>
+              <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.1 }}>
+                <Stack spacing={3}>
+                  {/* Rating Distribution */}
+                  {feedbacks.length > 0 && (
+                    <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', height: 230 }}>
+                      <Typography variant="subtitle1" fontWeight={800} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <BarChart3 size={18} /> Rating Distribution
+                      </Typography>
+                      <Stack spacing={1} sx={{ mt: 2 }}>
+                        {[5, 4, 3, 2, 1].map((stars) => {
+                          const count = feedbacks.filter(f => f.rating === stars).length;
+                          const pct = (count / feedbacks.length) * 100;
+                          const cfg = RATING_LABELS[stars];
+                          return (
+                            <Box key={stars} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                              <Typography variant="caption" fontWeight={700} sx={{ minWidth: 12, textAlign: 'right' }}>{stars}</Typography>
+                              <Star size={14} fill={cfg.color} color={cfg.color} />
+                              <LinearProgress variant="determinate" value={pct} sx={{
+                                flex: 1, height: 8, borderRadius: 4,
+                                bgcolor: alpha(cfg.color, theme.palette.mode === 'dark' ? 0.1 : 0.08),
+                                '& .MuiLinearProgress-bar': { bgcolor: cfg.color, borderRadius: 4 },
+                              }} />
+                              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ minWidth: 28, textAlign: 'right' }}>{count}</Typography>
+                            </Box>
+                          );
+                        })}
+                      </Stack>
+                    </Paper>
+                  )}
+
+                  <Paper sx={{
+                    p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider',
+                    position: 'relative', overflow: 'hidden', height: 430,
+                  }}>
+                    {submitted && (
+                      <Fade in>
+                        <Box sx={{
+                          position: 'absolute', inset: 0, display: 'flex',
+                          alignItems: 'center', justifyContent: 'center',
+                          bgcolor: alpha(theme.palette.background.paper, 0.95), zIndex: 10, borderRadius: 3,
+                        }}>
+                          <Stack alignItems="center" spacing={1}>
+                            <CheckCircle2 size={48} color="#27AE60" />
+                            <Typography variant="h6" fontWeight={700} color="#27AE60">Thank you!</Typography>
+                          </Stack>
+                        </Box>
+                      </Fade>
+                    )}
+
+                    <Typography variant="h6" fontWeight={800} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Send size={18} /> Share Your Experience
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                      Your input directly influences our priorities and roadmap.
+                    </Typography>
+
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="subtitle2" fontWeight={700} gutterBottom>How would you rate Nexus Eval?</Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Rating
+                          value={rating}
+                          onChange={(_, v) => setRating(v)}
+                          onChangeActive={(_, v) => setHoverRating(v)}
+                          size="large"
+                          sx={{
+                            '& .MuiRating-iconFilled': { color: activeLabel?.color || '#F1C40F' },
+                            '& .MuiRating-iconHover': { color: activeLabel?.color || '#F1C40F' },
+                          }}
+                        />
+                        {activeLabel && (
+                          <Fade in key={activeLabel.label}>
+                            <Chip label={activeLabel.label} size="small" sx={{
+                              fontWeight: 700, fontSize: '0.7rem',
+                              bgcolor: alpha(activeLabel.color, theme.palette.mode === 'dark' ? 0.15 : 0.08),
+                              color: activeLabel.color,
+                            }} />
+                          </Fade>
+                        )}
+                      </Box>
+                    </Box>
+
+                    <TextField
+                      fullWidth label="Comments or Suggestions" multiline rows={4}
+                      value={suggestion} onChange={(e) => setSuggestion(e.target.value)}
+                      placeholder="What do you like? What could be better? Any feature requests?"
+                      sx={{ mb: 3 }}
+                    />
+
+                    <Button variant="contained" size="large" onClick={handleSubmit}
+                      disabled={loading || !rating} endIcon={<Send size={16} />}
+                      fullWidth sx={{ fontWeight: 700, borderRadius: 2, py: 1.5 }}
+                    >
+                      {loading ? 'Submitting...' : 'Submit Feedback'}
+                    </Button>
+                  </Paper>
+                </Stack>
+              </motion.div>
+            </Grid>
+
+            {/* Recent Feedback */}
+            <Grid size={{ xs: 12, md: 7 }}>
+              <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.2 }}>
+                <Paper sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', height: 684, overflow: 'auto' }}>
+                  <Typography variant="subtitle1" fontWeight={800} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <Clock size={18} /> Recent Feedback
+                  </Typography>
+
+                  {fetchLoading ? (
+                    <Stack spacing={2}>
+                      {[1, 2, 3].map(i => <Skeleton key={i} variant="rounded" height={90} sx={{ borderRadius: 3 }} />)}
+                    </Stack>
+                  ) : feedbacks.length === 0 ? (
+                    <Box sx={{ py: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, opacity: 0.6 }}>
+                      <MessageSquare size={48} strokeWidth={1} />
+                      <Typography variant="body1" fontWeight={600}>No feedback yet</Typography>
+                      <Typography variant="body2" color="text.secondary">Be the first to share your thoughts!</Typography>
+                    </Box>
+                  ) : (
+                    <Stack spacing={2}>
+                      {feedbacks.map((fb, idx) => {
+                        const cfg = RATING_LABELS[fb.rating] || RATING_LABELS[3];
+                        const sentColor = fb.rating >= 4 ? '#27AE60' : fb.rating <= 2 ? '#C23030' : '#F1C40F';
+                        return (
+                          <Grow in key={fb.id} timeout={300 + idx * 50}>
+                            <Card variant="outlined" sx={{
+                              borderRadius: 3, transition: 'all 0.2s',
+                              '&:hover': { borderColor: cfg.color, boxShadow: `0 0 0 1px ${alpha(cfg.color, 0.3)}` },
+                            }}>
+                              <CardContent sx={{ '&:last-child': { pb: 2 }, p: 2.5 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Rating value={fb.rating} readOnly size="small" />
+                                    <Chip
+                                      icon={fb.rating >= 4 ? <ThumbsUp size={14} /> : fb.rating <= 2 ? <ThumbsDown size={14} /> : <Minus size={14} />}
+                                      label={cfg.label} size="small"
+                                      sx={{
+                                        fontWeight: 700, fontSize: '0.65rem', height: 22,
+                                        bgcolor: alpha(sentColor, theme.palette.mode === 'dark' ? 0.15 : 0.08),
+                                        color: sentColor, '& .MuiChip-icon': { color: sentColor },
+                                      }}
+                                    />
+                                  </Box>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <Clock size={12} />
+                                    <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                                      {formatTimeAgo(fb.timestamp)}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                                {fb.suggestion ? (
+                                  <Typography variant="body2" sx={{
+                                    lineHeight: 1.6, fontStyle: 'italic', pl: 1.5,
+                                    borderLeft: `3px solid ${alpha(cfg.color, 0.4)}`,
+                                  }}>
+                                    &ldquo;{fb.suggestion}&rdquo;
+                                  </Typography>
+                                ) : (
+                                  <Typography variant="body2" color="text.disabled" fontStyle="italic">No comment provided</Typography>
+                                )}
+
+                                {/* Admin response display */}
+                                {fb.admin_response && (
+                                  <Box sx={{
+                                    mt: 1.5, p: 1.5, borderRadius: 2,
+                                    bgcolor: alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.08 : 0.04),
+                                    border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.15),
+                                  }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                                      <ShieldAdmin size={12} color={theme.palette.primary.main} />
+                                      <Typography variant="caption" fontWeight={700} color="primary.main">Admin</Typography>
+                                      {fb.admin_responded_at && (
+                                        <Typography variant="caption" color="text.disabled" sx={{ ml: 'auto' }}>
+                                          {formatTimeAgo(fb.admin_responded_at)}
+                                        </Typography>
+                                      )}
+                                    </Box>
+                                    <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
+                                      {fb.admin_response}
+                                    </Typography>
+                                  </Box>
+                                )}
+
+                                {/* Admin reply UI */}
+                                {isAdminUser && !fb.admin_response && (
+                                  replyingTo === fb.id ? (
+                                    <Box sx={{ mt: 1.5, display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                                      <TextField
+                                        size="small" fullWidth multiline maxRows={3}
+                                        placeholder="Write a response..."
+                                        value={replyText}
+                                        onChange={(e) => setReplyText(e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(fb.id); } }}
+                                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, fontSize: '0.8rem' } }}
+                                      />
+                                      <IconButton
+                                        size="small"
+                                        disabled={replyLoading || !replyText.trim()}
+                                        onClick={() => handleReply(fb.id)}
+                                        sx={{
+                                          bgcolor: 'primary.main', color: '#fff',
+                                          '&:hover': { bgcolor: 'primary.dark' },
+                                          '&.Mui-disabled': { bgcolor: alpha(theme.palette.primary.main, 0.3), color: alpha('#fff', 0.5) },
+                                          width: 32, height: 32,
+                                        }}
+                                      >
+                                        <Send size={15} />
+                                      </IconButton>
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                                        sx={{ width: 32, height: 32, border: '1px solid', borderColor: 'divider' }}
+                                      >
+                                        <X size={15} />
+                                      </IconButton>
+                                    </Box>
+                                  ) : (
+                                    <Button
+                                      size="small" startIcon={<Reply size={14} />}
+                                      onClick={() => { setReplyingTo(fb.id); setReplyText(''); }}
+                                      sx={{ mt: 1, fontWeight: 600, fontSize: '0.7rem', textTransform: 'none', color: 'text.secondary' }}
+                                    >
+                                      Reply
+                                    </Button>
+                                  )
+                                )}
+                              </CardContent>
+                            </Card>
+                          </Grow>
+                        );
+                      })}
+                    </Stack>
+                  )}
+                </Paper>
+              </motion.div>
+            </Grid>
+          </Grid>
+
+      <UBSSnackbar open={snackOpen} message={snackMsg} severity={snackSev} onClose={() => setSnackOpen(false)} />
+    </>
   );
 }

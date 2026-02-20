@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, alpha, useTheme, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, Button, Tooltip, Checkbox, Slide } from '@mui/material';
 import { API_BASE_URL } from '@/features/agent-eval/utils/config';
+import { authFetch } from '@/features/agent-eval/utils/authFetch';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -66,7 +67,7 @@ export default function HistoryPage() {
     };
 
     useEffect(() => {
-        fetch(`${API_BASE_URL}/history`)
+        authFetch(`${API_BASE_URL}/history`)
             .then(res => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return res.json();

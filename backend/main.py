@@ -1,5 +1,5 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks
-from typing import List
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends
+from typing import List, Dict
 from fastapi.middleware.cors import CORSMiddleware
 from nexus_models import EvaluationRequest, EvaluationResult, TestCase, EvaluationSummary
 from nexus_evaluator import RagEvaluator
@@ -46,13 +46,15 @@ from agent_router import router as agent_router
 app.include_router(agent_router)
 
 from nexus_database import SessionLocal, EvaluationRecord
+from auth import get_current_app
 import json
+import logging
 
-# DB Helper
-def save_to_db(result: EvaluationResult):
+logger = logging.getLogger(__name__)
+
+def save_to_db(result: EvaluationResult, app_id: str | None = None):
     db = SessionLocal()
     try:
-        # Convert Pydantic model to dict for JSON storage
         res_data = result.model_dump()
         record = EvaluationRecord(
             id=res_data["id"],
@@ -62,7 +64,8 @@ def save_to_db(result: EvaluationResult):
             bot_metrics=res_data["bot_metrics"],
             summaries=res_data["summaries"],
             leaderboard=res_data["leaderboard"],
-            winner=res_data["winner"]
+            winner=res_data["winner"],
+            app_id=app_id,
         )
         db.add(record)
         db.commit()
@@ -70,10 +73,15 @@ def save_to_db(result: EvaluationResult):
         db.close()
 
 @app.get("/latest", response_model=EvaluationResult)
-async def get_latest_evaluation():
+async def get_latest_evaluation(app: Dict = Depends(get_current_app)):
     db = SessionLocal()
     try:
-        record = db.query(EvaluationRecord).order_by(EvaluationRecord.timestamp.desc()).first()
+        record = (
+            db.query(EvaluationRecord)
+            .filter(EvaluationRecord.app_id == app["app_id"])
+            .order_by(EvaluationRecord.timestamp.desc())
+            .first()
+        )
         if not record:
             raise HTTPException(status_code=404, detail="No evaluations found")
         
@@ -99,7 +107,8 @@ async def evaluate_excel(
     model: str = Form("gpt-4o"),
     max_rows: int = Form(200),
     temperature: float = Form(0.0),
-    background_tasks: BackgroundTasks = None
+    background_tasks: BackgroundTasks = None,
+    app: Dict = Depends(get_current_app),
 ):
     if background_tasks:
         background_tasks.add_task(cleanup_cache)
@@ -199,16 +208,17 @@ async def evaluate_excel(
         sanitized_result_data = sanitize_floats(result.model_dump())
         sanitized_result = EvaluationResult(**sanitized_result_data)
         
-        save_to_db(sanitized_result)
+        save_to_db(sanitized_result, app_id=app["app_id"])
         return sanitized_result
 
+    except HTTPException:
+        raise
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=400, detail=f"Excel processing failed: {str(e)}")
+        logger.exception("Excel processing failed")
+        raise HTTPException(status_code=400, detail="Excel processing failed. Check file format and try again.")
 
 @app.post("/evaluate", response_model=EvaluationResult)
-async def run_evaluation(request: EvaluationRequest, background_tasks: BackgroundTasks):
+async def run_evaluation(request: EvaluationRequest, background_tasks: BackgroundTasks, app: Dict = Depends(get_current_app)):
     if not request.dataset:
         raise HTTPException(status_code=400, detail="Dataset is empty. Provide at least one test case.")
 
@@ -242,20 +252,24 @@ async def run_evaluation(request: EvaluationRequest, background_tasks: Backgroun
         sanitized_result_data = sanitize_floats(result.model_dump())
         sanitized_result = EvaluationResult(**sanitized_result_data)
         
-        save_to_db(sanitized_result)
+        save_to_db(sanitized_result, app_id=app["app_id"])
         return sanitized_result
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Evaluation failed: {str(e)}")
+        logger.exception("Evaluation failed")
+        raise HTTPException(status_code=500, detail="Evaluation failed. Please try again.")
 
 @app.get("/evaluations", response_model=List[EvaluationSummary])
-async def get_all_evaluations():
+async def get_all_evaluations(app: Dict = Depends(get_current_app)):
     db = SessionLocal()
     try:
-        records = db.query(EvaluationRecord).order_by(EvaluationRecord.timestamp.desc()).all()
+        records = (
+            db.query(EvaluationRecord)
+            .filter(EvaluationRecord.app_id == app["app_id"])
+            .order_by(EvaluationRecord.timestamp.desc())
+            .all()
+        )
         return [
             EvaluationSummary(
                 id=record.id,
@@ -272,8 +286,8 @@ async def get_all_evaluations():
         db.close()
 
 @app.delete("/cache/cleanup")
-async def cleanup_cache():
-    """Removes triplets older than 30 days to maintain DB performance"""
+async def cleanup_cache(app: Dict = Depends(get_current_app)):
+    """Removes metric cache entries older than 30 days."""
     db = SessionLocal()
     from nexus_database import MetricCache
     from datetime import timedelta
@@ -286,10 +300,14 @@ async def cleanup_cache():
         db.close()
 
 @app.get("/evaluations/{eval_id}")
-async def get_evaluation(eval_id: str):
+async def get_evaluation(eval_id: str, app: Dict = Depends(get_current_app)):
     db = SessionLocal()
     try:
-        record = db.query(EvaluationRecord).filter(EvaluationRecord.id == eval_id).first()
+        record = (
+            db.query(EvaluationRecord)
+            .filter(EvaluationRecord.id == eval_id, EvaluationRecord.app_id == app["app_id"])
+            .first()
+        )
         if not record:
             raise HTTPException(status_code=404, detail="Evaluation not found")
         return record

@@ -36,7 +36,8 @@ def init_db():
                     timestamp TEXT NOT NULL,
                     result_json TEXT NOT NULL,
                     events_json TEXT,
-                    run_id TEXT
+                    run_id TEXT,
+                    app_id TEXT
                 )
             ''')
         else:
@@ -52,7 +53,8 @@ def init_db():
                         timestamp TEXT NOT NULL,
                         result_json TEXT NOT NULL,
                         events_json TEXT,
-                        run_id TEXT
+                        run_id TEXT,
+                        app_id TEXT
                     )
                 ''')
                 logger.info("Migration complete. Old data preserved in evaluations_old table.")
@@ -61,6 +63,8 @@ def init_db():
                     cursor.execute("ALTER TABLE evaluations ADD COLUMN events_json TEXT")
                 if "run_id" not in columns:
                     cursor.execute("ALTER TABLE evaluations ADD COLUMN run_id TEXT")
+                if "app_id" not in columns:
+                    cursor.execute("ALTER TABLE evaluations ADD COLUMN app_id TEXT")
         
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='feedback'")
         feedback_table_exists = cursor.fetchone()
@@ -71,9 +75,20 @@ def init_db():
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp TEXT NOT NULL,
                     rating INTEGER NOT NULL,
-                    suggestion TEXT
+                    suggestion TEXT,
+                    app_id TEXT
                 )
             ''')
+        else:
+            cursor.execute("PRAGMA table_info(feedback)")
+            fb_columns = {info[1]: info[2] for info in cursor.fetchall()}
+            if "app_id" not in fb_columns:
+                cursor.execute("ALTER TABLE feedback ADD COLUMN app_id TEXT")
+            if "admin_response" not in fb_columns:
+                cursor.execute("ALTER TABLE feedback ADD COLUMN admin_response TEXT")
+            if "admin_responded_at" not in fb_columns:
+                cursor.execute("ALTER TABLE feedback ADD COLUMN admin_responded_at TEXT")
+
         conn.commit()
     finally:
         conn.close()
@@ -157,25 +172,31 @@ def update_prompt(prompt_key: str, updates: Dict[str, Any]) -> bool:
 
     
 
-def save_result(result_json: str, events_json: str = "[]", run_id: Optional[str] = None):
+def save_result(result_json: str, events_json: str = "[]", run_id: Optional[str] = None, app_id: Optional[str] = None):
     """Save a batch test result and events to the database."""
     conn = sqlite3.connect(DB_NAME)
     try:
         cursor = conn.cursor()
         timestamp = datetime.now().isoformat()
-        cursor.execute('INSERT INTO evaluations (timestamp, result_json, events_json, run_id) VALUES (?, ?, ?, ?)', (timestamp, result_json, events_json, run_id))
+        cursor.execute(
+            'INSERT INTO evaluations (timestamp, result_json, events_json, run_id, app_id) VALUES (?, ?, ?, ?, ?)',
+            (timestamp, result_json, events_json, run_id, app_id),
+        )
         new_id = cursor.lastrowid
         conn.commit()
         return new_id
     finally:
         conn.close()
 
-def get_latest_result() -> Optional[Dict[str, Any]]:
-    """Retrieve the most recent evaluation result and events."""
+def get_latest_result(app_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """Retrieve the most recent evaluation result and events, optionally scoped by app_id."""
     conn = sqlite3.connect(DB_NAME)
     try:
         cursor = conn.cursor()
-        cursor.execute('SELECT id, result_json, events_json FROM evaluations ORDER BY id DESC LIMIT 1')
+        if app_id:
+            cursor.execute('SELECT id, result_json, events_json FROM evaluations WHERE app_id = ? ORDER BY id DESC LIMIT 1', (app_id,))
+        else:
+            cursor.execute('SELECT id, result_json, events_json FROM evaluations ORDER BY id DESC LIMIT 1')
         row = cursor.fetchone()
         
         if row:
@@ -191,12 +212,15 @@ def get_latest_result() -> Optional[Dict[str, Any]]:
     finally:
         conn.close()
 
-def get_all_results() -> List[Dict[str, Any]]:
-    """Retrieve all historical evaluation results."""
+def get_all_results(app_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Retrieve all historical evaluation results, optionally scoped by app_id."""
     conn = sqlite3.connect(DB_NAME)
     try:
         cursor = conn.cursor()
-        cursor.execute('SELECT id, timestamp, result_json, run_id FROM evaluations ORDER BY id DESC')
+        if app_id:
+            cursor.execute('SELECT id, timestamp, result_json, run_id FROM evaluations WHERE app_id = ? ORDER BY id DESC', (app_id,))
+        else:
+            cursor.execute('SELECT id, timestamp, result_json, run_id FROM evaluations ORDER BY id DESC')
         rows = cursor.fetchall()
         
         results = []
@@ -226,23 +250,29 @@ def get_all_results() -> List[Dict[str, Any]]:
     finally:
         conn.close()
 
-def save_feedback(rating: int, suggestion: str):
+def save_feedback(rating: int, suggestion: str, app_id: Optional[str] = None):
     """Save user feedback to the database."""
     conn = sqlite3.connect(DB_NAME)
     try:
         cursor = conn.cursor()
         timestamp = datetime.now().isoformat()
-        cursor.execute('INSERT INTO feedback (timestamp, rating, suggestion) VALUES (?, ?, ?)', (timestamp, rating, suggestion))
+        cursor.execute(
+            'INSERT INTO feedback (timestamp, rating, suggestion, app_id) VALUES (?, ?, ?, ?)',
+            (timestamp, rating, suggestion, app_id),
+        )
         conn.commit()
     finally:
         conn.close()
 
-def get_all_feedback() -> List[Dict[str, Any]]:
-    """Retrieve all feedback entries."""
+def get_all_feedback(app_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Retrieve all feedback entries, optionally scoped by app_id."""
     conn = sqlite3.connect(DB_NAME)
     try:
         cursor = conn.cursor()
-        cursor.execute('SELECT id, timestamp, rating, suggestion FROM feedback ORDER BY id DESC')
+        if app_id:
+            cursor.execute('SELECT id, timestamp, rating, suggestion, admin_response, admin_responded_at FROM feedback WHERE app_id = ? ORDER BY id DESC', (app_id,))
+        else:
+            cursor.execute('SELECT id, timestamp, rating, suggestion, admin_response, admin_responded_at FROM feedback ORDER BY id DESC')
         rows = cursor.fetchall()
         
         feedback_list = []
@@ -251,8 +281,25 @@ def get_all_feedback() -> List[Dict[str, Any]]:
                 "id": row[0],
                 "timestamp": row[1],
                 "rating": row[2],
-                "suggestion": row[3]
+                "suggestion": row[3],
+                "admin_response": row[4],
+                "admin_responded_at": row[5],
             })
         return feedback_list
+    finally:
+        conn.close()
+
+
+def respond_to_feedback(feedback_id: int, response_text: str) -> bool:
+    """Add an admin response to a feedback entry."""
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            'UPDATE feedback SET admin_response = ?, admin_responded_at = ? WHERE id = ?',
+            (response_text, datetime.now().isoformat(), feedback_id),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
     finally:
         conn.close()

@@ -5,6 +5,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { getUnifiedTheme } from '../theme';
 import { ThemeContext, ThemeModeProvider, useThemeMode } from '../contexts/ThemeContext';
+import { AuthProvider } from '../contexts/AuthContext';
 
 function ThemeRegistryContent({ children }: { children: React.ReactNode }) {
     const { mode } = useThemeMode();
@@ -27,7 +28,9 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
         <AppRouterCacheProvider>
             <ThemeModeProvider>
                 <ThemeRegistryContent>
-                    {children}
+                    <AuthProvider>
+                        {children}
+                    </AuthProvider>
                 </ThemeRegistryContent>
             </ThemeModeProvider>
         </AppRouterCacheProvider>

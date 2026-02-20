@@ -2,9 +2,10 @@
 import React, { useState, useRef } from 'react';
 import {
     Box, Typography, Paper, TextField, Button, Grid,
-    Snackbar, Alert, Tooltip, InputAdornment, Chip,
+    Tooltip, InputAdornment, Chip,
     IconButton, Select, MenuItem, FormControl, InputLabel
 } from '@mui/material';
+import UBSSnackbar from '@/components/UBSSnackbar';
 import SaveIcon from '@mui/icons-material/Save';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
@@ -595,27 +596,12 @@ export default function ConfigurationPage() {
                 </Grid>
             </Box>
 
-            <Snackbar open={openSnackbar} autoHideDuration={3000} onClose={() => setOpenSnackbar(false)}>
-                <Alert
-                    onClose={() => setOpenSnackbar(false)}
-                    severity={snackbarSeverity}
-                    icon={snackbarSeverity === 'success' ? <CheckCircle2 size={18} /> : undefined}
-                    sx={{
-                        width: '100%',
-                        borderRadius: 2,
-                        fontWeight: 700,
-                        backdropFilter: 'blur(10px)',
-                        ...(snackbarSeverity === 'success' ? {
-                            bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(208, 0, 0, 0.12)' : 'rgba(208, 0, 0, 0.06)',
-                            color: '#D00000',
-                            border: '1px solid rgba(208, 0, 0, 0.25)',
-                            '.MuiAlert-icon': { color: '#D00000' },
-                        } : {}),
-                    }}
-                >
-                    {snackbarMessage}
-                </Alert>
-            </Snackbar>
+            <UBSSnackbar
+                open={openSnackbar}
+                message={snackbarMessage}
+                severity={snackbarSeverity}
+                onClose={() => setOpenSnackbar(false)}
+            />
         </Box>
     );
 }

@@ -37,9 +37,8 @@ import {
   Switch,
   FormControlLabel,
   Slider,
-  Snackbar,
-  Alert,
   useTheme,
+  Alert,
   lighten,
   darken,
   Dialog,
@@ -108,6 +107,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { RAG_API_BASE_URL } from '../utils/config';
+import { authFetch } from '@/features/agent-eval/utils/authFetch';
+import UBSSnackbar from '@/components/UBSSnackbar';
 
 // --- Helper Components ---
 import { MetricCard } from '@/components/shared/MetricCard';
@@ -119,6 +120,8 @@ import { nexusTheme } from '@/theme';
 import { UnifiedNavBar } from '@/components/UnifiedNavBar';
 import { UbsLogo } from '@/components/UbsLogo';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useAuth } from '@/contexts/AuthContext';
+import AppIdentityBadge from '@/components/AppIdentityBadge';
 
 const theme = nexusTheme;
 
@@ -220,6 +223,7 @@ function EnterpriseDashboardContent() {
   });
   const [isExporting, setIsExporting] = useState(false);
   const router = useRouter();
+  const { session } = useAuth();
   const [activeView, setActiveView] = useState(() => {
     // Initialize from URL if available
     if (typeof window !== 'undefined') {
@@ -277,7 +281,7 @@ function EnterpriseDashboardContent() {
   useEffect(() => {
     if (activeView === 'history') {
       setIsLoadingHistory(true);
-      fetch(`${RAG_API_BASE_URL}/evaluations`)
+      authFetch(`${RAG_API_BASE_URL}/evaluations`)
         .then(res => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return res.json();
@@ -301,8 +305,8 @@ function EnterpriseDashboardContent() {
     const fetchData = async () => {
       try {
         const [latestRes, historyRes] = await Promise.all([
-          fetch(`${RAG_API_BASE_URL}/latest`),
-          fetch(`${RAG_API_BASE_URL}/evaluations`)
+          authFetch(`${RAG_API_BASE_URL}/latest`),
+          authFetch(`${RAG_API_BASE_URL}/evaluations`)
         ]);
 
         if (latestRes.ok) {
@@ -333,7 +337,7 @@ function EnterpriseDashboardContent() {
   const handleLoadReport = async (runId: string) => {
     setIsLoadingReport(true);
     try {
-      const res = await fetch(`${RAG_API_BASE_URL}/evaluations/${runId}`);
+      const res = await authFetch(`${RAG_API_BASE_URL}/evaluations/${runId}`);
       if (res.ok) {
         const fullData = await res.json();
         setData(fullData);
@@ -507,6 +511,7 @@ function EnterpriseDashboardContent() {
     formData.append("safety", config.enableSafety.toString());
     formData.append("max_rows", config.maxRows.toString());
 
+    let animInterval: ReturnType<typeof setInterval> | null = null;
     try {
       const messages = [
         `[GPU] Computing semantic embedding vectors...`,
@@ -517,17 +522,17 @@ function EnterpriseDashboardContent() {
         `[AUTH] Synchronizing cloud inference tokens...`
       ];
 
-      const timeout = setInterval(() => {
+      animInterval = setInterval(() => {
         const msg = messages[Math.floor(Math.random() * messages.length)];
         setStatusLogs(prev => [...prev, msg]);
       }, 1500);
 
-      const response = await fetch(`${RAG_API_BASE_URL}/evaluate-excel`, {
+      const response = await authFetch(`${RAG_API_BASE_URL}/evaluate-excel`, {
         method: "POST",
         body: formData,
       });
 
-      clearInterval(timeout);
+      clearInterval(animInterval!);
       if (!response.ok) {
         const errDetail = await response.json().catch(() => ({ detail: "Backend Protocol Failure" }));
         throw new Error(errDetail.detail || "Evaluation Failed");
@@ -539,7 +544,7 @@ function EnterpriseDashboardContent() {
       setStatusLogs(prev => [...prev, "✨ [SUCCESS] Full evaluation synchronized. Matrix data outputted to internal DB."]);
 
       // Refresh history to show the new evaluation
-      fetch(`${RAG_API_BASE_URL}/evaluations`)
+      authFetch(`${RAG_API_BASE_URL}/evaluations`)
         .then(res => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return res.json();
@@ -550,7 +555,7 @@ function EnterpriseDashboardContent() {
       setTimeout(() => setIsEvaluating(false), 1200);
 
     } catch (err: any) {
-      clearInterval(timeout);
+      if (animInterval) clearInterval(animInterval);
       setStatusLogs(prev => [...prev, `[CRITICAL] pipeline failed: ${err.message}`]);
       setTimeout(() => setIsEvaluating(false), 3000);
     }
@@ -681,6 +686,7 @@ function EnterpriseDashboardContent() {
                   <input type="file" accept=".xlsx,.xls" hidden onChange={handleFileUpload} />
                 </Button>
               )}
+              {session && <AppIdentityBadge appName={session.app_name} appId={session.app_id} />}
               <ThemeToggle />
             </>
           }
@@ -1902,32 +1908,12 @@ function EnterpriseDashboardContent() {
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={saveSuccess} autoHideDuration={3000} onClose={() => setSaveSuccess(false)}>
-        <Alert
-          onClose={() => setSaveSuccess(false)}
-          severity={snackbarMsg.includes('Failed') || snackbarMsg.includes('Error') ? 'error' : snackbarMsg.includes('Report') ? 'info' : 'success'}
-          icon={snackbarMsg.includes('Failed') || snackbarMsg.includes('Error') ? <AlertTriangle size={18} /> : snackbarMsg.includes('Report') ? <Download size={18} /> : <CheckCircle2 size={18} />}
-          sx={{
-            width: '100%',
-            borderRadius: 2,
-            fontWeight: 700,
-            backdropFilter: 'blur(10px)',
-            ...(snackbarMsg.includes('Failed') || snackbarMsg.includes('Error') ? {
-              bgcolor: (t: any) => t.palette.mode === 'dark' ? 'rgba(194, 48, 48, 0.15)' : 'rgba(194, 48, 48, 0.08)',
-              color: '#C23030',
-              border: '1px solid rgba(194, 48, 48, 0.3)',
-              '.MuiAlert-icon': { color: '#C23030' },
-            } : {
-              bgcolor: (t: any) => t.palette.mode === 'dark' ? 'rgba(208, 0, 0, 0.12)' : 'rgba(208, 0, 0, 0.06)',
-              color: '#D00000',
-              border: '1px solid rgba(208, 0, 0, 0.25)',
-              '.MuiAlert-icon': { color: '#D00000' },
-            }),
-          }}
-        >
-          {snackbarMsg}
-        </Alert>
-      </Snackbar>
+      <UBSSnackbar
+        open={saveSuccess}
+        message={snackbarMsg}
+        severity={snackbarMsg.includes('Failed') || snackbarMsg.includes('Error') ? 'error' : snackbarMsg.includes('Report') ? 'info' : 'success'}
+        onClose={() => setSaveSuccess(false)}
+      />
 
       <style jsx global>{`
           html, body {

@@ -5,6 +5,7 @@ import { ChartContainer } from '@/components/shared/ChartContainer';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { Activity, CheckCircle2, ListChecks, AlertTriangle, TrendingUp, ShieldCheck, Target } from 'lucide-react';
 import { API_BASE_URL } from '../utils/config';
+import { authFetch } from '../utils/authFetch';
 import { colors } from '@/theme';
 
 interface DashboardProps {
@@ -25,7 +26,7 @@ export default function Dashboard({ latestResult }: DashboardProps) {
     useEffect(() => {
         setMounted(true);
 
-        fetch(`${API_BASE_URL}/history`)
+        authFetch(`${API_BASE_URL}/history`)
             .then(res => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return res.json();

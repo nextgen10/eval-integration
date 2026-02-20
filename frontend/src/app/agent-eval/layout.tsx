@@ -16,6 +16,9 @@ import { EvaluationProvider } from '@/features/agent-eval/contexts/EvaluationCon
 import ThemeToggle from '@/components/ThemeToggle';
 import { UnifiedNavBar } from '../../components/UnifiedNavBar';
 import { agentEvalNavItems } from '../../config/nav';
+import AuthGuard from '@/components/AuthGuard';
+import { useAuth } from '@/contexts/AuthContext';
+import AppIdentityBadge from '@/components/AppIdentityBadge';
 
 export default function AgentEvalLayout({
     children,
@@ -24,6 +27,7 @@ export default function AgentEvalLayout({
 }) {
     const router = useRouter();
     const pathname = usePathname();
+    const { session } = useAuth();
 
     const menuItems = agentEvalNavItems.map((item) => ({
         id: item.path,
@@ -37,6 +41,7 @@ export default function AgentEvalLayout({
     }));
 
     return (
+        <AuthGuard>
         <EvaluationProvider>
             <CopyProtection />
             <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary' }}>
@@ -50,7 +55,12 @@ export default function AgentEvalLayout({
                         onClick: () => router.push(item.path)
                     }))}
                     onLogoClick={() => router.push('/')}
-                    actions={<ThemeToggle />}
+                    actions={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {session && <AppIdentityBadge appName={session.app_name} appId={session.app_id} />}
+                            <ThemeToggle />
+                        </Box>
+                    }
                 />
 
                 <Box
@@ -72,5 +82,6 @@ export default function AgentEvalLayout({
                 </Box>
             </Box>
         </EvaluationProvider>
+        </AuthGuard>
     );
 }

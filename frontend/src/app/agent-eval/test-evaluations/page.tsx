@@ -1,7 +1,9 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Button, Tabs, Tab, TextField, Accordion, AccordionSummary, AccordionDetails, Snackbar, Alert, Grid, Dialog, DialogTitle, DialogContent, IconButton, CircularProgress, Collapse, Tooltip as MuiTooltip, Card, CardContent, Divider } from '@mui/material';
+import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Button, Tabs, Tab, TextField, Accordion, AccordionSummary, AccordionDetails, Grid, Dialog, DialogTitle, DialogContent, IconButton, CircularProgress, Collapse, Tooltip as MuiTooltip, Card, CardContent, Divider, Alert } from '@mui/material';
+import UBSSnackbar from '@/components/UBSSnackbar';
 import { API_BASE_URL } from '@/features/agent-eval/utils/config';
+import { authFetch } from '@/features/agent-eval/utils/authFetch';
 import { alpha, useTheme } from '@mui/material/styles';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -1209,7 +1211,7 @@ function TestEvaluationsPage() {
 
         try {
             // 1. Preview Normalized Data IMMEDIATELY
-            const previewRes = await fetch(`${API_BASE_URL}/preview-paths`, {
+            const previewRes = await authFetch(`${API_BASE_URL}/preview-paths`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1238,7 +1240,7 @@ function TestEvaluationsPage() {
             }
 
             // 2. Run Evaluation
-            const response = await fetch(`${API_BASE_URL}/evaluate-from-paths`, {
+            const response = await authFetch(`${API_BASE_URL}/evaluate-from-paths`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1354,7 +1356,7 @@ function TestEvaluationsPage() {
             localStorage.setItem('evaluationType', 'json');
 
             // 1. Auto-Convert Ground Truth
-            const gtRes = await fetch(`${API_BASE_URL}/convert-json`, {
+            const gtRes = await authFetch(`${API_BASE_URL}/convert-json`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ data: gtInput, mode: 'gt' })
@@ -1364,7 +1366,7 @@ function TestEvaluationsPage() {
             setConvertedGt(gtData);
 
             // 2. Auto-Convert AI Outputs
-            const aiRes = await fetch(`${API_BASE_URL}/convert-json`, {
+            const aiRes = await authFetch(`${API_BASE_URL}/convert-json`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ data: outputsInput, mode: 'ai', run_id: 'manual_run' })
@@ -1399,7 +1401,7 @@ function TestEvaluationsPage() {
             };
 
             // 3. Run Evaluation with CONVERTED data and FIXED keys
-            const response = await fetch(`${API_BASE_URL}/evaluate-from-json`, {
+            const response = await authFetch(`${API_BASE_URL}/evaluate-from-json`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -2252,32 +2254,12 @@ function TestEvaluationsPage() {
 
 
 
-                <Snackbar open={openSnackbar} autoHideDuration={4000} onClose={() => setOpenSnackbar(false)}>
-                    <Alert
-                        onClose={() => setOpenSnackbar(false)}
-                        severity={snackbarMessage.includes('Error') || snackbarMessage.includes('Failed') ? 'error' : 'success'}
-                        icon={snackbarMessage.includes('Error') || snackbarMessage.includes('Failed') ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
-                        sx={{
-                            width: '100%',
-                            borderRadius: 2,
-                            fontWeight: 700,
-                            backdropFilter: 'blur(10px)',
-                            ...(snackbarMessage.includes('Error') || snackbarMessage.includes('Failed') ? {
-                                bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(194, 48, 48, 0.15)' : 'rgba(194, 48, 48, 0.08)',
-                                color: '#C23030',
-                                border: '1px solid rgba(194, 48, 48, 0.3)',
-                                '.MuiAlert-icon': { color: '#C23030' },
-                            } : {
-                                bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(208, 0, 0, 0.12)' : 'rgba(208, 0, 0, 0.06)',
-                                color: '#D00000',
-                                border: '1px solid rgba(208, 0, 0, 0.25)',
-                                '.MuiAlert-icon': { color: '#D00000' },
-                            }),
-                        }}
-                    >
-                        {snackbarMessage}
-                    </Alert>
-                </Snackbar>
+                <UBSSnackbar
+                    open={openSnackbar}
+                    message={snackbarMessage}
+                    severity={snackbarMessage.includes('Error') || snackbarMessage.includes('Failed') ? 'error' : 'success'}
+                    onClose={() => setOpenSnackbar(false)}
+                />
 
                 <JsonDiffDialog
                     open={showJsonDiff}

@@ -12,7 +12,7 @@ export interface NavItem {
   icon?: LucideIcon;
 }
 
-// Agent Eval section navigation (Interaction removed)
+// Agent Eval section navigation
 export const agentEvalNavItems: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', path: '/agent-eval/dashboard' },
   { id: 'test-evaluations', label: 'Experiments', path: '/agent-eval/test-evaluations' },
