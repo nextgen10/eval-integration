@@ -738,7 +738,7 @@ function EnterpriseDashboardContent() {
                       FOUND: {filteredHistory.length}
                     </Typography>
                   )}
-                  <Box sx={{ position: 'relative', width: 300 }}>
+                  <Box sx={{ position: 'relative', width: { xs: '100%', sm: 300 } }}>
                     <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#8C96A5', width: 16, height: 16, zIndex: 1 }} />
                     <Box
                       component="input"
@@ -801,7 +801,7 @@ function EnterpriseDashboardContent() {
                       FILTERED: {filteredTestCases.length} / {data.test_cases.length}
                     </Typography>
                   )}
-                  <Box sx={{ position: 'relative', width: 350 }}>
+                  <Box sx={{ position: 'relative', width: { xs: '100%', sm: 350 } }}>
                     <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#8C96A5', width: 16, height: 16, zIndex: 1 }} />
                     <Box
                       component="input"
@@ -1550,7 +1550,8 @@ function EnterpriseDashboardContent() {
           open={isEvaluating}
         >
           <Box sx={{
-            width: 860,
+            width: { xs: '95vw', md: 860 },
+            maxWidth: 860,
             textAlign: 'center',
             animation: 'fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
           }}>

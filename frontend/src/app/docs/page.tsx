@@ -319,7 +319,7 @@ export default function DocumentationPage() {
                                 {/* 7. Models & API */}
                                 <Box id="models-api" sx={{ scrollMarginTop: '80px' }}>
                                     <SectionHeader icon={<Cpu size={24} />} title="Models & Infrastructure" />
-                                    <TableContainer component={Paper} sx={{ borderRadius: 4, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
+                                    <TableContainer component={Paper} sx={{ borderRadius: 4, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', overflowX: 'auto' }}>
                                         <Table size="small">
                                             <TableHead sx={{ bgcolor: (t) => alpha(t.palette.primary.main, 0.05) }}>
                                                 <TableRow>
@@ -588,7 +588,7 @@ Content-Type: application/json
                                             <Typography variant="body2" color="text.secondary" paragraph>
                                                 Control how each field is compared.
                                             </Typography>
-                                            <TableContainer>
+                                            <TableContainer sx={{ overflowX: 'auto' }}>
                                                 <Table size="small">
                                                     <TableHead sx={{ bgcolor: (t) => alpha(t.palette.primary.main, 0.05) }}>
                                                         <TableRow>
@@ -895,7 +895,7 @@ function StepItem({ step, title, desc }: { step: string, title: string, desc: st
 
 function EndpointTable({ rows }: { rows: { method: string; path: string; desc: string; auth: string }[] }) {
     return (
-        <TableContainer component={Paper} sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider', mb: 2 }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider', mb: 2, overflowX: 'auto' }}>
             <Table size="small">
                 <TableHead sx={{ bgcolor: (t) => alpha(t.palette.primary.main, 0.05) }}>
                     <TableRow>

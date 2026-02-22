@@ -602,7 +602,7 @@ export default function HistoryPage() {
                                         Note: All metrics displayed are average values unless specified otherwise
                                     </Typography>
                                     <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>Overview</Typography>
-                                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 4 }}>
+                                    <TableContainer component={Paper} variant="outlined" sx={{ mb: 4, overflowX: 'auto' }}>
                                         <Table>
                                             <TableHead>
                                                 <TableRow>

@@ -510,7 +510,7 @@ function RunResultRow({ run, thresholds, expandAction, result }: { run: any, thr
                                         </Grid>
 
                                         <Grid size={{ xs: 12 }}>
-                                            <TableContainer component={Paper} variant="outlined">
+                                            <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
                                                 <Table size="small">
                                                     <TableHead sx={{ bgcolor: alpha(theme.palette.divider, 0.3) }}>
                                                         <TableRow>
@@ -950,7 +950,7 @@ function JsonDiffDialog({ open, onClose, initialRun, result, thresholds, allRuns
                     </Box>
                 ) : (
                     <Box sx={{ p: 1 }}>
-                        <TableContainer>
+                        <TableContainer sx={{ overflowX: 'auto' }}>
                             <Table size="small" stickyHeader>
                                 <TableHead>
                                     <TableRow>
@@ -1093,58 +1093,18 @@ function TestEvaluationsPage() {
     const { events, clearEvents } = useAgentEvents();
     const latestEvent = events.length > 0 ? events[events.length - 1] : null;
 
-    const { latestResult: globalResult, refreshLatestResult } = useEvaluation();
+    const { latestResult: globalResult, loading: globalLoading, refreshLatestResult } = useEvaluation();
 
-    useEffect(() => {
-        // Load from localStorage first to show immediate results (fallback/cache)
-        const saved = localStorage.getItem('latest_evaluation_result');
-        if (saved) {
-            try {
-                // Only set if globalResult is not ready yet? Or always?
-                // Global result is "fresher".
-                // If global result is arriving, it will overwrite this via the other useEffect.
-                setResult(JSON.parse(saved));
-            } catch (e) {
-                console.error("Failed to parse saved result", e);
-            }
-        }
-    }, []);
-
-    // Sync with global context
+    // DB is the source of truth — sync from API via global context
     useEffect(() => {
         if (globalResult) {
             setResult(globalResult);
+        } else if (!globalLoading) {
+            setResult(null);
         }
-    }, [globalResult]);
+    }, [globalResult, globalLoading]);
 
     useEffect(() => {
-        if (result) {
-            localStorage.setItem('latest_evaluation_result', JSON.stringify(result));
-        }
-    }, [result]);
-
-    useEffect(() => {
-
-        // Load saved JSONs and keys from localStorage
-        setGtJson(localStorage.getItem('ground_truth') || gtJson);
-        setOutputsJson(localStorage.getItem('ai_outputs') || outputsJson);
-        setGtPath(localStorage.getItem('batch_gt_path') || '');
-        setAiPath(localStorage.getItem('batch_ai_path') || '');
-
-        const savedGt = localStorage.getItem('convertedGt');
-        if (savedGt) {
-            try { setConvertedGt(JSON.parse(savedGt)); } catch { /* corrupted localStorage */ }
-        }
-
-        const savedAi = localStorage.getItem('convertedAi');
-        if (savedAi) {
-            try { setConvertedAi(JSON.parse(savedAi)); } catch { /* corrupted localStorage */ }
-        }
-
-        const savedSource = localStorage.getItem('ground_truth_source');
-        if (savedSource) setGtSource(savedSource);
-
-
 
         setConfig({
             semantic_threshold: parseFloat(localStorage.getItem('config_semantic_threshold') || '0.72'),
@@ -1165,11 +1125,6 @@ function TestEvaluationsPage() {
             field_strategies: safeJsonParse(localStorage.getItem('config_field_strategies'), {})
         });
 
-        // Restore evaluation type
-        const savedEvalType = localStorage.getItem('evaluationType');
-        if (savedEvalType === 'json' || savedEvalType === 'batch') {
-            setEvaluationType(savedEvalType as 'json' | 'batch');
-        }
     }, []);
 
     const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -1184,9 +1139,7 @@ function TestEvaluationsPage() {
         }
 
         setLoading(true);
-        clearEvents(); // Clear old events for new evaluation
-        localStorage.setItem('batch_gt_path', gtPath);
-        localStorage.setItem('batch_ai_path', aiPath);
+        clearEvents();
 
 
 
@@ -1224,19 +1177,14 @@ function TestEvaluationsPage() {
                 const previewData = await previewRes.json();
                 if (previewData.normalized_ground_truth) {
                     setConvertedGt(previewData.normalized_ground_truth);
-                    localStorage.setItem('convertedGt', JSON.stringify(previewData.normalized_ground_truth));
-                }
-                if (previewData.normalized_ai_outputs) {
-                    setConvertedAi(previewData.normalized_ai_outputs);
-                    localStorage.setItem('convertedAi', JSON.stringify(previewData.normalized_ai_outputs));
+                    }
+                    if (previewData.normalized_ai_outputs) {
+                        setConvertedAi(previewData.normalized_ai_outputs);
                 }
                 if (previewData.ground_truth_source) {
                     setGtSource(previewData.ground_truth_source);
-                    localStorage.setItem('ground_truth_source', previewData.ground_truth_source);
                 }
-                // Set evaluation type to batch so filename shows in Normalized JSON dialog
                 setEvaluationType('batch');
-                localStorage.setItem('evaluationType', 'batch');
             }
 
             // 2. Run Evaluation
@@ -1263,21 +1211,15 @@ function TestEvaluationsPage() {
             // Redundant update but keeps consistency
             if (data.normalized_ground_truth) {
                 setConvertedGt(data.normalized_ground_truth);
-                localStorage.setItem('convertedGt', JSON.stringify(data.normalized_ground_truth));
             }
             if (data.normalized_ai_outputs) {
                 setConvertedAi(data.normalized_ai_outputs);
-                localStorage.setItem('convertedAi', JSON.stringify(data.normalized_ai_outputs));
             }
             if (data.ground_truth_source) {
                 setGtSource(data.ground_truth_source);
-                localStorage.setItem('ground_truth_source', data.ground_truth_source);
-            } else {
-                console.warn('ground_truth_source is missing from batch response');
             }
 
             setEvaluationType('batch');
-            localStorage.setItem('evaluationType', 'batch');
             setSnackbarMessage("Batch Evaluation Completed Successfully!");
             setOpenSnackbar(true);
         } catch (e: any) {
@@ -1351,9 +1293,7 @@ function TestEvaluationsPage() {
             setConvertedAi(null);
             // Clear gtSource and evaluationType for JSON evaluations (should not show filename)
             setGtSource('');
-            localStorage.removeItem('ground_truth_source');
             setEvaluationType('json');
-            localStorage.setItem('evaluationType', 'json');
 
             // 1. Auto-Convert Ground Truth
             const gtRes = await authFetch(`${API_BASE_URL}/convert-json`, {
@@ -1374,12 +1314,6 @@ function TestEvaluationsPage() {
             if (!aiRes.ok) throw new Error("AI Output conversion failed");
             const aiData = await aiRes.json();
             setConvertedAi(aiData);
-
-            // Save JSONs to localStorage
-            localStorage.setItem('ground_truth', gtJson);
-            localStorage.setItem('ai_outputs', outputsJson);
-
-
 
             const latestConfig = {
                 semantic_threshold: parseFloat(localStorage.getItem('config_semantic_threshold') || '0.72'),
@@ -1428,16 +1362,8 @@ function TestEvaluationsPage() {
             setResult(data);
             await refreshLatestResult();
 
-            // Save normalized data to localStorage for JSON evaluations
-            localStorage.setItem('convertedGt', JSON.stringify(gtData));
-            localStorage.setItem('convertedAi', JSON.stringify(aiData));
-
-            // For JSON evaluations, clear gtSource (should not show filename)
             setGtSource('');
-            localStorage.removeItem('gtSource');
-
             setEvaluationType('json');
-            localStorage.setItem('evaluationType', 'json');
             setSnackbarMessage("JSON Evaluation Completed Successfully!");
             setOpenSnackbar(true);
 
@@ -2159,7 +2085,7 @@ function TestEvaluationsPage() {
                                 </Tooltip>
                             </Box>
                         </Box>
-                        <TableContainer>
+                        <TableContainer sx={{ overflowX: 'auto' }}>
                             <Table>
                                 <TableHead>
                                     <TableRow>

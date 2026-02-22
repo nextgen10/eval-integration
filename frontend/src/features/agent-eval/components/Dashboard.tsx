@@ -42,7 +42,7 @@ export default function Dashboard({ latestResult }: DashboardProps) {
                         rqs: (item.aggregate?.rqs || 0) * 100,
                         completeness: (item.aggregate?.completeness || 0) * 100,
                         consistency: (item.aggregate?.consistency || 0) * 100,
-                        safety: (item.aggregate?.safety || 1.0) * 100,
+                        safety: (item.aggregate?.safety || 0) * 100,
                         hallucinations: (item.aggregate?.hallucination || 0) * 100
                     };
                 }).reverse();
@@ -83,7 +83,7 @@ export default function Dashboard({ latestResult }: DashboardProps) {
         accuracy: latestResult?.aggregate?.accuracy || 0,
         completeness: latestResult?.aggregate?.completeness || 0,
         consistency: latestResult?.aggregate?.consistency || 0,
-        safety: latestResult?.aggregate?.safety || 1.0,
+        safety: latestResult?.aggregate?.safety || 0,
         hallucination: latestResult?.aggregate?.hallucination || 0,
         error_summary: latestResult?.error_summary || {},
         status: latestResult?.evaluation_status || (latestResult?.aggregate?.accuracy > 0.5 ? "PASS" : "FAIL")

@@ -7,3 +7,6 @@ frontend/out/
 .DS_Store
 *.pyc
 __pycache__/
+Utility/config.ini
+Utility/.nexus_cache/
+.nexus_cache/
