@@ -1125,13 +1125,17 @@ For more information, see README.md
     for env_path in [env_local, env_backend, env_cwd]:
         if os.path.exists(env_path):
             load_dotenv(env_path)
-            logger.debug(f"Loaded environment from: {env_path}")
+            logger.info(f"Loaded environment from: {env_path}")
             env_loaded = True
             break
     
     if not env_loaded:
         load_dotenv()  # Try default locations
-        logger.debug("No .env file found, using system environment variables")
+        logger.info("No .env file found, using system environment variables")
+    
+    # Debug: Check if credentials are loaded
+    logger.debug(f"AZURE_OPENAI_ENDPOINT: {os.getenv('AZURE_OPENAI_ENDPOINT', 'NOT SET')}")
+    logger.debug(f"AZURE_OPENAI_API_KEY: {'SET' if os.getenv('AZURE_OPENAI_API_KEY') else 'NOT SET'}")
 
     cfg = load_config(args.config)
 
