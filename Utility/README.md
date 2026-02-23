@@ -1,4 +1,4 @@
-# Nexus RAG Eval — Standalone CLI Utility
+# RAG Eval — Standalone CLI Utility
 
 A standalone command-line tool for evaluating RAG (Retrieval-Augmented Generation) pipelines. It reads an Excel input file, runs RAGAS metrics against Azure OpenAI, and generates a multi-sheet Excel report with scores, rankings, and diagnostics.
 
@@ -7,7 +7,9 @@ A standalone command-line tool for evaluating RAG (Retrieval-Augmented Generatio
 ## Features
 
 - **5 RAGAS Metrics** — Faithfulness, Answer Relevancy, Context Precision, Context Recall, Answer Correctness (each individually toggleable)
+- **LLM-Only Evaluation** — Uses Azure OpenAI for all metrics, no embedding models required
 - **LLM-based Toxicity Scoring** — Detects toxic/harmful input queries using LLM classification
+- **LLM-generated Recommendations** — Provides actionable suggestions for improving each response
 - **Dynamic Bot Support** — Automatically discovers any number of bots from Excel columns (`Bot_A`, `Bot_B`, `Bot_GPT4`, etc.)
 - **Multi-Chunk Context** — Supports JSON arrays, `||` delimiters, or newline-separated context chunks
 - **RQS Scoring** — Composite Response Quality Score with configurable, auto-normalized weights
@@ -138,6 +140,7 @@ The generated Excel report contains three sheets:
 | Empty Context? | Flag if context was empty |
 | Empty Answer? | Flag if answer was empty |
 | Failure Mode | Diagnostic classification (see below) |
+| Recommendation | LLM-generated actionable suggestion for improvement |
 
 Metric cells scoring below their configured threshold are **highlighted in red**.
 
@@ -294,14 +297,6 @@ All weights are auto-normalized to sum to 1.0.
 
 Scores below these thresholds are also **highlighted red** in the Excel report.
 
-### `[embedding]` — Embedding Model
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `mode` | `local` | `local`, `huggingface`, `none`, or a custom path/model name |
-| `model_name` | `all-MiniLM-L6-v2` | HuggingFace model name |
-| `local_path` | `../backend/EmbeddingModels/all-MiniLM-L6-v2` | Path to local model |
-
 ### `[toxicity]` — Toxicity Detection
 
 | Key | Default | Description |
@@ -334,7 +329,7 @@ Scores below these thresholds are also **highlighted red** in the Excel report.
 | `enabled` | `false` | Enable hash-based metric caching |
 | `directory` | `.nexus_cache` | Cache storage directory |
 
-Cache key includes: query + answer + context + ground_truth + model + temperature + embedding.
+Cache key includes: query + answer + context + ground_truth + model + temperature.
 
 ### `[evaluation]` — Evaluation Settings
 
@@ -367,5 +362,4 @@ Utility/
 | `No Bot_* columns found` | Ensure response columns use the `Bot_` prefix (or change `strip_prefix` in config) |
 | `No Query column found` | Name your query column as `Query`, `Question`, `Input`, or `Prompt` |
 | RAGAS deprecation warnings | Harmless — suppressed automatically; will resolve when upgrading to RAGAS v1.0 |
-| `AnswerSimilarity must be set` errors | Ensure embedding model is available, or set `[embedding] mode = none` |
 | Slow evaluation | Enable caching (`[cache] enabled = true`) for repeated runs; reduce `max_rows` for testing |

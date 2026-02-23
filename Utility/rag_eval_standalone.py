@@ -92,9 +92,12 @@ def load_config(config_path: str = None) -> configparser.ConfigParser:
     ]
     for p in candidates:
         if p and os.path.exists(p):
-            cfg.read(p)
-            logger.info(f"Config loaded: {p}")
-            return cfg
+            try:
+                cfg.read(p)
+                logger.info(f"Config loaded: {p}")
+                return cfg
+            except Exception as e:
+                logger.warning(f"Failed to read config {p}: {e}")
     logger.warning("No config.ini found — using defaults and environment variables")
     return cfg
 
@@ -174,43 +177,6 @@ def parse_context(value: str, delimiter: str = "auto") -> List[str]:
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#  Embedding Loader
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-def load_embeddings(cfg):
-    mode = get_cfg(cfg, "embedding", "mode", "local").strip().lower()
-    model_name = get_cfg(cfg, "embedding", "model_name", "all-MiniLM-L6-v2")
-    local_path = get_cfg(cfg, "embedding", "local_path", "backend/EmbeddingModels/all-MiniLM-L6-v2")
-
-    if mode == "none":
-        logger.info("Embedding: none (RAGAS will use LLM for all metrics)")
-        return None
-
-    from langchain_huggingface import HuggingFaceEmbeddings
-
-    if mode == "local":
-        abs_path = os.path.join(SCRIPT_DIR, local_path) if not os.path.isabs(local_path) else local_path
-        if os.path.exists(abs_path):
-            logger.info(f"Embedding: local ({abs_path})")
-            return HuggingFaceEmbeddings(model_name=abs_path)
-        hf_name = f"sentence-transformers/{model_name}"
-        logger.warning(f"Local embedding not found, downloading {hf_name}")
-        return HuggingFaceEmbeddings(model_name=hf_name)
-
-    if mode == "huggingface":
-        hf_name = model_name if "/" in model_name else f"sentence-transformers/{model_name}"
-        logger.info(f"Embedding: HuggingFace ({hf_name})")
-        return HuggingFaceEmbeddings(model_name=hf_name)
-
-    if os.path.exists(mode):
-        logger.info(f"Embedding: custom path ({mode})")
-        return HuggingFaceEmbeddings(model_name=mode)
-
-    logger.info(f"Embedding: custom model ({mode})")
-    return HuggingFaceEmbeddings(model_name=mode)
-
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #  Toxicity Scorer (LLM-based)
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -263,6 +229,82 @@ def score_toxicity(llm: AzureChatOpenAI, queries: List[str]) -> List[float]:
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  Recommendation Generator (LLM-based)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RECOMMENDATION_SYSTEM_PROMPT = """You are an expert RAG system evaluator. Based on the evaluation metrics and failure analysis, provide a concise, actionable recommendation (max 2-3 sentences) to improve the response quality.
+
+Focus on the primary issue and suggest specific actions. Be direct and prescriptive."""
+
+RECOMMENDATION_BATCH_SIZE = 5
+
+
+def _truncate_text(text: str, max_len: int = 150) -> str:
+    """Safely truncate text without breaking words or unicode."""
+    if len(text) <= max_len:
+        return text
+    truncated = text[:max_len].rsplit(' ', 1)[0]
+    return truncated + "..." if truncated else text[:max_len]
+
+
+def generate_recommendations(llm: AzureChatOpenAI, cases: List[Dict[str, Any]]) -> List[str]:
+    """Generate LLM-based recommendations for improving RAG responses."""
+    recommendations = []
+    total_batches = (len(cases) + RECOMMENDATION_BATCH_SIZE - 1) // RECOMMENDATION_BATCH_SIZE
+
+    for batch_idx, start in enumerate(range(0, len(cases), RECOMMENDATION_BATCH_SIZE), 1):
+        batch = cases[start:start + RECOMMENDATION_BATCH_SIZE]
+        logger.debug(f"Recommendation batch {batch_idx}/{total_batches} ({len(batch)} cases)")
+        
+        prompt_lines = []
+        for i, case in enumerate(batch, 1):
+            prompt_lines.append(f"Case {i}:")
+            prompt_lines.append(f"  Query: {_truncate_text(case['query'], 150)}")
+            prompt_lines.append(f"  Response: {_truncate_text(case['response'], 150)}")
+            prompt_lines.append(f"  Failure Mode: {case['failure_mode']}")
+            prompt_lines.append(f"  Metrics: RQS={case['rqs']:.2f}, Faithfulness={case['faithfulness']:.2f}, "
+                              f"Answer Relevancy={case['answer_relevancy']:.2f}, "
+                              f"Context Precision={case['context_precision']:.2f}, "
+                              f"Context Recall={case['context_recall']:.2f}")
+            if case.get('empty_context'):
+                prompt_lines.append(f"  Context: EMPTY")
+            if case.get('empty_answer'):
+                prompt_lines.append(f"  Answer: EMPTY")
+            prompt_lines.append("")
+        
+        prompt = "\n".join(prompt_lines) + "\nProvide a concise recommendation for each case (one line per case):"
+
+        try:
+            response = llm.invoke([
+                {"role": "system", "content": RECOMMENDATION_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ])
+            text = response.content.strip()
+            
+            # Parse line-by-line recommendations
+            lines = [line.strip() for line in text.split('\n') if line.strip()]
+            batch_recommendations = []
+            for line in lines:
+                # Strip "Case N:" prefix if present
+                rec = re.sub(r'^Case\s+\d+:\s*', '', line, flags=re.IGNORECASE).strip()
+                if rec:
+                    batch_recommendations.append(rec)
+            
+            # Ensure we have exactly the right number
+            while len(batch_recommendations) < len(batch):
+                batch_recommendations.append("Review metrics and failure mode to identify improvement areas.")
+            batch_recommendations = batch_recommendations[:len(batch)]
+            
+        except Exception as e:
+            logger.warning(f"Recommendation generation failed for batch {batch_idx}: {e}")
+            batch_recommendations = ["Unable to generate recommendation."] * len(batch)
+        
+        recommendations.extend(batch_recommendations)
+    
+    return recommendations
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #  Evaluation Cache
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -287,18 +329,16 @@ class EvalCache:
                     self._data = {}
 
     def _hash(self, query: str, answer: str, contexts: List[str],
-              ground_truth: str, model: str, temperature: float,
-              embedding_id: str) -> str:
+              ground_truth: str, model: str, temperature: float) -> str:
         raw = (f"{query}|{answer}|{'||'.join(contexts)}|{ground_truth}"
-               f"|{model}|{temperature}|{embedding_id}")
+               f"|{model}|{temperature}")
         return hashlib.md5(raw.encode()).hexdigest()
 
     def get(self, query, answer, contexts, ground_truth, model,
-            temperature=0.0, embedding_id="") -> Optional[dict]:
+            temperature=0.0) -> Optional[dict]:
         if not self.enabled:
             return None
-        key = self._hash(query, answer, contexts, ground_truth, model,
-                         temperature, embedding_id)
+        key = self._hash(query, answer, contexts, ground_truth, model, temperature)
         result = self._data.get(key)
         if result:
             self._hits += 1
@@ -307,11 +347,10 @@ class EvalCache:
         return result
 
     def put(self, query, answer, contexts, ground_truth, model,
-            metrics: dict, temperature=0.0, embedding_id=""):
+            metrics: dict, temperature=0.0):
         if not self.enabled:
             return
-        key = self._hash(query, answer, contexts, ground_truth, model,
-                         temperature, embedding_id)
+        key = self._hash(query, answer, contexts, ground_truth, model, temperature)
         self._data[key] = metrics
 
     def save(self):
@@ -373,7 +412,8 @@ class StandaloneRagEvaluator:
 
         self.model_name = model_name or get_cfg(cfg, "azure", "deployment", "gpt-4o")
         self.temperature = temperature if temperature is not None else get_cfg_float(cfg, "azure", "temperature", 0.0)
-        self.toxicity_threshold = get_cfg_float(cfg, "toxicity", "threshold", 0.5)
+        self.temperature = max(0.0, min(2.0, self.temperature))  # Clamp to valid range
+        self.toxicity_threshold = max(0.0, min(1.0, get_cfg_float(cfg, "toxicity", "threshold", 0.5)))
 
         # Which metrics to run
         self.enabled_metrics = {
@@ -388,16 +428,12 @@ class StandaloneRagEvaluator:
         # Diagnostics & per-metric thresholds
         self.diagnostics_enabled = get_cfg_bool(cfg, "diagnostics", "enabled", True)
         self.metric_thresholds = {
-            "faithfulness": get_cfg_float(cfg, "thresholds", "faithfulness", 0.3),
-            "answer_relevancy": get_cfg_float(cfg, "thresholds", "answer_relevancy", 0.3),
-            "context_precision": get_cfg_float(cfg, "thresholds", "context_precision", 0.3),
-            "context_recall": get_cfg_float(cfg, "thresholds", "context_recall", 0.3),
-            "answer_correctness": get_cfg_float(cfg, "thresholds", "answer_correctness", 0.3),
+            "faithfulness": max(0.0, min(1.0, get_cfg_float(cfg, "thresholds", "faithfulness", 0.3))),
+            "answer_relevancy": max(0.0, min(1.0, get_cfg_float(cfg, "thresholds", "answer_relevancy", 0.3))),
+            "context_precision": max(0.0, min(1.0, get_cfg_float(cfg, "thresholds", "context_precision", 0.3))),
+            "context_recall": max(0.0, min(1.0, get_cfg_float(cfg, "thresholds", "context_recall", 0.3))),
+            "answer_correctness": max(0.0, min(1.0, get_cfg_float(cfg, "thresholds", "answer_correctness", 0.3))),
         }
-
-        # Parallelism
-        self.parallel = get_cfg_bool(cfg, "evaluation", "parallel", True)
-        self.max_workers = get_cfg_int(cfg, "evaluation", "max_workers", 2)
 
         # Cache
         cache_dir = get_cfg(cfg, "cache", "directory", ".nexus_cache")
@@ -438,8 +474,9 @@ class StandaloneRagEvaluator:
         else:
             self.tox_llm = self.llm
 
-        self.embeddings = load_embeddings(cfg)
-        self.embedding_id = get_cfg(cfg, "embedding", "mode", "local") + ":" + get_cfg(cfg, "embedding", "model_name", "all-MiniLM-L6-v2")
+        # Parallelism
+        self.parallel = get_cfg_bool(cfg, "evaluation", "parallel", True)
+        self.max_workers = get_cfg_int(cfg, "evaluation", "max_workers", 2)
 
     def _normalize_weights(self):
         total = self.w_ac + self.w_f + self.w_ar + self.w_cp + self.w_cr
@@ -509,7 +546,7 @@ class StandaloneRagEvaluator:
         for i in range(len(dataset)):
             cached = self.cache.get(
                 questions[i], answers[i], contexts[i], ground_truths[i],
-                self.model_name, self.temperature, self.embedding_id,
+                self.model_name, self.temperature
             )
             if cached:
                 cached_results[i] = cached
@@ -530,11 +567,7 @@ class StandaloneRagEvaluator:
             }
             rag_dataset = Dataset.from_dict(sub_data)
 
-            eval_kwargs = {"dataset": rag_dataset, "metrics": metrics_list, "llm": self.llm}
-            if self.embeddings is not None:
-                eval_kwargs["embeddings"] = self.embeddings
-
-            result = ragas_evaluate(**eval_kwargs)
+            result = ragas_evaluate(dataset=rag_dataset, metrics=metrics_list, llm=self.llm)
             df = result.to_pandas()
 
             for sub_idx, orig_idx in enumerate(uncached_indices):
@@ -550,7 +583,7 @@ class StandaloneRagEvaluator:
                 self.cache.put(
                     questions[orig_idx], answers[orig_idx], contexts[orig_idx],
                     ground_truths[orig_idx], self.model_name, row_metrics,
-                    self.temperature, self.embedding_id,
+                    self.temperature
                 )
 
         # Assemble final metrics with per-row corrections
@@ -599,7 +632,8 @@ class StandaloneRagEvaluator:
 
     def run(self, dataset: List[TestCase]) -> Dict[str, Any]:
         if not dataset:
-            return {"error": "Empty dataset"}
+            logger.error("Empty dataset")
+            return {"error": "Empty dataset", "bot_metrics": {}, "summaries": {}, "leaderboard": [], "winner": None, "toxicity_scores": {}, "has_ground_truth": False}
 
         has_ground_truth = any(c.ground_truth for c in dataset)
         if not has_ground_truth:
@@ -622,6 +656,9 @@ class StandaloneRagEvaluator:
 
         # Bot evaluation (parallel or sequential)
         bot_ids = list(dataset[0].bot_responses.keys())
+        if not bot_ids:
+            logger.error("No bots found in dataset")
+            return {"error": "No bots found", "bot_metrics": {}, "summaries": {}, "leaderboard": [], "winner": None, "toxicity_scores": toxicity_scores, "has_ground_truth": has_ground_truth}
         bot_metrics: Dict[str, Dict[str, RAGMetrics]] = {}
 
         if self.parallel and len(bot_ids) > 1:
@@ -643,16 +680,31 @@ class StandaloneRagEvaluator:
                     except Exception as e:
                         logger.error(f"  {bid} failed: {e}")
                         self.cache.save()
-                        raise
+                        # Continue with other bots instead of raising
         else:
             for i, bid in enumerate(bot_ids, 1):
                 logger.info(f"  [{i}/{len(bot_ids)}] Evaluating {bid} ({len(dataset)} queries)...")
-                bot_metrics[bid] = self.evaluate_bot(bid, dataset, toxicity_scores, has_ground_truth)
-                self.cache.save()
-                logger.info(f"  [{i}/{len(bot_ids)}] {bid} done")
+                try:
+                    bot_metrics[bid] = self.evaluate_bot(bid, dataset, toxicity_scores, has_ground_truth)
+                    self.cache.save()
+                    logger.info(f"  [{i}/{len(bot_ids)}] {bid} done")
+                except Exception as e:
+                    logger.error(f"  [{i}/{len(bot_ids)}] {bid} failed: {e}")
+                    self.cache.save()
 
         if self.cache.enabled:
             logger.info(f"Cache stats: {self.cache.stats}")
+
+        if not bot_metrics:
+            logger.error("All bot evaluations failed")
+            return {
+                "bot_metrics": {},
+                "summaries": {},
+                "leaderboard": [],
+                "winner": None,
+                "toxicity_scores": toxicity_scores,
+                "has_ground_truth": has_ground_truth,
+            }
 
         # Summaries & leaderboard
         summaries = {}
@@ -699,7 +751,12 @@ class StandaloneRagEvaluator:
 def parse_excel(path: str, max_rows: int = 200,
                 context_delimiter: str = "auto",
                 bot_prefix: str = "Bot_") -> List[TestCase]:
-    df = pd.read_excel(path)
+    try:
+        df = pd.read_excel(path)
+    except Exception as e:
+        logger.error(f"Failed to read Excel file: {e}")
+        sys.exit(1)
+    
     if df.empty:
         logger.error("Excel file is empty.")
         sys.exit(1)
@@ -773,7 +830,12 @@ def parse_excel(path: str, max_rows: int = 200,
     bots_str = ", ".join(bot_mapping.values())
     logger.info(f"Parsed {len(cases)} queries, {len(bot_columns)} bots: [{bots_str}]")
     logger.info(f"Ground truth: {gt_count}/{len(cases)} rows")
-    ctx_chunks = [len(c.bot_contexts[list(c.bot_contexts.keys())[0]]) for c in cases if c.bot_contexts]
+    ctx_chunks = []
+    for c in cases:
+        if c.bot_contexts:
+            first_bot = next(iter(c.bot_contexts.keys()), None)
+            if first_bot:
+                ctx_chunks.append(len(c.bot_contexts[first_bot]))
     multi = sum(1 for n in ctx_chunks if n > 1)
     if multi:
         logger.info(f"Multi-chunk contexts detected: {multi}/{len(cases)} rows")
@@ -783,7 +845,8 @@ def parse_excel(path: str, max_rows: int = 200,
 
 def write_report(results: Dict[str, Any], cases: List[TestCase], output_path: str,
                  toxicity_threshold: float = 0.5, diagnostics_enabled: bool = True,
-                 metric_thresholds: Dict[str, float] = None):
+                 metric_thresholds: Dict[str, float] = None,
+                 llm: AzureChatOpenAI = None):
     from openpyxl.styles import PatternFill, Font
 
     if metric_thresholds is None:
@@ -807,6 +870,43 @@ def write_report(results: Dict[str, Any], cases: List[TestCase], output_path: st
         "Context Recall": ("context_recall", "below"),
         "Input Toxicity": ("toxicity", "above"),
     }
+
+    # Generate LLM recommendations if enabled and LLM is provided
+    recommendations_map = {}
+    if diagnostics_enabled and llm:
+        try:
+            logger.info("Generating LLM recommendations...")
+            rec_cases = []
+            for case in cases:
+                for bid, case_metrics in bot_metrics.items():
+                    m = case_metrics.get(case.id)
+                    if not m:
+                        continue
+                    rec_cases.append({
+                        'case_id': case.id,
+                        'bot_id': bid,
+                        'query': case.query,
+                        'response': case.bot_responses.get(bid, ""),
+                        'failure_mode': m.failure_mode,
+                        'rqs': m.rqs,
+                        'faithfulness': m.faithfulness,
+                        'answer_relevancy': m.answer_relevancy,
+                        'context_precision': m.context_precision,
+                        'context_recall': m.context_recall,
+                        'empty_context': m.empty_context,
+                        'empty_answer': m.empty_answer,
+                    })
+            
+            if rec_cases:
+                recommendations = generate_recommendations(llm, rec_cases)
+                for rec_case, rec_text in zip(rec_cases, recommendations):
+                    recommendations_map[(rec_case['case_id'], rec_case['bot_id'])] = rec_text
+                logger.info(f"Generated {len(recommendations)} recommendations")
+            else:
+                logger.warning("No cases to generate recommendations for")
+        except Exception as e:
+            logger.error(f"Recommendation generation failed: {e}")
+            logger.warning("Continuing without recommendations")
 
     # Sheet 1: Per-Query Metrics
     rows = []
@@ -835,6 +935,7 @@ def write_report(results: Dict[str, Any], cases: List[TestCase], output_path: st
                 row_data["Empty Context?"] = "YES" if m.empty_context else ""
                 row_data["Empty Answer?"] = "YES" if m.empty_answer else ""
                 row_data["Failure Mode"] = m.failure_mode
+                row_data["Recommendation"] = recommendations_map.get((case.id, bid), "")
             rows.append(row_data)
     df_detail = pd.DataFrame(rows)
 
@@ -967,6 +1068,24 @@ Examples:
         sys.exit(1)
 
     output = args.output or args.input.rsplit(".", 1)[0] + "_report.xlsx"
+    
+    # Check if output file is writable
+    output_dir = os.path.dirname(os.path.abspath(output))
+    if not os.path.exists(output_dir):
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+        except OSError as e:
+            logger.error(f"Cannot create output directory {output_dir}: {e}")
+            sys.exit(1)
+    
+    # Check if file exists and is writable (could be open in Excel)
+    if os.path.exists(output):
+        try:
+            with open(output, 'a'):
+                pass
+        except (IOError, OSError):
+            logger.error(f"Output file {output} is not writable (may be open in another program)")
+            sys.exit(1)
 
     env_path = os.path.join(SCRIPT_DIR, "..", "backend", ".env")
     if os.path.exists(env_path):
@@ -979,7 +1098,6 @@ Examples:
     model = args.model or get_cfg(cfg, "azure", "deployment", "gpt-4o")
     temp = args.temperature if args.temperature is not None else get_cfg_float(cfg, "azure", "temperature", 0.0)
     max_rows = get_cfg_int(cfg, "evaluation", "max_rows", 200)
-    embed_mode = get_cfg(cfg, "embedding", "mode", "local")
     tox_threshold = get_cfg_float(cfg, "toxicity", "threshold", 0.5)
     ctx_delimiter = get_cfg(cfg, "context", "delimiter", "auto")
     bot_prefix = get_cfg(cfg, "bots", "strip_prefix", "Bot_")
@@ -992,7 +1110,6 @@ Examples:
     print(f"  Input:        {args.input}")
     print(f"  Output:       {output}")
     print(f"  Model:        {model}")
-    print(f"  Embedding:    {embed_mode}")
     print(f"  Toxicity:     threshold={tox_threshold}")
     print(f"  Context:      delimiter={ctx_delimiter}")
     print(f"  Diagnostics:  {diag_enabled}")
@@ -1022,7 +1139,8 @@ Examples:
     print(f"\n[3/3] Writing report...")
     write_report(results, cases, output, toxicity_threshold=tox_threshold,
                  diagnostics_enabled=diag_enabled,
-                 metric_thresholds=evaluator.metric_thresholds)
+                 metric_thresholds=evaluator.metric_thresholds,
+                 llm=evaluator.llm)
 
     # Final summary
     print("-" * 60)
