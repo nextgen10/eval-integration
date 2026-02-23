@@ -20,6 +20,11 @@ Features:
     - Evaluation caching (hash-based, avoids recomputing)
     - Diagnostic columns & failure mode classification
     - Graceful handling of missing ground truth
+    - Configurable embeddings modes: local, azure, or none
+
+Embeddings Modes (config.ini [embeddings] section):
+    - local:  Local all-MiniLM-L6-v2 model (runs locally, no Azure needed)
+    - azure:  Azure OpenAI embeddings deployment
 
 Usage:
     python rag_eval_standalone.py input.xlsx -o report.xlsx
@@ -50,7 +55,7 @@ from ragas.metrics import (
     context_recall as m_context_recall,
     answer_correctness as m_answer_correctness,
 )
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from dotenv import load_dotenv
 import nest_asyncio
 
@@ -397,6 +402,60 @@ def classify_failure(m: RAGMetrics, thresholds: Dict[str, float]) -> str:
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#  Local Embeddings (all-MiniLM-L6-v2)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+class LocalMiniLMEmbeddings:
+    """
+    Local embeddings using sentence-transformers all-MiniLM-L6-v2 model.
+    Loads from ./EmbeddingModels/all-MiniLM-L6-v2 directory.
+    
+    This provides real semantic embeddings without needing Azure embeddings deployment.
+    """
+    
+    def __init__(self, model_path: str):
+        try:
+            from sentence_transformers import SentenceTransformer
+            
+            if not os.path.exists(model_path):
+                raise FileNotFoundError(f"Local embeddings model not found at: {model_path}")
+            
+            logger.info(f"Loading all-MiniLM-L6-v2 from: {model_path}")
+            self.model = SentenceTransformer(model_path)
+            self._embedding_dim = 384  # all-MiniLM-L6-v2 dimension
+            logger.info(f"Model loaded successfully (dimension={self._embedding_dim})")
+            
+        except ImportError:
+            logger.error("sentence-transformers not installed. Install with: pip install sentence-transformers")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to load all-MiniLM-L6-v2 model: {e}")
+            raise
+    
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """Generate embeddings for multiple texts."""
+        embeddings = self.model.encode(texts, convert_to_numpy=True)
+        return embeddings.tolist()
+    
+    def embed_query(self, text: str) -> List[float]:
+        """Generate embedding for a single query."""
+        embedding = self.model.encode([text], convert_to_numpy=True)
+        return embedding[0].tolist()
+    
+    def embed_text(self, text: str) -> List[float]:
+        """Alias for embed_query (required by some RAGAS versions)."""
+        return self.embed_query(text)
+    
+    async def aembed_documents(self, texts: List[str]) -> List[List[float]]:
+        """Async version of embed_documents."""
+        return self.embed_documents(texts)
+    
+    async def aembed_query(self, text: str) -> List[float]:
+        """Async version of embed_query."""
+        return self.embed_query(text)
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #  Evaluator
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -468,6 +527,31 @@ class StandaloneRagEvaluator:
             openai_api_key=az_key,
             temperature=self.temperature,
         )
+
+        # Configure embeddings based on mode
+        embeddings_mode = get_cfg(cfg, "embeddings", "mode", "local").strip().lower()
+        
+        if embeddings_mode == "azure":
+            # Use Azure OpenAI embeddings
+            embeddings_deployment = get_cfg(cfg, "embeddings", "embeddings_deployment", "text-embedding-ada-002").strip()
+            logger.info(f"Embeddings mode: Azure ({embeddings_deployment})")
+            self.embeddings = AzureOpenAIEmbeddings(
+                azure_deployment=embeddings_deployment,
+                openai_api_version=az_version,
+                azure_endpoint=az_endpoint,
+                openai_api_key=az_key,
+            )
+        else:
+            # Default to local (all-MiniLM-L6-v2 from EmbeddingModels directory)
+            logger.info("Embeddings mode: Local (all-MiniLM-L6-v2)")
+            try:
+                # Always use the fixed local path
+                local_model_path = os.path.join(SCRIPT_DIR, "EmbeddingModels", "all-MiniLM-L6-v2")
+                self.embeddings = LocalMiniLMEmbeddings(model_path=local_model_path)
+            except Exception as e:
+                logger.error(f"Failed to load local embeddings model: {e}")
+                logger.error("Please ensure sentence-transformers is installed: pip install sentence-transformers")
+                raise
 
         # Separate (cheaper) LLM for toxicity if configured
         tox_deployment = get_cfg(cfg, "toxicity", "deployment", "").strip()
@@ -576,7 +660,8 @@ class StandaloneRagEvaluator:
             }
             rag_dataset = Dataset.from_dict(sub_data)
 
-            result = ragas_evaluate(dataset=rag_dataset, metrics=metrics_list, llm=self.llm)
+            # Call ragas_evaluate with embeddings
+            result = ragas_evaluate(dataset=rag_dataset, metrics=metrics_list, llm=self.llm, embeddings=self.embeddings)
             df = result.to_pandas()
 
             for sub_idx, orig_idx in enumerate(uncached_indices):

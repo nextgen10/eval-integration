@@ -9,3 +9,4 @@ frontend/out/
 __pycache__/
 Utility/.nexus_cache/
 .nexus_cache/
+Utility/.env
