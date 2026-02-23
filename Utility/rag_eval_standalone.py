@@ -476,7 +476,7 @@ class StandaloneRagEvaluator:
 
         # Parallelism
         self.parallel = get_cfg_bool(cfg, "evaluation", "parallel", True)
-        self.max_workers = get_cfg_int(cfg, "evaluation", "max_workers", 2)
+        self.max_workers = max(1, get_cfg_int(cfg, "evaluation", "max_workers", 2))
 
     def _normalize_weights(self):
         total = self.w_ac + self.w_f + self.w_ar + self.w_cp + self.w_cr
@@ -710,7 +710,13 @@ class StandaloneRagEvaluator:
         summaries = {}
         leaderboard = []
         for bid in bot_ids:
+            if bid not in bot_metrics:
+                logger.warning(f"Bot {bid} has no metrics (evaluation failed), skipping summary")
+                continue
             vals = list(bot_metrics[bid].values())
+            if not vals:
+                logger.warning(f"Bot {bid} has empty metrics, skipping summary")
+                continue
             s = {
                 "avg_rqs": round(float(np.mean([m.rqs for m in vals])), 4),
                 "std_rqs": round(float(np.std([m.rqs for m in vals])), 4),
@@ -1065,6 +1071,10 @@ Examples:
 
     if not os.path.exists(args.input):
         logger.error(f"File not found: {args.input}")
+        sys.exit(1)
+    
+    if not args.input.lower().endswith(('.xlsx', '.xls')):
+        logger.error(f"Input file must be Excel format (.xlsx or .xls), got: {args.input}")
         sys.exit(1)
 
     output = args.output or args.input.rsplit(".", 1)[0] + "_report.xlsx"

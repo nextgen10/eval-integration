@@ -1,11 +1,43 @@
 # Comprehensive Code Review - rag_eval_standalone.py
 
-## Summary
-Reviewed 1098 lines of code and identified 12 issues across critical, high, and medium priority categories. All issues have been fixed.
+## Second Review Summary
+Reviewed code after first round of fixes and identified 4 additional issues. All issues have been fixed.
 
 ---
 
-## 🔴 Critical Issues Fixed (5)
+## 🔴 Additional Critical Issues Fixed (1)
+
+### 13. Summary Generation Crash for Failed Bot Evaluations
+**Location:** Line 713  
+**Issue:** When iterating `bot_ids`, if a bot failed evaluation and isn't in `bot_metrics`, accessing `bot_metrics[bid]` causes `KeyError`  
+**Impact:** Script crashes during summary generation after long evaluation  
+**Fix:** Added check `if bid not in bot_metrics: continue` before accessing
+
+---
+
+## 🟡 Additional High Priority Issues Fixed (3)
+
+### 14. Max Workers Not Validated
+**Location:** Line 479  
+**Issue:** `max_workers` could be set to 0 or negative, causing ThreadPoolExecutor errors  
+**Impact:** Cryptic thread pool errors  
+**Fix:** Added `max(1, ...)` to ensure at least 1 worker
+
+### 15. Excel File Extension Not Validated
+**Location:** Line 1066  
+**Issue:** Script accepts any file type, fails later with pandas error  
+**Impact:** Poor UX, confusing error messages  
+**Fix:** Added `.xlsx/.xls` extension check with clear error message
+
+### 16. Empty Values List in Summary Stats
+**Location:** Line 718  
+**Issue:** If `bot_metrics[bid].values()` is empty, `np.mean([])` returns `nan`  
+**Impact:** Invalid summary statistics  
+**Fix:** Added check for empty `vals` before computing statistics
+
+---
+
+## First Review Summary (12 fixes)
 
 ### 1. Empty Dataset Crash
 **Location:** Line 645  
