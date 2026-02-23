@@ -1,6 +1,11 @@
 # RAG Eval — Standalone CLI Utility
 
-A standalone command-line tool for evaluating RAG (Retrieval-Augmented Generation) pipelines. It reads an Excel input file, runs RAGAS metrics against Azure OpenAI, and generates a multi-sheet Excel report with scores, rankings, and diagnostics.
+**Version:** 1.0.0  
+**License:** MIT
+
+A standalone, portable command-line tool for evaluating RAG (Retrieval-Augmented Generation) pipelines. It reads an Excel input file, runs RAGAS metrics against Azure OpenAI, and generates a multi-sheet Excel report with scores, rankings, and diagnostics.
+
+**Zero External Dependencies** — Self-contained Python script with no ties to parent projects.
 
 ---
 
@@ -23,6 +28,27 @@ A standalone command-line tool for evaluating RAG (Retrieval-Augmented Generatio
 
 ## Quick Start
 
+**Automated Setup (Recommended):**
+
+```bash
+cd Utility
+./setup.sh
+```
+
+This will:
+- Install all dependencies
+- Create `.env` from template
+- Make the script executable
+
+Then edit `.env` with your Azure OpenAI credentials and run:
+```bash
+python3 rag_eval_standalone.py sample_rag_input.xlsx
+```
+
+---
+
+**Manual Setup:**
+
 ### 1. Install Dependencies
 
 ```bash
@@ -30,9 +56,26 @@ cd Utility
 pip install -r requirements.txt
 ```
 
+**Optional:** Make the script executable (Unix/Mac):
+```bash
+chmod +x rag_eval_standalone.py
+```
+
 ### 2. Configure Azure OpenAI
 
-Edit `config.ini` and set your Azure OpenAI credentials:
+**Option A:** Create a `.env` file (recommended for standalone use):
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and add your credentials:
+```
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_API_KEY=your-api-key-here
+AZURE_OPENAI_API_VERSION=2024-12-01-preview
+```
+
+**Option B:** Edit `config.ini` directly:
 
 ```ini
 [azure]
@@ -48,7 +91,7 @@ Alternatively, set environment variables:
 - `AZURE_OPENAI_API_KEY`
 - `AZURE_OPENAI_API_VERSION`
 
-The script also checks `backend/.env` as a fallback.
+Or create a `.env` file in the `Utility/` directory with these variables.
 
 ### 3. Prepare Input Excel
 

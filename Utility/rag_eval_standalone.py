@@ -2,6 +2,10 @@
 """
 RAG Eval — Standalone CLI Utility
 ========================================
+Version: 1.0.0
+Author: Nexus Eval Team
+License: MIT
+
 Evaluates RAG pipelines using RAGAS metrics + LLM-based input toxicity detection.
 Reads Excel input, writes a multi-sheet Excel report.
 
@@ -1041,19 +1045,31 @@ def write_report(results: Dict[str, Any], cases: List[TestCase], output_path: st
 
 def main():
     parser = argparse.ArgumentParser(
-        description="RAG Eval — Standalone CLI",
+        description="RAG Eval — Standalone CLI Utility v1.0.0",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Configuration:
   All settings are read from config.ini. CLI args override where applicable.
-  See config.ini for Azure credentials, weights, metrics, embedding,
-  toxicity, caching, diagnostics, and evaluation settings.
+  
+  Set Azure OpenAI credentials in:
+    1. config.ini [azure] section
+    2. .env file in this directory
+    3. Environment variables (AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY)
 
 Examples:
-  python rag_eval_standalone.py data.xlsx
-  python rag_eval_standalone.py data.xlsx -o results.xlsx --debug
-  python rag_eval_standalone.py data.xlsx --alpha 0.5 --beta 0.25 --gamma 0.25
-  python rag_eval_standalone.py data.xlsx --config custom.ini
+  # Basic run
+  python3 rag_eval_standalone.py data.xlsx
+  
+  # Custom output and debug mode
+  python3 rag_eval_standalone.py data.xlsx -o results.xlsx --debug
+  
+  # Override weights
+  python3 rag_eval_standalone.py data.xlsx --alpha 0.5 --beta 0.25 --gamma 0.25
+  
+  # Custom config
+  python3 rag_eval_standalone.py data.xlsx --config custom.ini
+
+For more information, see README.md
         """,
     )
     parser.add_argument("input", help="Path to input Excel file")
@@ -1097,11 +1113,25 @@ Examples:
             logger.error(f"Output file {output} is not writable (may be open in another program)")
             sys.exit(1)
 
-    env_path = os.path.join(SCRIPT_DIR, "..", "backend", ".env")
-    if os.path.exists(env_path):
-        load_dotenv(env_path)
-    else:
-        load_dotenv()
+    # Load environment variables - try multiple locations
+    # 1. Try .env in same directory as script
+    env_local = os.path.join(SCRIPT_DIR, ".env")
+    # 2. Try backend/.env if part of larger project
+    env_backend = os.path.join(SCRIPT_DIR, "..", "backend", ".env")
+    # 3. Try .env in current working directory
+    env_cwd = os.path.join(os.getcwd(), ".env")
+    
+    env_loaded = False
+    for env_path in [env_local, env_backend, env_cwd]:
+        if os.path.exists(env_path):
+            load_dotenv(env_path)
+            logger.debug(f"Loaded environment from: {env_path}")
+            env_loaded = True
+            break
+    
+    if not env_loaded:
+        load_dotenv()  # Try default locations
+        logger.debug("No .env file found, using system environment variables")
 
     cfg = load_config(args.config)
 

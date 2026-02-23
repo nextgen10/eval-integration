@@ -1,11 +1,67 @@
 # Comprehensive Code Review - rag_eval_standalone.py
 
-## Second Review Summary
-Reviewed code after first round of fixes and identified 4 additional issues. All issues have been fixed.
+## Third Review Summary - Standalone Utility Focus
+Reviewed for portability, dependencies, and production readiness as a standalone tool. Found and fixed 9 issues.
 
 ---
 
-## 🔴 Additional Critical Issues Fixed (1)
+## 🔴 Critical Standalone Issues Fixed (4)
+
+### 17. Hardcoded Path to backend/.env Breaks Portability
+**Location:** Line 1090  
+**Issue:** Script assumed it was in `Utility/` within larger project, hardcoded `../backend/.env`  
+**Impact:** Fails when distributed as standalone utility  
+**Fix:** Try multiple `.env` locations (script dir, ../backend, cwd) in order
+
+### 18. Config.ini References Non-Existent backend/.env
+**Location:** config.ini line 2  
+**Issue:** Comment misleads users about `.env` location  
+**Impact:** Confusing for standalone users  
+**Fix:** Updated comment to reference generic `.env` file
+
+### 19. README References backend/.env
+**Location:** README.md  
+**Issue:** Setup instructions reference non-existent path  
+**Impact:** Users can't follow setup instructions  
+**Fix:** Updated to reference local `.env` in Utility directory
+
+### 20. Missing .env.example Template
+**Issue:** No template for users to copy  
+**Impact:** Users don't know what environment variables are needed  
+**Fix:** Created `Utility/.env.example` with all required variables
+
+---
+
+## 🟡 High Priority Standalone Issues Fixed (5)
+
+### 21. Missing .gitignore in Utility Folder
+**Issue:** No `.gitignore` for local files (.env, cache, reports)  
+**Impact:** Users might accidentally commit credentials  
+**Fix:** Added comprehensive `.gitignore` for Utility folder
+
+### 22. Missing Setup Instructions for Executable Mode
+**Issue:** README doesn't mention `chmod +x` for Unix  
+**Impact:** Suboptimal UX on Mac/Linux  
+**Fix:** Added optional chmod instructions
+
+### 23. No Automated Setup Script
+**Issue:** Users must manually run multiple setup steps  
+**Impact:** Poor onboarding experience  
+**Fix:** Created `setup.sh` that installs deps, creates .env, makes executable
+
+### 24. Missing Version Info
+**Issue:** No version number in script or help text  
+**Impact:** Users can't track which version they're using  
+**Fix:** Added version 1.0.0 to docstring and help text
+
+### 25. README Needs Better Standalone Focus
+**Issue:** README doesn't emphasize standalone nature  
+**Impact:** Users might think it requires parent project  
+**Fix:** Added "Zero External Dependencies" tagline, automated setup section
+
+---
+
+## Second Review Summary (4 fixes)
 
 ### 13. Summary Generation Crash for Failed Bot Evaluations
 **Location:** Line 713  
