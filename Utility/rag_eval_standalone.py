@@ -454,13 +454,18 @@ class StandaloneRagEvaluator:
         if not az_endpoint or not az_key:
             logger.error("Azure OpenAI credentials not found.")
             logger.error("Set them in config.ini [azure] or as environment variables.")
+            logger.error(f"  AZURE_OPENAI_ENDPOINT: {'SET' if az_endpoint else 'NOT SET'}")
+            logger.error(f"  AZURE_OPENAI_API_KEY: {'SET' if az_key else 'NOT SET'}")
             sys.exit(1)
+
+        logger.debug(f"Azure endpoint: {az_endpoint}")
+        logger.debug(f"Azure deployment: {self.model_name}")
 
         self.llm = AzureChatOpenAI(
             azure_deployment=self.model_name,
             openai_api_version=az_version,
             azure_endpoint=az_endpoint,
-            api_key=az_key,
+            openai_api_key=az_key,
             temperature=self.temperature,
         )
 
@@ -472,7 +477,7 @@ class StandaloneRagEvaluator:
                 azure_deployment=tox_deployment,
                 openai_api_version=az_version,
                 azure_endpoint=az_endpoint,
-                api_key=az_key,
+                openai_api_key=az_key,
                 temperature=0.0,
             )
         else:
