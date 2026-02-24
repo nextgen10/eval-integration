@@ -1,0 +1,56 @@
+{
+  "sheet_name": "Bot Summary",
+  "columns": [
+    "Bot",
+    "Avg RQS",
+    "Answer Correctness",
+    "Faithfulness",
+    "Answer Relevancy",
+    "Context Precision",
+    "Context Recall",
+    "Avg Input Toxicity",
+    "Toxic Queries",
+    "Total Queries",
+    "Retrieval Failures",
+    "Hallucinations",
+    "Low Quality",
+    "Empty Contexts",
+    "Empty Answers"
+  ],
+  "data": [
+    {
+      "Bot": "A",
+      "Avg RQS": 0.9316,
+      "Answer Correctness": 0.9257,
+      "Faithfulness": 0.9,
+      "Answer Relevancy": 0.9606,
+      "Context Precision": 1.0,
+      "Context Recall": 0.9,
+      "Avg Input Toxicity": 0,
+      "Toxic Queries": 0,
+      "Total Queries": 5,
+      "Retrieval Failures": 0,
+      "Hallucinations": 0,
+      "Low Quality": 0,
+      "Empty Contexts": 0,
+      "Empty Answers": 0
+    },
+    {
+      "Bot": "B",
+      "Avg RQS": 0.7001,
+      "Answer Correctness": 0.8313,
+      "Faithfulness": 0.4238,
+      "Answer Relevancy": 0.8727,
+      "Context Precision": 0.8,
+      "Context Recall": 0.3333,
+      "Avg Input Toxicity": 0,
+      "Toxic Queries": 0,
+      "Total Queries": 5,
+      "Retrieval Failures": 0,
+      "Hallucinations": 1,
+      "Low Quality": 0,
+      "Empty Contexts": 0,
+      "Empty Answers": 0
+    }
+  ]
+}

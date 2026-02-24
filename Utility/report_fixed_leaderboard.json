@@ -1,0 +1,44 @@
+{
+  "sheet_name": "Leaderboard",
+  "columns": [
+    "Rank",
+    "Bot",
+    "Avg RQS",
+    "RQS StdDev",
+    "Answer Correctness",
+    "Faithfulness",
+    "Faithfulness StdDev",
+    "Answer Relevancy",
+    "Context Precision",
+    "Context Recall",
+    "Winner"
+  ],
+  "data": [
+    {
+      "Rank": 1,
+      "Bot": "A",
+      "Avg RQS": 0.9316,
+      "RQS StdDev": 0.0474,
+      "Answer Correctness": 0.9257,
+      "Faithfulness": 0.9,
+      "Faithfulness StdDev": 0.0565,
+      "Answer Relevancy": 0.9606,
+      "Context Precision": 1.0,
+      "Context Recall": 0.9,
+      "Winner": "★"
+    },
+    {
+      "Rank": 2,
+      "Bot": "B",
+      "Avg RQS": 0.7001,
+      "RQS StdDev": 0.0869,
+      "Answer Correctness": 0.8313,
+      "Faithfulness": 0.4238,
+      "Faithfulness StdDev": 0.1137,
+      "Answer Relevancy": 0.8727,
+      "Context Precision": 0.8,
+      "Context Recall": 0.3333,
+      "Winner": null
+    }
+  ]
+}

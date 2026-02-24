@@ -2,12 +2,12 @@
 """
 RAG Eval — Standalone CLI Utility
 ========================================
-Version: 1.0.0
+Version: 1.3.0
 Author: Nexus Eval Team
 License: MIT
 
 Evaluates RAG pipelines using RAGAS metrics + LLM-based input toxicity detection.
-Reads Excel input, writes a multi-sheet Excel report.
+Reads Excel input, writes multi-sheet Excel report + comprehensive JSON automatically.
 
 All settings driven by config.ini — CLI args override where supported.
 
@@ -20,16 +20,41 @@ Features:
     - Evaluation caching (hash-based, avoids recomputing)
     - Diagnostic columns & failure mode classification
     - Graceful handling of missing ground truth
-    - Configurable embeddings modes: local, azure, or none
+    - Configurable embeddings modes: local (HuggingFaceEmbeddings), azure
+    - Automatic comprehensive JSON export (input + output + config + summary)
 
 Embeddings Modes (config.ini [embeddings] section):
-    - local:  Local all-MiniLM-L6-v2 model (runs locally, no Azure needed)
+    - local:  Local all-MiniLM-L6-v2 via HuggingFaceEmbeddings (RAGAS-compatible)
     - azure:  Azure OpenAI embeddings deployment
+
+IMPORTANT: v1.3.0 fixes answer_correctness returning 0 by switching to
+HuggingFaceEmbeddings (same as backend), ensuring proper RAGAS compatibility.
+
+Outputs (generated automatically):
+    1. Excel report with 3 sheets:
+       - Per-Query Metrics (detailed metrics per query-bot combination)
+       - Bot Summary (aggregated statistics per bot)
+       - Leaderboard (bot rankings)
+    
+    2. JSON files (6 total):
+       - <report>_per_query_metrics.json (individual sheet)
+       - <report>_bot_summary.json (individual sheet)
+       - <report>_leaderboard.json (individual sheet)
+       - <report>_complete.json (all sheets combined)
+       - <report>_comprehensive.json (input + output + config + summary)
+    
+    The comprehensive JSON includes:
+       - Original input data (queries, ground truth, bot responses, contexts)
+       - All evaluation results (all sheets)
+       - Configuration settings (from config.ini)
+       - Summary statistics (winner, per-bot performance, issues)
+       - Complete metadata (timestamps, model, evaluation time)
 
 Usage:
     python rag_eval_standalone.py input.xlsx -o report.xlsx
     python rag_eval_standalone.py input.xlsx --debug
     python rag_eval_standalone.py input.xlsx --config custom.ini
+    python rag_eval_standalone.py input.xlsx --cache
 """
 
 import os, sys, argparse, time, uuid, configparser, json, re, hashlib, logging, copy
@@ -55,6 +80,7 @@ from ragas.metrics import (
     context_recall as m_context_recall,
     answer_correctness as m_answer_correctness,
 )
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from dotenv import load_dotenv
 import nest_asyncio
@@ -402,15 +428,18 @@ def classify_failure(m: RAGMetrics, thresholds: Dict[str, float]) -> str:
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#  Local Embeddings (all-MiniLM-L6-v2)
+#  Local Embeddings (DEPRECATED - kept for reference)
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 class LocalMiniLMEmbeddings:
     """
-    Local embeddings using sentence-transformers all-MiniLM-L6-v2 model.
-    Loads from ./EmbeddingModels/all-MiniLM-L6-v2 directory.
+    DEPRECATED: This class is kept for reference only.
+    Use HuggingFaceEmbeddings instead for proper RAGAS compatibility.
     
-    This provides real semantic embeddings without needing Azure embeddings deployment.
+    This custom wrapper had async/await compatibility issues that caused
+    answer_correctness metric to fail and return 0.
+    
+    See EMBEDDINGS_WRAPPER_COMPARISON.md for details.
     """
     
     def __init__(self, model_path: str):
@@ -545,12 +574,19 @@ class StandaloneRagEvaluator:
             # Default to local (all-MiniLM-L6-v2 from EmbeddingModels directory)
             logger.info("Embeddings mode: Local (all-MiniLM-L6-v2)")
             try:
-                # Always use the fixed local path
+                # Use HuggingFaceEmbeddings (same as backend) for proper RAGAS compatibility
                 local_model_path = os.path.join(SCRIPT_DIR, "EmbeddingModels", "all-MiniLM-L6-v2")
-                self.embeddings = LocalMiniLMEmbeddings(model_path=local_model_path)
+                
+                if not os.path.exists(local_model_path):
+                    raise FileNotFoundError(f"Local embeddings model not found at: {local_model_path}")
+                
+                logger.info(f"Loading all-MiniLM-L6-v2 from: {local_model_path}")
+                self.embeddings = HuggingFaceEmbeddings(model_name=local_model_path)
+                logger.info("Model loaded successfully (HuggingFaceEmbeddings)")
+                
             except Exception as e:
                 logger.error(f"Failed to load local embeddings model: {e}")
-                logger.error("Please ensure sentence-transformers is installed: pip install sentence-transformers")
+                logger.error("Please ensure langchain-huggingface is installed: pip install langchain-huggingface")
                 raise
 
         # Separate (cheaper) LLM for toxicity if configured
@@ -1275,6 +1311,146 @@ For more information, see README.md
                  diagnostics_enabled=diag_enabled,
                  metric_thresholds=evaluator.metric_thresholds,
                  llm=evaluator.llm)
+    
+    # Generate comprehensive JSON report automatically
+    print("  Generating comprehensive JSON report...")
+    try:
+        from pathlib import Path
+        output_path = Path(output)
+        base_name = output_path.stem
+        output_dir = output_path.parent
+        
+        # Read the Excel file we just created
+        excel_file = pd.ExcelFile(output)
+        sheet_names = excel_file.sheet_names
+        
+        # Create comprehensive JSON with all data
+        comprehensive_json = {
+            "metadata": {
+                "generated_at": datetime.now().isoformat(),
+                "version": "1.1.0",
+                "description": "Comprehensive RAG Evaluation Results",
+                "files": {
+                    "input": args.input,
+                    "report": output_path.name
+                },
+                "evaluation": {
+                    "model": model,
+                    "temperature": temp,
+                    "time_seconds": elapsed,
+                    "embeddings_mode": get_cfg(cfg, "embeddings", "mode", "local"),
+                    "toxicity_threshold": tox_threshold,
+                    "diagnostics_enabled": diag_enabled,
+                    "cache_enabled": cache_enabled
+                }
+            },
+            "input_data": {
+                "total_queries": len(cases),
+                "test_cases": []
+            },
+            "evaluation_results": {},
+            "configuration": {},
+            "summary": {}
+        }
+        
+        # Add input data (original test cases)
+        for case in cases:
+            comprehensive_json["input_data"]["test_cases"].append({
+                "id": case.id,
+                "query": case.query,
+                "ground_truth": case.ground_truth,
+                "bot_responses": case.bot_responses,
+                "bot_contexts": case.bot_contexts
+            })
+        
+        # Add evaluation results (all sheets)
+        for sheet_name in sheet_names:
+            df = pd.read_excel(output, sheet_name=sheet_name)
+            df = df.replace({pd.NA: None, pd.NaT: None})
+            df = df.where(pd.notnull(df), None)
+            records = df.to_dict(orient='records')
+            
+            sheet_key = sheet_name.lower().replace(' ', '_').replace('-', '_')
+            comprehensive_json["evaluation_results"][sheet_key] = {
+                "sheet_name": sheet_name,
+                "row_count": len(records),
+                "columns": list(df.columns),
+                "data": records
+            }
+            
+            # Also save individual sheet JSON
+            sheet_json_path = output_dir / f"{base_name}_{sheet_key}.json"
+            with open(sheet_json_path, 'w', encoding='utf-8') as f:
+                json.dump({
+                    "sheet_name": sheet_name,
+                    "columns": list(df.columns),
+                    "data": records
+                }, f, indent=2, ensure_ascii=False)
+        
+        # Add configuration
+        config_dict = {}
+        for section in cfg.sections():
+            config_dict[section] = dict(cfg.items(section))
+        comprehensive_json["configuration"]["config_ini"] = config_dict
+        
+        # Add summary statistics
+        if "bot_summary" in comprehensive_json["evaluation_results"]:
+            bot_summary = comprehensive_json["evaluation_results"]["bot_summary"]["data"]
+            leaderboard = comprehensive_json["evaluation_results"].get("leaderboard", {}).get("data", [])
+            
+            comprehensive_json["summary"] = {
+                "total_bots": len(bot_summary),
+                "total_queries": len(cases),
+                "winner": results.get("winner"),
+                "top_rqs": leaderboard[0]["Avg RQS"] if leaderboard else None,
+                "evaluation_time_seconds": elapsed,
+                "bots": {
+                    bot["Bot"]: {
+                        "avg_rqs": bot["Avg RQS"],
+                        "answer_correctness": bot["Answer Correctness"],
+                        "faithfulness": bot["Faithfulness"],
+                        "answer_relevancy": bot["Answer Relevancy"],
+                        "context_precision": bot["Context Precision"],
+                        "context_recall": bot["Context Recall"],
+                        "total_queries": bot["Total Queries"],
+                        "retrieval_failures": bot["Retrieval Failures"],
+                        "hallucinations": bot["Hallucinations"],
+                        "low_quality": bot["Low Quality"],
+                        "toxic_queries": bot["Toxic Queries"]
+                    }
+                    for bot in bot_summary
+                }
+            }
+        
+        # Save comprehensive JSON
+        comprehensive_json_path = output_dir / f"{base_name}_comprehensive.json"
+        with open(comprehensive_json_path, 'w', encoding='utf-8') as f:
+            json.dump(comprehensive_json, f, indent=2, ensure_ascii=False)
+        
+        # Also save the simpler complete JSON (backward compatibility)
+        simple_json = {
+            "metadata": {
+                "source_file": output_path.name,
+                "generated_at": datetime.now().isoformat(),
+                "sheets": sheet_names,
+                "evaluation_time_seconds": elapsed,
+                "model": model,
+                "temperature": temp
+            },
+            "data": comprehensive_json["evaluation_results"]
+        }
+        complete_json_path = output_dir / f"{base_name}_complete.json"
+        with open(complete_json_path, 'w', encoding='utf-8') as f:
+            json.dump(simple_json, f, indent=2, ensure_ascii=False)
+        
+        print(f"  ✓ Excel report: {output_path.name}")
+        print(f"  ✓ JSON reports: {len(sheet_names)} individual + 1 complete + 1 comprehensive")
+        print(f"  ✓ Comprehensive JSON: {comprehensive_json_path.name} ({comprehensive_json_path.stat().st_size / 1024:.1f} KB)")
+    except Exception as e:
+        logger.warning(f"Failed to generate JSON reports: {e}")
+        print(f"  ⚠ JSON generation failed (Excel report still available)")
+        import traceback
+        logger.debug(traceback.format_exc())
 
     # Final summary
     print("-" * 60)

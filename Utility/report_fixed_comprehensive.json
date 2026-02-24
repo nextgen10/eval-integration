@@ -1,0 +1,523 @@
+{
+  "metadata": {
+    "generated_at": "2026-02-24T01:08:40.396727",
+    "version": "1.1.0",
+    "description": "Comprehensive RAG Evaluation Results",
+    "files": {
+      "input": "sample_rag_input_high_quality.xlsx",
+      "report": "report_fixed.xlsx"
+    },
+    "evaluation": {
+      "model": "gpt-4o",
+      "temperature": 0.0,
+      "time_seconds": 134.09577417373657,
+      "embeddings_mode": "local",
+      "toxicity_threshold": 0.5,
+      "diagnostics_enabled": true,
+      "cache_enabled": false
+    }
+  },
+  "input_data": {
+    "total_queries": 5,
+    "test_cases": [
+      {
+        "id": "c3536ccb-9961-4cf5-893b-8bac8683b499",
+        "query": "What are the three main components of a RAG system?",
+        "ground_truth": "The three main components of a RAG system are: (1) Retrieval - fetching relevant documents from a knowledge base using semantic search, (2) Augmentation - combining retrieved context with the user query, and (3) Generation - using a language model to produce a response grounded in the retrieved information.",
+        "bot_responses": {
+          "A": "Based on the documentation, a RAG system consists of three main components: (1) Retrieval - which fetches relevant documents from a knowledge base using semantic search techniques, (2) Augmentation - which combines the retrieved context with the user's query, and (3) Generation - where a language model generates a response that is grounded in the retrieved information. This architecture ensures responses are factually accurate and traceable to source documents.",
+          "B": "A RAG system has three components: retrieval of relevant documents from a knowledge base, augmentation where context is combined with the query, and generation where the language model creates a response based on the retrieved information. This approach helps ensure accurate and grounded responses."
+        },
+        "bot_contexts": {
+          "A": [
+            "RAG System Architecture: A Retrieval Augmented Generation system integrates three core components to produce accurate, grounded responses. The Retrieval component uses semantic search algorithms (often based on dense embeddings) to query a vector database and fetch the most relevant documents from a knowledge base. The Augmentation component prepares a prompt by combining the user's query with the retrieved context, ensuring the language model has access to relevant information. The Generation component employs a large language model (LLM) to synthesize the information and produce a coherent, contextually accurate response. This architecture significantly reduces hallucinations and improves factual accuracy by grounding responses in retrieved evidence."
+          ],
+          "B": [
+            "RAG systems combine document retrieval with language model generation. The system first searches a knowledge base to find relevant information, then provides this context to an LLM which generates a response. This helps reduce hallucinations by grounding responses in actual source documents."
+          ]
+        }
+      },
+      {
+        "id": "89b839df-07e4-4342-bd06-e3eb6afc4939",
+        "query": "What is the recommended first-line treatment for Type 2 diabetes according to ADA guidelines?",
+        "ground_truth": "According to ADA guidelines, metformin is the recommended first-line pharmacological treatment for Type 2 diabetes, alongside lifestyle modifications including diet and exercise. Metformin is preferred due to its efficacy, safety profile, low cost, and potential cardiovascular benefits.",
+        "bot_responses": {
+          "A": "According to the American Diabetes Association (ADA) guidelines, metformin is the recommended first-line pharmacological treatment for Type 2 diabetes. This recommendation is made in conjunction with lifestyle modifications, including dietary changes and regular exercise. Metformin is preferred because of its proven efficacy in lowering blood glucose, favorable safety profile, affordability, and additional cardiovascular benefits.",
+          "B": "The ADA guidelines recommend metformin as the first-line treatment for Type 2 diabetes, combined with lifestyle changes like diet and exercise. Metformin is chosen for its effectiveness, safety, and low cost."
+        },
+        "bot_contexts": {
+          "A": [
+            "American Diabetes Association Standards of Medical Care: For adults with Type 2 diabetes, metformin should be initiated as first-line pharmacologic therapy alongside lifestyle modifications (medical nutrition therapy and physical activity) unless contraindicated. Metformin is effective in lowering HbA1c levels by 1.0-1.5%, has a long safety record, is weight-neutral or may promote modest weight loss, and has demonstrated cardiovascular benefits in multiple studies. Contraindications include eGFR <30 mL/min/1.73m² and acute metabolic acidosis. Common side effects are gastrointestinal and can be minimized by starting with low doses and titrating gradually. Lifestyle modifications remain foundational, with emphasis on reducing caloric intake and increasing physical activity to at least 150 minutes per week."
+          ],
+          "B": [
+            "Type 2 diabetes management begins with lifestyle interventions and metformin as first-line medication. Metformin lowers blood sugar effectively, is generally well-tolerated, and is cost-effective. Patients should also engage in regular physical activity and follow a balanced diet to manage their condition."
+          ]
+        }
+      },
+      {
+        "id": "e5a0c6e2-2401-42a1-bc50-7eb168b2ba4a",
+        "query": "What was the company's revenue growth rate in Q4 2025?",
+        "ground_truth": "The company's revenue growth rate in Q4 2025 was 23%, representing an increase from $450 million in Q4 2024 to $553.5 million in Q4 2025. This growth was driven primarily by expansion in the cloud services division and new enterprise customer acquisitions.",
+        "bot_responses": {
+          "A": "The company achieved a revenue growth rate of 23% in Q4 2025, with revenues increasing from $450 million in Q4 2024 to $553.5 million in Q4 2025. This strong performance was primarily driven by significant expansion in our cloud services division and successful acquisition of new enterprise customers during the quarter.",
+          "B": "In Q4 2025, the company's revenue growth rate was 23%, increasing from $450 million to $553.5 million year-over-year. This growth was mainly from cloud services and new enterprise clients."
+        },
+        "bot_contexts": {
+          "A": [
+            "Q4 2025 Earnings Report: The company delivered exceptional financial performance in the fourth quarter of 2025, with total revenues reaching $553.5 million compared to $450 million in Q4 2024, representing a year-over-year growth rate of 23%. This robust growth was primarily attributed to the cloud services division, which expanded by 45% year-over-year, and the successful onboarding of 47 new enterprise customers with contracts exceeding $1 million annually. Operating margins improved to 28%, up from 24% in the prior year quarter. Management attributes this success to strategic investments in cloud infrastructure, enhanced product offerings, and effective go-to-market strategies targeting enterprise segments."
+          ],
+          "B": [
+            "The company showed strong financial results in Q4 2025. Revenue increased significantly compared to the previous year, driven by cloud services growth and expansion of the enterprise customer base. The quarter demonstrated successful execution of strategic initiatives."
+          ]
+        }
+      },
+      {
+        "id": "01e60683-d6d3-4361-a17d-d975da5841f2",
+        "query": "How does photosynthesis convert light energy into chemical energy?",
+        "ground_truth": "Photosynthesis converts light energy into chemical energy through two main stages: (1) Light-dependent reactions occur in the thylakoid membranes where chlorophyll absorbs photons, splitting water molecules and producing ATP and NADPH. (2) Light-independent reactions (Calvin cycle) occur in the stroma, where ATP and NADPH are used to convert CO2 into glucose, a stable chemical energy form that plants can store and use.",
+        "bot_responses": {
+          "A": "Photosynthesis converts light energy into chemical energy through two interconnected stages. First, in the light-dependent reactions occurring in the thylakoid membranes, chlorophyll molecules absorb light photons, which triggers the splitting of water molecules (photolysis), releasing oxygen and producing energy-rich molecules ATP and NADPH. Second, in the light-independent reactions (Calvin cycle) taking place in the stroma, these ATP and NADPH molecules are utilized to convert atmospheric CO2 into glucose, a stable form of chemical energy that plants can store and metabolize.",
+          "B": "Photosynthesis has two stages. In light-dependent reactions, chlorophyll in thylakoids absorbs light and splits water to produce ATP and NADPH. In the Calvin cycle in the stroma, CO2 is converted into glucose using the ATP and NADPH, storing energy in chemical form."
+        },
+        "bot_contexts": {
+          "A": [
+            "Photosynthesis: The Process of Energy Conversion: Photosynthesis is the fundamental process by which plants, algae, and some bacteria convert light energy into chemical energy stored in glucose molecules. The process occurs in two main stages within chloroplasts. Stage 1: Light-Dependent Reactions (Light Reactions) take place in the thylakoid membranes. Chlorophyll and other pigments in photosystem II and I absorb photons of light energy. This energy drives the photolysis of water (H2O → 2H+ + 1/2O2 + 2e-), releasing oxygen as a byproduct. The absorbed energy is used to generate ATP through chemiosmosis and NADPH through electron transport chains. Stage 2: Light-Independent Reactions (Calvin Cycle) occur in the stroma of chloroplasts. Using the ATP and NADPH produced in the light reactions, the enzyme RuBisCO catalyzes the fixation of atmospheric CO2 into organic molecules. Through a series of reduction and regeneration steps, the Calvin cycle produces glucose (C6H12O6), a stable form of chemical energy that can be stored as starch or metabolized for cellular respiration."
+          ],
+          "B": [
+            "Photosynthesis is how plants convert sunlight into energy. It happens in chloroplasts and involves light reactions that produce ATP and NADPH, followed by the Calvin cycle where CO2 is turned into glucose. This glucose stores energy for the plant's use."
+          ]
+        }
+      },
+      {
+        "id": "b0dd08da-7d03-42b5-b23d-c2ec5b0eff9d",
+        "query": "What are the key differences between REST and GraphQL APIs?",
+        "ground_truth": "REST APIs use multiple endpoints for different resources with standard HTTP methods (GET, POST, PUT, DELETE), may lead to over-fetching or under-fetching data, and use HTTP caching naturally. GraphQL APIs use a single endpoint with a flexible query language, allow clients to request exactly the data they need in one request, provide strong typing through schemas, but require more complex caching strategies and have a steeper learning curve.",
+        "bot_responses": {
+          "A": "REST and GraphQL APIs differ in several key aspects. REST APIs utilize multiple endpoints to represent different resources, employing standard HTTP methods like GET, POST, PUT, and DELETE. However, this can result in over-fetching or under-fetching data. REST benefits from straightforward HTTP caching mechanisms. In contrast, GraphQL APIs expose a single endpoint with a powerful query language that enables clients to request precisely the data they need in a single request, eliminating over-fetching. GraphQL provides strong typing through schemas and better developer experience, but requires more sophisticated caching strategies and has a steeper initial learning curve compared to REST.",
+          "B": "REST APIs use multiple endpoints for different resources with standard HTTP methods, which can lead to over-fetching or under-fetching data. GraphQL uses a single endpoint where clients can request exactly what they need, has strong typing, but needs more complex caching and is harder to learn initially."
+        },
+        "bot_contexts": {
+          "A": [
+            "REST vs GraphQL: Architectural Comparison: REST (Representational State Transfer) is an architectural style that uses multiple resource-based endpoints (e.g., /users, /posts, /comments). Each endpoint supports standard HTTP methods (GET for retrieval, POST for creation, PUT/PATCH for updates, DELETE for removal). REST APIs often result in over-fetching (receiving more data than needed) or under-fetching (requiring multiple requests to gather all needed data). REST benefits from built-in HTTP caching using headers like ETag and Cache-Control. GraphQL, developed by Facebook, provides a single endpoint (typically /graphql) with a strongly-typed schema definition language. Clients can request exactly the fields they need using a query language, eliminating over-fetching. Multiple resources can be fetched in a single request, solving the under-fetching problem. GraphQL provides introspection capabilities for API exploration and excellent developer tooling. However, GraphQL requires more sophisticated caching strategies (often using Apollo Client or relay), and developers face a steeper learning curve compared to REST. GraphQL is ideal for complex, rapidly evolving APIs with diverse client needs, while REST remains simpler for straightforward CRUD operations."
+          ],
+          "B": [
+            "REST APIs are built around resources with multiple endpoints and HTTP methods. They're simple but can require multiple requests. GraphQL uses one endpoint and lets clients specify exactly what data they want, making it more efficient but more complex to implement."
+          ]
+        }
+      }
+    ]
+  },
+  "evaluation_results": {
+    "per_query_metrics": {
+      "sheet_name": "Per-Query Metrics",
+      "row_count": 10,
+      "columns": [
+        "Query",
+        "Ground Truth",
+        "Bot",
+        "Response",
+        "Context",
+        "RQS",
+        "Answer Correctness",
+        "Faithfulness",
+        "Answer Relevancy",
+        "Context Precision",
+        "Context Recall",
+        "Input Toxicity",
+        "Toxic?",
+        "Empty Context?",
+        "Empty Answer?",
+        "Failure Mode",
+        "Recommendation"
+      ],
+      "data": [
+        {
+          "Query": "What are the three main components of a RAG system?",
+          "Ground Truth": "The three main components of a RAG system are: (1) Retrieval - fetching relevant documents from a knowledge base using semantic search, (2) Augmentation - combining retrieved context with the user query, and (3) Generation - using a language model to produce a response grounded in the retrieved information.",
+          "Bot": "A",
+          "Response": "Based on the documentation, a RAG system consists of three main components: (1) Retrieval - which fetches relevant documents from a knowledge base using semantic search techniques, (2) Augmentation - which combines the retrieved context with the user's query, and (3) Generation - where a language model generates a response that is grounded in the retrieved information. This architecture ensures responses are factually accurate and traceable to source documents.",
+          "Context": "RAG System Architecture: A Retrieval Augmented Generation system integrates three core components to produce accurate, grounded responses. The Retrieval component uses semantic search algorithms (often based on dense embeddings) to query a vector database and fetch the most relevant documents from a knowledge base. The Augmentation component prepares a prompt by combining the user's query with the retrieved context, ensuring the language model has access to relevant information. The Generation component employs a large language model (LLM) to synthesize the information and produce a coherent, contextually accurate response. This architecture significantly reduces hallucinations and improves factual accuracy by grounding responses in retrieved evidence.",
+          "RQS": 0.8499,
+          "Answer Correctness": 0.738997795711372,
+          "Faithfulness": 0.8333333333333334,
+          "Answer Relevancy": 0.9317433050543649,
+          "Context Precision": 0.9999999999,
+          "Context Recall": 1.0,
+          "Input Toxicity": 0,
+          "Toxic?": "No",
+          "Empty Context?": NaN,
+          "Empty Answer?": NaN,
+          "Failure Mode": "OK",
+          "Recommendation": "1. Case 1: Maintain current approach as metrics indicate high-quality performance; no changes needed."
+        },
+        {
+          "Query": "What are the three main components of a RAG system?",
+          "Ground Truth": "The three main components of a RAG system are: (1) Retrieval - fetching relevant documents from a knowledge base using semantic search, (2) Augmentation - combining retrieved context with the user query, and (3) Generation - using a language model to produce a response grounded in the retrieved information.",
+          "Bot": "B",
+          "Response": "A RAG system has three components: retrieval of relevant documents from a knowledge base, augmentation where context is combined with the query, and generation where the language model creates a response based on the retrieved information. This approach helps ensure accurate and grounded responses.",
+          "Context": "RAG systems combine document retrieval with language model generation. The system first searches a knowledge base to find relevant information, then provides this context to an LLM which generates a response. This helps reduce hallucinations by grounding responses in actual source documents.",
+          "RQS": 0.642,
+          "Answer Correctness": 0.6118156843492695,
+          "Faithfulness": 0.4,
+          "Answer Relevancy": 0.8113355432159252,
+          "Context Precision": 0.9999999999,
+          "Context Recall": 0.6666666666666666,
+          "Input Toxicity": 0,
+          "Toxic?": "No",
+          "Empty Context?": NaN,
+          "Empty Answer?": NaN,
+          "Failure Mode": "OK",
+          "Recommendation": "2. Case 2: Improve faithfulness by ensuring augmentation details are accurately sourced and verified."
+        },
+        {
+          "Query": "What is the recommended first-line treatment for Type 2 diabetes according to ADA guidelines?",
+          "Ground Truth": "According to ADA guidelines, metformin is the recommended first-line pharmacological treatment for Type 2 diabetes, alongside lifestyle modifications including diet and exercise. Metformin is preferred due to its efficacy, safety profile, low cost, and potential cardiovascular benefits.",
+          "Bot": "A",
+          "Response": "According to the American Diabetes Association (ADA) guidelines, metformin is the recommended first-line pharmacological treatment for Type 2 diabetes. This recommendation is made in conjunction with lifestyle modifications, including dietary changes and regular exercise. Metformin is preferred because of its proven efficacy in lowering blood glucose, favorable safety profile, affordability, and additional cardiovascular benefits.",
+          "Context": "American Diabetes Association Standards of Medical Care: For adults with Type 2 diabetes, metformin should be initiated as first-line pharmacologic therapy alongside lifestyle modifications (medical nutrition therapy and physical activity) unless contraindicated. Metformin is effective in lowering HbA1c levels by 1.0-1.5%, has a long safety record, is weight-neutral or may promote modest weight loss, and has demonstrated cardiovascular benefits in multiple studies. Contraindications include eGFR <30 mL/min/1.73m² and acute metabolic acidosis. Common side effects are gastrointestinal and can be minimized by starting with low doses and titrating gradually. Lifestyle modifications remain foundational, with emphasis on reducing caloric intake and increasing physical activity to at least 150 minutes per week.",
+          "RQS": 0.9149,
+          "Answer Correctness": 0.997348632616855,
+          "Faithfulness": 0.875,
+          "Answer Relevancy": 0.9381265516695791,
+          "Context Precision": 0.9999999999,
+          "Context Recall": 0.5,
+          "Input Toxicity": 0,
+          "Toxic?": "No",
+          "Empty Context?": NaN,
+          "Empty Answer?": NaN,
+          "Failure Mode": "OK",
+          "Recommendation": "3. Case 3: Enhance context recall by retrieving more comprehensive ADA guideline details to support the response."
+        },
+        {
+          "Query": "What is the recommended first-line treatment for Type 2 diabetes according to ADA guidelines?",
+          "Ground Truth": "According to ADA guidelines, metformin is the recommended first-line pharmacological treatment for Type 2 diabetes, alongside lifestyle modifications including diet and exercise. Metformin is preferred due to its efficacy, safety profile, low cost, and potential cardiovascular benefits.",
+          "Bot": "B",
+          "Response": "The ADA guidelines recommend metformin as the first-line treatment for Type 2 diabetes, combined with lifestyle changes like diet and exercise. Metformin is chosen for its effectiveness, safety, and low cost.",
+          "Context": "Type 2 diabetes management begins with lifestyle interventions and metformin as first-line medication. Metformin lowers blood sugar effectively, is generally well-tolerated, and is cost-effective. Patients should also engage in regular physical activity and follow a balanced diet to manage their condition.",
+          "RQS": 0.8249,
+          "Answer Correctness": 0.9242291288208553,
+          "Faithfulness": 0.6,
+          "Answer Relevancy": 0.9557082117555946,
+          "Context Precision": 0.9999999999,
+          "Context Recall": 0.5,
+          "Input Toxicity": 0,
+          "Toxic?": "No",
+          "Empty Context?": NaN,
+          "Empty Answer?": NaN,
+          "Failure Mode": "OK",
+          "Recommendation": "4. Case 4: Focus on improving faithfulness by verifying and explicitly citing ADA guideline recommendations."
+        },
+        {
+          "Query": "What was the company's revenue growth rate in Q4 2025?",
+          "Ground Truth": "The company's revenue growth rate in Q4 2025 was 23%, representing an increase from $450 million in Q4 2024 to $553.5 million in Q4 2025. This growth was driven primarily by expansion in the cloud services division and new enterprise customer acquisitions.",
+          "Bot": "A",
+          "Response": "The company achieved a revenue growth rate of 23% in Q4 2025, with revenues increasing from $450 million in Q4 2024 to $553.5 million in Q4 2025. This strong performance was primarily driven by significant expansion in our cloud services division and successful acquisition of new enterprise customers during the quarter.",
+          "Context": "Q4 2025 Earnings Report: The company delivered exceptional financial performance in the fourth quarter of 2025, with total revenues reaching $553.5 million compared to $450 million in Q4 2024, representing a year-over-year growth rate of 23%. This robust growth was primarily attributed to the cloud services division, which expanded by 45% year-over-year, and the successful onboarding of 47 new enterprise customers with contracts exceeding $1 million annually. Operating margins improved to 28%, up from 24% in the prior year quarter. Management attributes this success to strategic investments in cloud infrastructure, enhanced product offerings, and effective go-to-market strategies targeting enterprise segments.",
+          "RQS": 0.9865,
+          "Answer Correctness": 0.9926911350710628,
+          "Faithfulness": 1.0,
+          "Answer Relevancy": 0.9561601677567813,
+          "Context Precision": 0.9999999999,
+          "Context Recall": 1.0,
+          "Input Toxicity": 0,
+          "Toxic?": "No",
+          "Empty Context?": NaN,
+          "Empty Answer?": NaN,
+          "Failure Mode": "OK",
+          "Recommendation": "5. Case 5: No action required as the response is accurate and metrics are optimal."
+        },
+        {
+          "Query": "What was the company's revenue growth rate in Q4 2025?",
+          "Ground Truth": "The company's revenue growth rate in Q4 2025 was 23%, representing an increase from $450 million in Q4 2024 to $553.5 million in Q4 2025. This growth was driven primarily by expansion in the cloud services division and new enterprise customer acquisitions.",
+          "Bot": "B",
+          "Response": "In Q4 2025, the company's revenue growth rate was 23%, increasing from $450 million to $553.5 million year-over-year. This growth was mainly from cloud services and new enterprise clients.",
+          "Context": "The company showed strong financial results in Q4 2025. Revenue increased significantly compared to the previous year, driven by cloud services growth and expansion of the enterprise customer base. The quarter demonstrated successful execution of strategic initiatives.",
+          "RQS": 0.7524,
+          "Answer Correctness": 0.9878103436462117,
+          "Faithfulness": 0.5,
+          "Answer Relevancy": 0.9767493627542345,
+          "Context Precision": 0.0,
+          "Context Recall": 0.5,
+          "Input Toxicity": 0,
+          "Toxic?": "No",
+          "Empty Context?": NaN,
+          "Empty Answer?": NaN,
+          "Failure Mode": "OK",
+          "Recommendation": "Improve faithfulness by ensuring the response is grounded in verified data sources, as context precision and recall are low."
+        },
+        {
+          "Query": "How does photosynthesis convert light energy into chemical energy?",
+          "Ground Truth": "Photosynthesis converts light energy into chemical energy through two main stages: (1) Light-dependent reactions occur in the thylakoid membranes where chlorophyll absorbs photons, splitting water molecules and producing ATP and NADPH. (2) Light-independent reactions (Calvin cycle) occur in the stroma, where ATP and NADPH are used to convert CO2 into glucose, a stable chemical energy form that plants can store and use.",
+          "Bot": "A",
+          "Response": "Photosynthesis converts light energy into chemical energy through two interconnected stages. First, in the light-dependent reactions occurring in the thylakoid membranes, chlorophyll molecules absorb light photons, which triggers the splitting of water molecules (photolysis), releasing oxygen and producing energy-rich molecules ATP and NADPH. Second, in the light-independent reactions (Calvin cycle) taking place in the stroma, these ATP and NADPH molecules are utilized to convert atmospheric CO2 into glucose, a stable form of chemical energy that plants can store and metabolize.",
+          "Context": "Photosynthesis: The Process of Energy Conversion: Photosynthesis is the fundamental process by which plants, algae, and some bacteria convert light energy into chemical energy stored in glucose molecules. The process occurs in two main stages within chloroplasts. Stage 1: Light-Dependent Reactions (Light Reactions) take place in the thylakoid membranes. Chlorophyll and other pigments in photosystem II and I absorb photons of light energy. This energy drives the photolysis of water (H2O → 2H+ + 1/2O2 + 2e-), releasing oxygen as a byproduct. The absorbed energy is used to generate ATP through chemiosmosis and NADPH through electron transport chains. Stage 2: Light-Independent Reactions (Calvin Cycle) occur in the stroma of chloroplasts. Using the ATP and NADPH produced in the light reactions, the enzyme RuBisCO catalyzes the fixation of atmospheric CO2 into organic molecules. Through a series of reduction and regeneration steps, the Calvin cycle produces glucose (C6H12O6), a stable form of chemical energy that can be stored as starch or metabolized for cellular respiration.",
+          "RQS": 0.9655,
+          "Answer Correctness": 0.9907393230852651,
+          "Faithfulness": 0.875,
+          "Answer Relevancy": 0.9999999999998069,
+          "Context Precision": 0.9999999999,
+          "Context Recall": 1.0,
+          "Input Toxicity": 0,
+          "Toxic?": "No",
+          "Empty Context?": NaN,
+          "Empty Answer?": NaN,
+          "Failure Mode": "OK",
+          "Recommendation": "Maintain current approach as metrics indicate high response quality and alignment with the query."
+        },
+        {
+          "Query": "How does photosynthesis convert light energy into chemical energy?",
+          "Ground Truth": "Photosynthesis converts light energy into chemical energy through two main stages: (1) Light-dependent reactions occur in the thylakoid membranes where chlorophyll absorbs photons, splitting water molecules and producing ATP and NADPH. (2) Light-independent reactions (Calvin cycle) occur in the stroma, where ATP and NADPH are used to convert CO2 into glucose, a stable chemical energy form that plants can store and use.",
+          "Bot": "B",
+          "Response": "Photosynthesis has two stages. In light-dependent reactions, chlorophyll in thylakoids absorbs light and splits water to produce ATP and NADPH. In the Calvin cycle in the stroma, CO2 is converted into glucose using the ATP and NADPH, storing energy in chemical form.",
+          "Context": "Photosynthesis is how plants convert sunlight into energy. It happens in chloroplasts and involves light reactions that produce ATP and NADPH, followed by the Calvin cycle where CO2 is turned into glucose. This glucose stores energy for the plant's use.",
+          "RQS": 0.5736,
+          "Answer Correctness": 0.7362944044892412,
+          "Faithfulness": 0.3333333333333333,
+          "Answer Relevancy": 0.630191377890506,
+          "Context Precision": 0.9999999999,
+          "Context Recall": 0.0,
+          "Input Toxicity": 0,
+          "Toxic?": "No",
+          "Empty Context?": NaN,
+          "Empty Answer?": NaN,
+          "Failure Mode": "OK",
+          "Recommendation": "Enhance faithfulness and answer relevancy by incorporating accurate and complete context from reliable sources."
+        },
+        {
+          "Query": "What are the key differences between REST and GraphQL APIs?",
+          "Ground Truth": "REST APIs use multiple endpoints for different resources with standard HTTP methods (GET, POST, PUT, DELETE), may lead to over-fetching or under-fetching data, and use HTTP caching naturally. GraphQL APIs use a single endpoint with a flexible query language, allow clients to request exactly the data they need in one request, provide strong typing through schemas, but require more complex caching strategies and have a steeper learning curve.",
+          "Bot": "A",
+          "Response": "REST and GraphQL APIs differ in several key aspects. REST APIs utilize multiple endpoints to represent different resources, employing standard HTTP methods like GET, POST, PUT, and DELETE. However, this can result in over-fetching or under-fetching data. REST benefits from straightforward HTTP caching mechanisms. In contrast, GraphQL APIs expose a single endpoint with a powerful query language that enables clients to request precisely the data they need in a single request, eliminating over-fetching. GraphQL provides strong typing through schemas and better developer experience, but requires more sophisticated caching strategies and has a steeper initial learning curve compared to REST.",
+          "Context": "REST vs GraphQL: Architectural Comparison: REST (Representational State Transfer) is an architectural style that uses multiple resource-based endpoints (e.g., /users, /posts, /comments). Each endpoint supports standard HTTP methods (GET for retrieval, POST for creation, PUT/PATCH for updates, DELETE for removal). REST APIs often result in over-fetching (receiving more data than needed) or under-fetching (requiring multiple requests to gather all needed data). REST benefits from built-in HTTP caching using headers like ETag and Cache-Control. GraphQL, developed by Facebook, provides a single endpoint (typically /graphql) with a strongly-typed schema definition language. Clients can request exactly the fields they need using a query language, eliminating over-fetching. Multiple resources can be fetched in a single request, solving the under-fetching problem. GraphQL provides introspection capabilities for API exploration and excellent developer tooling. However, GraphQL requires more sophisticated caching strategies (often using Apollo Client or relay), and developers face a steeper learning curve compared to REST. GraphQL is ideal for complex, rapidly evolving APIs with diverse client needs, while REST remains simpler for straightforward CRUD operations.",
+          "RQS": 0.9414,
+          "Answer Correctness": 0.9086068619505098,
+          "Faithfulness": 0.9166666666666666,
+          "Answer Relevancy": 0.9767575032384632,
+          "Context Precision": 0.9999999999,
+          "Context Recall": 1.0,
+          "Input Toxicity": 0,
+          "Toxic?": "No",
+          "Empty Context?": NaN,
+          "Empty Answer?": NaN,
+          "Failure Mode": "OK",
+          "Recommendation": "No changes needed; response quality and faithfulness are strong."
+        },
+        {
+          "Query": "What are the key differences between REST and GraphQL APIs?",
+          "Ground Truth": "REST APIs use multiple endpoints for different resources with standard HTTP methods (GET, POST, PUT, DELETE), may lead to over-fetching or under-fetching data, and use HTTP caching naturally. GraphQL APIs use a single endpoint with a flexible query language, allow clients to request exactly the data they need in one request, provide strong typing through schemas, but require more complex caching strategies and have a steeper learning curve.",
+          "Bot": "B",
+          "Response": "REST APIs use multiple endpoints for different resources with standard HTTP methods, which can lead to over-fetching or under-fetching data. GraphQL uses a single endpoint where clients can request exactly what they need, has strong typing, but needs more complex caching and is harder to learn initially.",
+          "Context": "REST APIs are built around resources with multiple endpoints and HTTP methods. They're simple but can require multiple requests. GraphQL uses one endpoint and lets clients specify exactly what data they want, making it more efficient but more complex to implement.",
+          "RQS": 0.7075,
+          "Answer Correctness": 0.896307038216063,
+          "Faithfulness": 0.2857142857142857,
+          "Answer Relevancy": 0.9893446770245027,
+          "Context Precision": 0.9999999999,
+          "Context Recall": 0.0,
+          "Input Toxicity": 0,
+          "Toxic?": "No",
+          "Empty Context?": NaN,
+          "Empty Answer?": NaN,
+          "Failure Mode": "Hallucination",
+          "Recommendation": "Address hallucination by strictly grounding responses in authoritative context and improving recall mechanisms."
+        }
+      ]
+    },
+    "bot_summary": {
+      "sheet_name": "Bot Summary",
+      "row_count": 2,
+      "columns": [
+        "Bot",
+        "Avg RQS",
+        "Answer Correctness",
+        "Faithfulness",
+        "Answer Relevancy",
+        "Context Precision",
+        "Context Recall",
+        "Avg Input Toxicity",
+        "Toxic Queries",
+        "Total Queries",
+        "Retrieval Failures",
+        "Hallucinations",
+        "Low Quality",
+        "Empty Contexts",
+        "Empty Answers"
+      ],
+      "data": [
+        {
+          "Bot": "A",
+          "Avg RQS": 0.9316,
+          "Answer Correctness": 0.9257,
+          "Faithfulness": 0.9,
+          "Answer Relevancy": 0.9606,
+          "Context Precision": 1.0,
+          "Context Recall": 0.9,
+          "Avg Input Toxicity": 0,
+          "Toxic Queries": 0,
+          "Total Queries": 5,
+          "Retrieval Failures": 0,
+          "Hallucinations": 0,
+          "Low Quality": 0,
+          "Empty Contexts": 0,
+          "Empty Answers": 0
+        },
+        {
+          "Bot": "B",
+          "Avg RQS": 0.7001,
+          "Answer Correctness": 0.8313,
+          "Faithfulness": 0.4238,
+          "Answer Relevancy": 0.8727,
+          "Context Precision": 0.8,
+          "Context Recall": 0.3333,
+          "Avg Input Toxicity": 0,
+          "Toxic Queries": 0,
+          "Total Queries": 5,
+          "Retrieval Failures": 0,
+          "Hallucinations": 1,
+          "Low Quality": 0,
+          "Empty Contexts": 0,
+          "Empty Answers": 0
+        }
+      ]
+    },
+    "leaderboard": {
+      "sheet_name": "Leaderboard",
+      "row_count": 2,
+      "columns": [
+        "Rank",
+        "Bot",
+        "Avg RQS",
+        "RQS StdDev",
+        "Answer Correctness",
+        "Faithfulness",
+        "Faithfulness StdDev",
+        "Answer Relevancy",
+        "Context Precision",
+        "Context Recall",
+        "Winner"
+      ],
+      "data": [
+        {
+          "Rank": 1,
+          "Bot": "A",
+          "Avg RQS": 0.9316,
+          "RQS StdDev": 0.0474,
+          "Answer Correctness": 0.9257,
+          "Faithfulness": 0.9,
+          "Faithfulness StdDev": 0.0565,
+          "Answer Relevancy": 0.9606,
+          "Context Precision": 1.0,
+          "Context Recall": 0.9,
+          "Winner": "★"
+        },
+        {
+          "Rank": 2,
+          "Bot": "B",
+          "Avg RQS": 0.7001,
+          "RQS StdDev": 0.0869,
+          "Answer Correctness": 0.8313,
+          "Faithfulness": 0.4238,
+          "Faithfulness StdDev": 0.1137,
+          "Answer Relevancy": 0.8727,
+          "Context Precision": 0.8,
+          "Context Recall": 0.3333,
+          "Winner": null
+        }
+      ]
+    }
+  },
+  "configuration": {
+    "config_ini": {
+      "azure": {
+        "endpoint": "",
+        "api_key": "",
+        "api_version": "2024-12-01-preview",
+        "deployment": "gpt-4o",
+        "temperature": "0.0"
+      },
+      "embeddings": {
+        "mode": "local",
+        "embeddings_deployment": "text-embedding-ada-002"
+      },
+      "weights": {
+        "answer_correctness": "0.35",
+        "faithfulness": "0.25",
+        "answer_relevancy": "0.25",
+        "context_precision": "0.075",
+        "context_recall": "0.075"
+      },
+      "metrics": {
+        "faithfulness": "true",
+        "answer_relevancy": "true",
+        "context_precision": "true",
+        "context_recall": "true",
+        "answer_correctness": "true",
+        "toxicity": "true"
+      },
+      "thresholds": {
+        "faithfulness": "0.3",
+        "answer_relevancy": "0.3",
+        "context_precision": "0.3",
+        "context_recall": "0.3",
+        "answer_correctness": "0.3"
+      },
+      "toxicity": {
+        "threshold": "0.5",
+        "deployment": ""
+      },
+      "context": {
+        "delimiter": "auto"
+      },
+      "bots": {
+        "strip_prefix": "Bot_"
+      },
+      "diagnostics": {
+        "enabled": "true"
+      },
+      "cache": {
+        "enabled": "false",
+        "directory": ".nexus_cache"
+      },
+      "evaluation": {
+        "max_rows": "200",
+        "parallel": "true",
+        "max_workers": "2"
+      }
+    }
+  },
+  "summary": {
+    "total_bots": 2,
+    "total_queries": 5,
+    "winner": "A",
+    "top_rqs": 0.9316,
+    "evaluation_time_seconds": 134.09577417373657,
+    "bots": {
+      "A": {
+        "avg_rqs": 0.9316,
+        "answer_correctness": 0.9257,
+        "faithfulness": 0.9,
+        "answer_relevancy": 0.9606,
+        "context_precision": 1.0,
+        "context_recall": 0.9,
+        "total_queries": 5,
+        "retrieval_failures": 0,
+        "hallucinations": 0,
+        "low_quality": 0,
+        "toxic_queries": 0
+      },
+      "B": {
+        "avg_rqs": 0.7001,
+        "answer_correctness": 0.8313,
+        "faithfulness": 0.4238,
+        "answer_relevancy": 0.8727,
+        "context_precision": 0.8,
+        "context_recall": 0.3333,
+        "total_queries": 5,
+        "retrieval_failures": 0,
+        "hallucinations": 1,
+        "low_quality": 0,
+        "toxic_queries": 0
+      }
+    }
+  }
+}
