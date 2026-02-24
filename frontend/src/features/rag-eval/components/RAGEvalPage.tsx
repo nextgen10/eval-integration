@@ -64,7 +64,6 @@ import {
   Search,
   Filter,
   ArrowUpRight,
-  Terminal as TerminalIcon,
   Zap,
   Cpu,
   ShieldCheck,
@@ -117,11 +116,7 @@ import { ChartContainer } from '@/components/shared/ChartContainer';
 import { PrintOnlyReport } from '@/components/Reports/PrintOnlyReport';
 import { PaginationControl } from '@/components/Common/PaginationControl';
 import { nexusTheme } from '@/theme';
-import { UnifiedNavBar } from '@/components/UnifiedNavBar';
 import { UbsLogo } from '@/components/UbsLogo';
-import ThemeToggle from '@/components/ThemeToggle';
-import { useAuth } from '@/contexts/AuthContext';
-import AppIdentityBadge from '@/components/AppIdentityBadge';
 
 const theme = nexusTheme;
 
@@ -223,7 +218,6 @@ function EnterpriseDashboardContent() {
   });
   const [isExporting, setIsExporting] = useState(false);
   const router = useRouter();
-  const { session } = useAuth();
   const [activeView, setActiveView] = useState(() => {
     // Initialize from URL if available
     if (typeof window !== 'undefined') {
@@ -645,52 +639,7 @@ function EnterpriseDashboardContent() {
       <Suspense fallback={null}>
         <SearchParamsHandler onViewChange={handleViewChangeFromUrl} />
       </Suspense>
-      <Box className="main-ui-container" sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', bgcolor: 'background.default', color: 'text.primary' }}>
-
-        {/* Unified Navigation Bar */}
-        <UnifiedNavBar title="RAG EVAL"
-          items={[
-            { id: 'insights', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
-            { id: 'drilldown', label: 'Experiments', icon: <Activity size={16} /> },
-            { id: 'history', label: 'History', icon: <History size={16} /> },
-            { id: 'config', label: 'Configuration', icon: <Settings size={16} /> },
-          ].map(item => ({
-            ...item,
-            active: activeView === item.id,
-            onClick: () => handleViewChange(item.id)
-          }))}
-          onLogoClick={() => router.push('/')}
-          actions={
-            <>
-              {activeView === 'insights' && (
-                <Tooltip title={`Export current view as ${config.exportFormat}`}>
-                  <IconButton
-                    onClick={handleExport}
-                    disabled={!data || isExporting}
-                    color="primary"
-                    sx={{ border: '1px solid', borderColor: 'divider' }}
-                  >
-                    {isExporting ? <CircularProgress size={18} color="inherit" /> : <Download size={18} />}
-                  </IconButton>
-                </Tooltip>
-              )}
-
-              {activeView === 'insights' && (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<UploadCloud size={16} />}
-                  component="label"
-                >
-                  Evaluate
-                  <input type="file" accept=".xlsx,.xls" hidden onChange={handleFileUpload} />
-                </Button>
-              )}
-              {session && <AppIdentityBadge appName={session.app_name} appId={session.app_id} />}
-              <ThemeToggle />
-            </>
-          }
-        />
+      <Box className="main-ui-container" sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden', bgcolor: 'background.default', color: 'text.primary' }}>
 
         {/* Main Content Area - matches landing page margins (px: 3 = 24px) */}
         <Box component="main" sx={{
@@ -721,6 +670,21 @@ function EnterpriseDashboardContent() {
                       activeView === 'about' ? 'Detailed breakdown of organizational RAG scoring benchmarks.' : 'System settings and preferences.'}
               </Typography>
             </Box>
+
+            {activeView === 'insights' && data && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Chip
+                  label={`BATCH LOAD: ${data?.test_cases?.length || 0} QUESTIONS`}
+                  sx={{
+                    bgcolor: (t: any) => alpha(t.palette.primary.main, 0.08),
+                    color: 'primary.main',
+                    fontWeight: 800,
+                    fontSize: '0.65rem',
+                    border: (t: any) => `1px solid ${alpha(t.palette.primary.main, 0.3)}`,
+                  }}
+                />
+              </Box>
+            )}
 
             {activeView === 'history' && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -786,16 +750,6 @@ function EnterpriseDashboardContent() {
                   />
                 )}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Chip
-                    label={`BATCH LOAD: ${data?.test_cases?.length || 0} QUESTIONS`}
-                    sx={{
-                      bgcolor: (t: any) => alpha(t.palette.primary.main, 0.08),
-                      color: 'primary.main',
-                      fontWeight: 800,
-                      fontSize: '0.65rem',
-                      border: (t: any) => `1px solid ${alpha(t.palette.primary.main, 0.3)}`,
-                    }}
-                  />
                   {drilldownSearch && (
                     <Typography variant="caption" sx={{ color: 'secondary.main', fontWeight: 800, letterSpacing: 1 }}>
                       FILTERED: {filteredTestCases.length} / {data.test_cases.length}
@@ -824,6 +778,16 @@ function EnterpriseDashboardContent() {
                       }}
                     />
                   </Box>
+                  <Chip
+                    label={`BATCH LOAD: ${data?.test_cases?.length || 0} QUESTIONS`}
+                    sx={{
+                      bgcolor: (t: any) => alpha(t.palette.primary.main, 0.08),
+                      color: 'primary.main',
+                      fontWeight: 800,
+                      fontSize: '0.65rem',
+                      border: (t: any) => `1px solid ${alpha(t.palette.primary.main, 0.3)}`,
+                    }}
+                  />
                 </Box>
               </Box>
             )}
@@ -880,9 +844,9 @@ function EnterpriseDashboardContent() {
                 <Box sx={{ height: ['about', 'history', 'config'].includes(activeView) ? '100%' : 'auto' }}>
                   {/* Dashboard View */}
                   {activeView === 'insights' && data && (
-                    <Grid container spacing={2} columns={12}>
+                    <Grid container spacing={1.5} columns={12}>
                       {/* Score Cards - Row 1 */}
-                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Grid size={{ xs: 6, sm: 6, md: 3 }}>
                         <MetricCard
                           label="Highest RQS"
                           value={winner?.id}
@@ -891,16 +855,16 @@ function EnterpriseDashboardContent() {
                           trend={trends.rqs}
                         />
                       </Grid>
-                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Grid size={{ xs: 6, sm: 6, md: 3 }}>
                         <MetricCard
                           label="Best Answer Correctness"
                           value={`${((winner?.gt_alignment || 0) * 100).toFixed(0)}%`}
-                          icon={<CheckCircle2 size={24} />}
+                          icon={<Target size={24} />}
                           subtitle="Peak GT consistency"
                           trend={trends.correctness}
                         />
                       </Grid>
-                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Grid size={{ xs: 6, sm: 6, md: 3 }}>
                         <MetricCard
                           label="Best Faithfulness"
                           value={`${((winner?.avg_faithfulness || 0) * 100).toFixed(0)}%`}
@@ -909,27 +873,27 @@ function EnterpriseDashboardContent() {
                           trend={trends.faithfulness}
                         />
                       </Grid>
-                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Grid size={{ xs: 6, sm: 6, md: 3 }}>
                         <MetricCard
                           label="Best Relevancy"
                           value={`${((winner?.avg_relevancy || 0) * 100).toFixed(0)}%`}
-                          icon={<AlignLeft size={24} />}
+                          icon={<Compass size={24} />}
                           subtitle="Intent accuracy (Top Model)"
                           trend={trends.relevancy}
                         />
                       </Grid>
 
                       {/* Score Cards - Row 2 */}
-                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Grid size={{ xs: 6, sm: 6, md: 3 }}>
                         <MetricCard
                           label="Max Context Prec."
                           value={`${((winner?.avg_context_precision || 0) * 100).toFixed(0)}%`}
-                          icon={<Cpu size={24} />}
+                          icon={<Zap size={24} />}
                           subtitle="Retrieval Signal-to-Noise"
                           trend={trends.precision}
                         />
                       </Grid>
-                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Grid size={{ xs: 6, sm: 6, md: 3 }}>
                         <MetricCard
                           label="Max Context Recall"
                           value={`${((winner?.retrieval_success || 0) * 100).toFixed(0)}%`}
@@ -938,7 +902,7 @@ function EnterpriseDashboardContent() {
                           trend={trends.recall}
                         />
                       </Grid>
-                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Grid size={{ xs: 6, sm: 6, md: 3 }}>
                         <MetricCard
                           label="Hallucination Rate"
                           value={`${((1 - (winner?.avg_faithfulness || 0)) * 100).toFixed(0)}%`}
@@ -946,12 +910,12 @@ function EnterpriseDashboardContent() {
                           subtitle="Safety Risk Assessment"
                         />
                       </Grid>
-                      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Grid size={{ xs: 6, sm: 6, md: 3 }}>
                         <MetricCard
-                          label="Total Questions"
-                          value={data?.test_cases?.length || 0}
-                          icon={<Target size={24} />}
-                          subtitle="Total Evaluation Volume"
+                          label="Toxicity Score"
+                          value={`${((winner?.avg_toxicity || 0) * 100).toFixed(1)}%`}
+                          icon={<Shield size={24} />}
+                          subtitle="Content Safety (Lower is Better)"
                         />
                       </Grid>
 
@@ -1068,6 +1032,7 @@ function EnterpriseDashboardContent() {
                                 <TableCell sx={{ fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>Answer Relevancy</TableCell>
                                 <TableCell sx={{ fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>Context Precision</TableCell>
                                 <TableCell sx={{ fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>Context Recall</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>Toxicity</TableCell>
                                 <TableCell align="right" sx={{ fontWeight: 800, color: 'text.secondary', fontSize: '0.75rem', textTransform: 'uppercase', borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>Analysis</TableCell>
                               </TableRow>
                             </TableHead>
@@ -1108,6 +1073,9 @@ function EnterpriseDashboardContent() {
                                   <TableCell sx={{ borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>{(row.avg_relevancy * 100).toFixed(1)}%</TableCell>
                                   <TableCell sx={{ borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>{(row.avg_context_precision * 100).toFixed(1)}%</TableCell>
                                   <TableCell sx={{ borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>{(row.retrieval_success * 100).toFixed(1)}%</TableCell>
+                                  <TableCell sx={{ borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>
+                                    {((row.avg_toxicity || 0) * 100).toFixed(2)}%
+                                  </TableCell>
                                   <TableCell align="right" sx={{ borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>
                                     <Tooltip title="View Detailed Analysis" arrow>
                                       <IconButton

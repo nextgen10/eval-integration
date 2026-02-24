@@ -3,7 +3,7 @@
 RAG Eval — Standalone CLI Utility
 ========================================
 Version: 1.3.0
-Author: Nexus Eval Team
+Author: Qualaris Team
 License: MIT
 
 Evaluates RAG pipelines using RAGAS metrics + LLM-based input toxicity detection.

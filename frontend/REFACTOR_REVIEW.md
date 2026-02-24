@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The Nexus Eval frontend has **two parallel app structures** (agent-eval, rag-eval) with inconsistent design systems, duplicated/conflicting code, and structural coupling. This document outlines findings and the refactoring plan.
+The Qualaris frontend has **two parallel app structures** (agent-eval, rag-eval) with inconsistent design systems, duplicated/conflicting code, and structural coupling. This document outlines findings and the refactoring plan.
 
 ---
 

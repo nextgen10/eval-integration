@@ -1,6 +1,6 @@
 /**
  * Wrapper around fetch() that automatically injects the X-API-Key header
- * from the active Nexus Eval session stored in localStorage.
+ * from the active Qualaris session stored in localStorage.
  * Handles 401 responses by clearing the session and redirecting to /login.
  */
 

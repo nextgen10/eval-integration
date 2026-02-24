@@ -437,7 +437,10 @@ async def evaluate_from_paths(request: BatchPathRequest, app: Dict = Depends(get
 
 @router.get("/prompts")
 async def list_prompts():
-    return get_all_prompts()
+    # Agent Eval should only expose agent-specific prompts
+    # (exclude RAG prompt files prefixed with "rag_").
+    prompts = get_all_prompts()
+    return [p for p in prompts if not str(p.get("prompt_key", "")).startswith("rag_")]
 
 
 @router.get("/prompts/{prompt_key}")

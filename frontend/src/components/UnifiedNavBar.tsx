@@ -42,6 +42,47 @@ export const UnifiedNavBar: React.FC<UnifiedNavBarProps> = ({
         const evalIdx = parts.findIndex(p => p.toUpperCase() === 'EVAL');
         const lastWord = parts[parts.length - 1].toUpperCase();
         const titleSx = { fontWeight: 600, letterSpacing: '-0.01em', color: 'text.primary', whiteSpace: 'nowrap', fontSize: { xs: '0.95rem', md: '1.125rem' } };
+        const isQualaris = titleStr.toUpperCase() === 'QUALARIS';
+
+        if (isQualaris) {
+            return (
+                <Typography variant="h6" sx={titleSx}>
+                    {titleStr.split('').map((char, idx) => (
+                        <React.Fragment key={`${char}-${idx}`}>
+                            <Box
+                                component="span"
+                                sx={{
+                                    display: 'inline-block',
+                                    color: idx % 2 === 0 ? 'primary.main' : 'text.primary',
+                                    '@keyframes qualarisWave': {
+                                        '0%, 100%': { transform: 'translateY(0px)', opacity: 0.95 },
+                                        '50%': { transform: 'translateY(-1.5px)', opacity: 1 },
+                                    },
+                                    animation: 'qualarisWave 1.6s ease-in-out infinite',
+                                    animationDelay: `${idx * 0.08}s`,
+                                }}
+                            >
+                                {char}
+                            </Box>
+                            {idx < titleStr.length - 1 && (
+                                <Box
+                                    component="span"
+                                    sx={{
+                                        display: 'inline-block',
+                                        mx: 0.18,
+                                        color: idx % 2 === 0 ? 'text.primary' : 'primary.main',
+                                        opacity: 0.85,
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    &middot;
+                                </Box>
+                            )}
+                        </React.Fragment>
+                    ))}
+                </Typography>
+            );
+        }
 
         if (evalIdx >= 0 && evalIdx < parts.length - 1) {
             const mainPart = parts.slice(0, evalIdx).join(' ');
@@ -102,9 +143,10 @@ export const UnifiedNavBar: React.FC<UnifiedNavBarProps> = ({
                                     variant="text"
                                     sx={{
                                         px: 2, py: 1, borderRadius: 1, fontSize: '0.875rem',
+                                        minWidth: 118,
                                         color: item.active ? 'primary.main' : 'text.secondary',
                                         bgcolor: item.active ? (isLight ? '#FFE5E5' : alpha(theme.palette.primary.main, 0.12)) : 'transparent',
-                                        fontWeight: item.active ? 600 : 500,
+                                        fontWeight: 600,
                                         '&:hover': {
                                             color: 'primary.main',
                                             bgcolor: isLight ? 'rgba(208,0,0,0.06)' : alpha(theme.palette.primary.main, 0.08),

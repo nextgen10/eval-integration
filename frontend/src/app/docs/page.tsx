@@ -75,7 +75,7 @@ export default function DocumentationPage() {
                 pb: 10
             }}>
                 <UnifiedNavBar
-                    title="NEXUS EVAL"
+                    title="QUALARIS"
                     items={[
                         { id: 'platforms', label: 'Platforms', onClick: () => document.getElementById('overview')?.scrollIntoView({ behavior: 'smooth' }) },
                         { id: 'solutions', label: 'Solutions', onClick: () => document.getElementById('agent-eval')?.scrollIntoView({ behavior: 'smooth' }) },
@@ -112,7 +112,7 @@ export default function DocumentationPage() {
                                 Platform <Box component="span" sx={{ color: 'primary.main' }}>Documentation</Box>
                             </Typography>
                             <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem', maxWidth: 800, mx: 'auto' }}>
-                                The definitive guide to Nexus Eval&apos;s metrics, models, and evaluation frameworks for RAG and Autonomous Agents.
+                                The definitive guide to Qualaris&apos;s metrics, models, and evaluation frameworks for RAG and Autonomous Agents.
                             </Typography>
                         </motion.div>
                     </Box>
@@ -155,7 +155,7 @@ export default function DocumentationPage() {
                                 <Box id="overview" sx={{ scrollMarginTop: '80px' }}>
                                     <SectionHeader icon={<Layers size={24} />} title="Overview" />
                                     <Typography variant="body1" paragraph color="text.secondary">
-                                        Nexus Eval is an enterprise-grade evaluation suite for benchmarking Large Language Model applications.
+                                        Qualaris is an enterprise-grade evaluation suite for benchmarking Large Language Model applications.
                                         It provides two primary evaluation frameworks:
                                     </Typography>
                                     <Grid container spacing={2}>
@@ -350,7 +350,7 @@ export default function DocumentationPage() {
                                 <Box id="api-as-a-service" sx={{ scrollMarginTop: '80px' }}>
                                     <SectionHeader icon={<Cloud size={24} />} title="API as a Service" />
                                     <Typography variant="body1" paragraph color="text.secondary">
-                                        Nexus Eval is designed to be consumed as a <strong>multi-tenant evaluation service</strong> by any team in your organization.
+                                        Qualaris is designed to be consumed as a <strong>multi-tenant evaluation service</strong> by any team in your organization.
                                         Each application gets its own isolated environment — evaluations, history, and feedback are scoped to the registered app.
                                     </Typography>
                                     <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -361,7 +361,7 @@ export default function DocumentationPage() {
                                             <DocCard title="Data Isolation" icon={<Lock size={20} />} content="Each API key scopes all data access. Your evaluations, history, and feedback are completely isolated from other applications." />
                                         </Grid>
                                         <Grid size={{ xs: 12, sm: 4 }}>
-                                            <DocCard title="Multi-Team" icon={<Users size={20} />} content="Multiple teams can use the same Nexus Eval instance. Each team registers their app and sees only their data through the dashboard or API." />
+                                            <DocCard title="Multi-Team" icon={<Users size={20} />} content="Multiple teams can use the same Qualaris instance. Each team registers their app and sees only their data through the dashboard or API." />
                                         </Grid>
                                     </Grid>
 

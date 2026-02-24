@@ -98,8 +98,9 @@ class RagEvaluator:
         return hashlib.sha256(dump.encode()).hexdigest()
 
     async def _evaluate_bot(self, bid: str, dataset: List[TestCase]) -> Dict[str, RAGMetrics]:
-        """Worker task for parallel evaluation with DB lookup"""
+        """Worker task for parallel evaluation with DB lookup and toxicity checking"""
         from nexus_database import SessionLocal, MetricCache
+        from utils.toxicity_checker import check_toxicity
         
         db = SessionLocal()
         try:
@@ -158,15 +159,26 @@ class RagEvaluator:
                 df = result.to_pandas()
                 for i, case in enumerate(pending_cases):
                     m = df.iloc[i]
+                    response_text = case.bot_responses.get(bid, "")
+                    
+                    # Calculate toxicity for the response
+                    toxicity_score = 0.0
+                    try:
+                        tox_result = await check_toxicity(response_text, self.model_name)
+                        toxicity_score = self._safe_float(tox_result.toxicity_score)
+                    except Exception as e:
+                        print(f"WARNING: Toxicity check failed for {bid} case {case.id}: {e}")
+                        toxicity_score = 0.0
+                    
                     metrics = RAGMetrics(
                         faithfulness=self._safe_float(m.get('faithfulness', 0.0)),
                         answer_relevancy=self._safe_float(m.get('answer_relevancy', 0.0)),
                         context_recall=self._safe_float(m.get('context_recall', 0.0)),
                         context_precision=self._safe_float(m.get('context_precision', 0.0)),
                         semantic_similarity=self._safe_float(m.get('answer_correctness', 0.0)),
+                        toxicity=toxicity_score,
                         latency_ms=self._safe_float(eval_latency)
                     )
-                    response_text = case.bot_responses.get(bid, "")
                     token_est = int(len(response_text.split()) * 1.35) + 45
                     metrics.total_tokens = token_est
                     metrics.rqs = self.calculate_rqs(metrics)
@@ -233,6 +245,7 @@ class RagEvaluator:
             avg_faith = self._safe_float(np.mean([m.faithfulness for m in m_values])) if m_values else 0.0
             avg_relevancy = self._safe_float(np.mean([m.answer_relevancy for m in m_values])) if m_values else 0.0
             avg_precision = self._safe_float(np.mean([m.context_precision for m in m_values])) if m_values else 0.0
+            avg_toxicity = self._safe_float(np.mean([m.toxicity for m in m_values])) if m_values else 0.0
             avg_latency = self._safe_float(np.mean([m.latency_ms for m in m_values])) if m_values else 0.0
             
             summaries[bid] = {
@@ -242,6 +255,7 @@ class RagEvaluator:
                 "avg_faithfulness": float(round(avg_faith, 4)),
                 "avg_relevancy": float(round(avg_relevancy, 4)),
                 "avg_context_precision": float(round(avg_precision, 4)),
+                "avg_toxicity": float(round(avg_toxicity, 4)),
                 "avg_latency": float(round(avg_latency, 2)),
                 "avg_tokens": int(np.mean([m.total_tokens for m in m_values])) if m_values else 0,
                 "total_queries": len(dataset)
@@ -254,6 +268,7 @@ class RagEvaluator:
                 "avg_faithfulness": float(round(avg_faith, 4)),
                 "avg_relevancy": float(round(avg_relevancy, 4)),
                 "avg_context_precision": float(round(avg_precision, 4)),
+                "avg_toxicity": float(round(avg_toxicity, 4)),
                 "avg_latency": float(round(avg_latency, 2)),
                 "avg_tokens": int(np.mean([m.total_tokens for m in m_values])) if m_values else 0
             })

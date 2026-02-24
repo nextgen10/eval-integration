@@ -3,7 +3,7 @@ import "./globals.css";
 import ThemeRegistry from "@/components/ThemeRegistry";
 
 export const metadata: Metadata = {
-  title: "Nexus Eval",
+  title: "Qualaris",
   description: "Advanced AI Evaluation Framework",
 };
 

@@ -68,10 +68,11 @@ import UBSSnackbar from '@/components/UBSSnackbar';
 
 const MotionPaper = motion(Paper);
 
-export default function NexusEvalLanding() {
+export default function QualarisLanding() {
   const router = useRouter();
   const theme = useTheme();
   const isLight = theme.palette.mode === 'light';
+  const brandLetters = 'QUALARIS'.split('');
   const [mounted, setMounted] = useState(false);
   const { isAuthenticated, session } = useAuth();
 
@@ -91,7 +92,7 @@ export default function NexusEvalLanding() {
       }}>
 
         <UnifiedNavBar
-          title="NEXUS EVAL"
+          title="QUALARIS"
           items={[
             { id: 'platforms', label: 'Platforms', onClick: () => document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }) },
             { id: 'methodology', label: 'Methodology', onClick: () => document.getElementById('methodology-section')?.scrollIntoView({ behavior: 'smooth' }) },
@@ -273,17 +274,76 @@ export default function NexusEvalLanding() {
                       }}
                       style={{ position: 'absolute', inset: -4, borderRadius: '50%', border: `2px dashed ${isLight ? 'rgba(208,0,0,0.15)' : 'rgba(208,0,0,0.25)'}` }}
                     />
-                    <motion.div animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
+                    <Box>
                       <Paper elevation={0} sx={{
-                        width: 110, height: 110, borderRadius: '50%', display: 'flex', flexDirection: 'column',
+                        width: 130, height: 130, borderRadius: '50%', display: 'flex', flexDirection: 'column',
                         alignItems: 'center', justifyContent: 'center', border: '2px solid', borderColor: 'primary.main',
                         bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(208,0,0,0.1)' : 'rgba(208,0,0,0.04)',
                         boxShadow: (t) => `0 0 50px ${t.palette.mode === 'dark' ? 'rgba(208,0,0,0.3)' : 'rgba(208,0,0,0.15)'}`,
                       }}>
-                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'primary.main', fontSize: '0.65rem', letterSpacing: '0.06em', lineHeight: 1 }}>NEXUS</Typography>
-                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'primary.main', fontSize: '0.65rem', mt: 0.25, letterSpacing: '0.06em', lineHeight: 1 }}>EVAL</Typography>
+                        <Box sx={{ position: 'relative', width: 94, height: 94 }}>
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 16, repeat: Infinity, ease: 'linear' }}
+                            style={{ position: 'absolute', inset: 0 }}
+                          >
+                            {brandLetters.map((char, idx) => {
+                              const angle = (idx / brandLetters.length) * Math.PI * 2 - Math.PI / 2;
+                              const radius = 36;
+                              const x = Math.cos(angle) * radius;
+                              const y = Math.sin(angle) * radius;
+                              return (
+                                <Box
+                                  key={`${char}-${idx}`}
+                                  component="span"
+                                  sx={{
+                                    position: 'absolute',
+                                    left: '50%',
+                                    top: '50%',
+                                    transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+                                  }}
+                                >
+                                  <motion.span
+                                    animate={{ rotate: -360, opacity: [0.9, 1, 0.9] }}
+                                    transition={{
+                                      rotate: { duration: 16, repeat: Infinity, ease: 'linear' },
+                                      opacity: { duration: 2.2, repeat: Infinity, ease: 'easeInOut', delay: idx * 0.08 },
+                                    }}
+                                    style={{
+                                      display: 'inline-block',
+                                      fontWeight: 900,
+                                      fontSize: '0.8rem',
+                                      letterSpacing: '0.02em',
+                                      lineHeight: 1,
+                                      color: idx % 2 === 0 ? '#D00000' : (isLight ? '#111111' : '#FFFFFF'),
+                                      textShadow: isLight
+                                        ? '0 0 2px rgba(255,255,255,0.6), 0 0 8px rgba(208,0,0,0.12)'
+                                        : '0 0 5px rgba(0,0,0,0.4), 0 0 7px rgba(208,0,0,0.15)',
+                                    }}
+                                  >
+                                    {char}
+                                  </motion.span>
+                                </Box>
+                              );
+                            })}
+                          </motion.div>
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              left: '50%',
+                              top: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              width: 16,
+                              height: 16,
+                              borderRadius: '50%',
+                              bgcolor: (t) => alpha(t.palette.primary.main, t.palette.mode === 'dark' ? 0.25 : 0.12),
+                              border: '1px solid',
+                              borderColor: (t) => alpha(t.palette.primary.main, 0.35),
+                            }}
+                          />
+                        </Box>
                       </Paper>
-                    </motion.div>
+                    </Box>
                   </motion.div>
 
                   {/* Floating metric & feature cards across 3 rings */}
@@ -713,7 +773,7 @@ export default function NexusEvalLanding() {
                     wordmarkColor={isLight ? theme.palette.primary.main : '#FFFFFF'}
                   />
                   <BrandPipe />
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', whiteSpace: 'nowrap', fontSize: '1.125rem' }}>NEXUS <Box component="span" sx={{ color: 'primary.main' }}>EVAL</Box></Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', whiteSpace: 'nowrap', fontSize: '1.125rem' }}>QUALARIS</Typography>
                 </Box>
                 <Typography variant="body2" color="text.secondary">
                   Enterprise-grade evaluation infrastructure for RAG pipelines and autonomous AI agents.
@@ -739,7 +799,7 @@ export default function NexusEvalLanding() {
             </Grid>
             <Box sx={{ mt: 8, pt: 4, borderTop: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
               <Typography variant="caption" color="text.secondary">
-                © 2026 UBS. Nexus Eval — Internal Evaluation Platform. <b>Designed & Developed by Aniket Marwadi.</b>
+                © 2026 UBS. Qualaris — Internal Evaluation Platform. <b>Designed & Developed by Aniket Marwadi.</b>
               </Typography>
                             
             </Box>
@@ -977,7 +1037,7 @@ function FeedbackSection() {
                     </Typography>
 
                     <Box sx={{ mb: 3 }}>
-                      <Typography variant="subtitle2" fontWeight={700} gutterBottom>How would you rate Nexus Eval?</Typography>
+                      <Typography variant="subtitle2" fontWeight={700} gutterBottom>How would you rate Qualaris?</Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Rating
                           value={rating}

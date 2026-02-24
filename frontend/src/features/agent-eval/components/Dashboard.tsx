@@ -3,18 +3,60 @@ import { Box, Grid, Paper, Typography, useTheme, alpha } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { ChartContainer } from '@/components/shared/ChartContainer';
 import { MetricCard } from '@/components/shared/MetricCard';
-import { Activity, CheckCircle2, ListChecks, AlertTriangle, TrendingUp, ShieldCheck, Target } from 'lucide-react';
+import { Activity, CheckCircle2, ListChecks, AlertTriangle, TrendingUp, ShieldCheck, Target, XCircle } from 'lucide-react';
 import { API_BASE_URL } from '../utils/config';
 import { authFetch } from '../utils/authFetch';
 import { colors } from '@/theme';
 
+type AggregateMetrics = {
+    accuracy?: number;
+    rqs?: number;
+    completeness?: number;
+    consistency?: number;
+    safety?: number;
+    hallucination?: number;
+};
+
+type DashboardResult = {
+    id?: number | string;
+    aggregate?: AggregateMetrics;
+    error_summary?: Record<string, number | string>;
+    evaluation_status?: string;
+};
+
+type HistoryApiItem = {
+    id?: number;
+    run_id?: string;
+    timestamp?: string;
+    aggregate?: AggregateMetrics;
+};
+
+type ChartPoint = {
+    id: number;
+    run_id: string;
+    timestamp: string;
+    accuracy: number;
+    rqs: number;
+    completeness: number;
+    consistency: number;
+    safety: number;
+    hallucinations: number;
+};
+
+type CustomTooltipPayload = {
+    name?: string;
+    value?: number | string;
+    color?: string;
+    payload: ChartPoint;
+};
+
 interface DashboardProps {
-    latestResult: any;
+    latestResult: DashboardResult | null;
 }
 
 export default function Dashboard({ latestResult }: DashboardProps) {
     const theme = useTheme();
-    const [history, setHistory] = useState<any[]>([]);
+    const [history, setHistory] = useState<ChartPoint[]>([]);
     const [mounted, setMounted] = useState(false);
     const [startIndex, setStartIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
@@ -25,19 +67,25 @@ export default function Dashboard({ latestResult }: DashboardProps) {
 
     useEffect(() => {
         setMounted(true);
+        let isMounted = true;
 
         authFetch(`${API_BASE_URL}/history`)
             .then(res => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return res.json();
             })
-            .then(data => {
-                if (!Array.isArray(data)) return;
-                const chartData = data.map((item: any) => {
+            .then((data: unknown) => {
+                if (!isMounted || !Array.isArray(data)) return;
+                const chartData = data
+                    .filter((item): item is HistoryApiItem => typeof item === 'object' && item !== null)
+                    .map((item) => {
+                    const rawTimestamp = item.timestamp ? new Date(item.timestamp) : null;
                     return {
-                        id: item.id,
-                        run_id: item.run_id,
-                        timestamp: new Date(item.timestamp).toLocaleTimeString(),
+                        id: item.id ?? 0,
+                        run_id: item.run_id ?? '',
+                        timestamp: rawTimestamp && !Number.isNaN(rawTimestamp.getTime())
+                            ? rawTimestamp.toLocaleTimeString()
+                            : 'N/A',
                         accuracy: (item.aggregate?.accuracy || 0) * 100,
                         rqs: (item.aggregate?.rqs || 0) * 100,
                         completeness: (item.aggregate?.completeness || 0) * 100,
@@ -49,6 +97,9 @@ export default function Dashboard({ latestResult }: DashboardProps) {
                 setHistory(chartData);
             })
             .catch(err => console.error("Failed to fetch history:", err));
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const sourceData = history.slice(-100);
@@ -86,10 +137,10 @@ export default function Dashboard({ latestResult }: DashboardProps) {
         safety: latestResult?.aggregate?.safety || 0,
         hallucination: latestResult?.aggregate?.hallucination || 0,
         error_summary: latestResult?.error_summary || {},
-        status: latestResult?.evaluation_status || (latestResult?.aggregate?.accuracy > 0.5 ? "PASS" : "FAIL")
+        status: latestResult?.evaluation_status || ((latestResult?.aggregate?.accuracy ?? 0) > 0.5 ? "PASS" : "FAIL")
     };
 
-    const CustomTooltip = ({ active, payload, label }: any) => {
+    const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: CustomTooltipPayload[] }) => {
         if (active && payload && payload.length) {
             const data = payload[0].payload;
             return (
@@ -105,8 +156,8 @@ export default function Dashboard({ latestResult }: DashboardProps) {
                     <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
                         {data.timestamp}
                     </Typography>
-                    {payload.map((p: any) => (
-                        <Box key={p.name} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    {payload.map((p, idx) => (
+                        <Box key={`${p.name || 'metric'}-${idx}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: p.color }} />
                             <Typography variant="caption" sx={{ color: p.color }}>
                                 {p.name}: {typeof p.value === 'number' ? p.value.toFixed(1) : p.value}
@@ -120,7 +171,7 @@ export default function Dashboard({ latestResult }: DashboardProps) {
     };
 
     const statusSubtitle = Object.entries(stats.error_summary).length > 0
-        ? Object.entries(stats.error_summary).map(([k, v]) => `${k}: ${v}`).join(', ')
+        ? Object.entries(stats.error_summary).map(([k, v]) => `${k}: ${String(v)}`).join(', ')
         : 'No Errors';
 
     return (
@@ -212,7 +263,7 @@ export default function Dashboard({ latestResult }: DashboardProps) {
                         <MetricCard
                             label="Status"
                             value={stats.status}
-                            icon={stats.status === "PASS" ? <CheckCircle2 size={24} /> : <AlertTriangle size={24} />}
+                            icon={stats.status === "PASS" ? <CheckCircle2 size={24} /> : <XCircle size={24} />}
                             subtitle={statusSubtitle}
                         />
                     </Grid>

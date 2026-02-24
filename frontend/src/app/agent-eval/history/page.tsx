@@ -1,6 +1,6 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { Box, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, alpha, useTheme, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, Button, Tooltip, Checkbox, Slide } from '@mui/material';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Box, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, alpha, useTheme, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, Button, Tooltip, Checkbox, Slide, TextField, InputAdornment, FormControl, Select, MenuItem } from '@mui/material';
 import { API_BASE_URL } from '@/features/agent-eval/utils/config';
 import { authFetch } from '@/features/agent-eval/utils/authFetch';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -12,10 +12,12 @@ import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import SearchIcon from '@mui/icons-material/Search';
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import 'react18-json-view/src/dark.css';
 import { TransitionProps } from '@mui/material/transitions';
+import { Theme } from '@mui/material/styles';
 
 const Transition = React.forwardRef(function Transition(
     props: TransitionProps & {
@@ -26,18 +28,81 @@ const Transition = React.forwardRef(function Transition(
     return <Slide direction="up" ref={ref} {...props} />;
 });
 
+type AggregateMetrics = {
+    accuracy?: number;
+    rqs?: number;
+    consistency?: number;
+    completeness?: number;
+    hallucination?: number;
+    safety?: number;
+    [key: string]: number | undefined;
+};
+
+type EvaluationOutput = {
+    safety_score?: number;
+    semantic_score?: number;
+    error_type?: string;
+    [key: string]: unknown;
+};
+
+type PerQueryEntry = {
+    outputs?: EvaluationOutput[];
+    [key: string]: unknown;
+};
+
+type HistoryRow = {
+    id: number;
+    run_id?: string | null;
+    timestamp?: string | null;
+    evaluation_method?: string | null;
+    evaluation_status?: string | null;
+    aggregate?: AggregateMetrics;
+    per_query?: Record<string, PerQueryEntry>;
+    [key: string]: unknown;
+};
+
+type CompareMetric = {
+    label: string;
+    key: string;
+    source: 'aggregate' | 'calculated';
+    format: (value: number) => string;
+    precision: number;
+    isPercent?: boolean;
+    higherIsBetter: boolean;
+};
+
+const isHistoryRow = (value: unknown): value is HistoryRow => {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as { id?: unknown };
+    return typeof v.id === 'number';
+};
+
+const formatTimestamp = (value?: string | null): string => {
+    if (!value) return 'N/A';
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString();
+};
+
+const isPassedRun = (row: HistoryRow): boolean => {
+    const status = String(row.evaluation_status || '').toUpperCase();
+    return status ? status === 'PASS' : (row.aggregate?.accuracy || 0) > 0.5;
+};
+
 export default function HistoryPage() {
     const theme = useTheme();
-    const [history, setHistory] = useState<any[]>([]);
+    const [history, setHistory] = useState<HistoryRow[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedResult, setSelectedResult] = useState<any>(null);
+    const [search, setSearch] = useState('');
+    const [methodFilter, setMethodFilter] = useState<'all' | 'json' | 'batch'>('all');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'pass' | 'fail'>('all');
+    const [selectedResult, setSelectedResult] = useState<HistoryRow | null>(null);
     const [jsonDepth, setJsonDepth] = useState(1);
     const [jsonKey, setJsonKey] = useState(0);
 
     // Comparison State
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [comparisonOpen, setComparisonOpen] = useState(false);
-    const [compareData, setCompareData] = useState<any[]>([]);
+    const [compareData, setCompareData] = useState<HistoryRow[]>([]);
 
     const handleSelect = (event: React.ChangeEvent<HTMLInputElement>, id: number) => {
         if (event.target.checked) {
@@ -67,26 +132,50 @@ export default function HistoryPage() {
     };
 
     useEffect(() => {
+        let isMounted = true;
         authFetch(`${API_BASE_URL}/history`)
             .then(res => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return res.json();
             })
-            .then(data => {
-                if (!Array.isArray(data)) return;
-                const sorted = data.sort((a: any, b: any) => b.id - a.id).slice(0, 50);
+            .then((data: unknown) => {
+                if (!isMounted) return;
+                if (!Array.isArray(data)) {
+                    setHistory([]);
+                    setLoading(false);
+                    return;
+                }
+                const safeRows = data.filter(isHistoryRow);
+                const sorted = [...safeRows].sort((a, b) => b.id - a.id).slice(0, 50);
                 setHistory(sorted);
                 setLoading(false);
             })
             .catch(err => {
+                if (!isMounted) return;
                 console.error("Failed to fetch history:", err);
                 setLoading(false);
             });
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
-    const getStatusChip = (item: any) => {
-        const accuracy = item.aggregate?.accuracy || 0;
-        const passed = accuracy > 0.5;
+    const filteredHistory = useMemo(() => {
+        return history.filter((row) => {
+            const method = String(row.evaluation_method || 'Batch').toLowerCase();
+            const passed = isPassedRun(row);
+            const text = `${row.id} ${row.run_id || ''} ${row.timestamp || ''}`.toLowerCase();
+
+            const methodOk = methodFilter === 'all' || method === methodFilter;
+            const statusOk = statusFilter === 'all' || (statusFilter === 'pass' ? passed : !passed);
+            const searchOk = !search.trim() || text.includes(search.trim().toLowerCase());
+
+            return methodOk && statusOk && searchOk;
+        });
+    }, [history, methodFilter, search, statusFilter]);
+
+    const getStatusChip = (item: HistoryRow) => {
+        const passed = isPassedRun(item);
         const color = passed ? theme.palette.success.main : theme.palette.error.main;
 
         return (
@@ -95,13 +184,11 @@ export default function HistoryPage() {
                 variant="outlined"
                 size="small"
                 sx={{
-                    fontWeight: 'bold',
+                    fontWeight: 700,
                     height: 24,
-                    backdropFilter: 'blur(6px)',
-                    background: alpha(color, 0.2),
-                    borderColor: alpha(color, 0.5),
+                    background: alpha(color, 0.1),
+                    borderColor: alpha(color, 0.35),
                     color: color,
-                    boxShadow: `0 2px 10px 0 ${alpha(color, 0.2)}`
                 }}
             />
         );
@@ -109,7 +196,7 @@ export default function HistoryPage() {
 
 
 
-    const handleViewDetails = (item: any) => {
+    const handleViewDetails = (item: HistoryRow) => {
         setSelectedResult(item);
         setJsonDepth(1); // Reset depth on open
         setJsonKey(0);   // Reset key on open
@@ -117,6 +204,18 @@ export default function HistoryPage() {
 
     const handleCloseDialog = () => {
         setSelectedResult(null);
+    };
+
+    const headCellSx = {
+        fontWeight: 800,
+        color: 'text.secondary',
+        fontSize: '0.75rem',
+        textTransform: 'uppercase' as const,
+        position: 'sticky' as const,
+        top: 0,
+        bgcolor: 'background.paper',
+        zIndex: 10,
+        borderBottom: (t: Theme) => `1px solid ${t.palette.divider}`,
     };
 
     return (
@@ -148,12 +247,10 @@ export default function HistoryPage() {
                             variant="outlined"
                             onDelete={() => setSelectedIds([])}
                             sx={{
-                                backdropFilter: 'blur(10px)',
-                                background: alpha(theme.palette.secondary.main, 0.15),
-                                borderColor: alpha(theme.palette.secondary.main, 0.5),
+                                background: alpha(theme.palette.secondary.main, 0.1),
+                                borderColor: alpha(theme.palette.secondary.main, 0.35),
                                 color: theme.palette.secondary.main,
-                                fontWeight: 'bold',
-                                boxShadow: `0 4px 12px 0 ${alpha(theme.palette.secondary.main, 0.2)}`,
+                                fontWeight: 700,
                                 '& .MuiChip-deleteIcon': {
                                     color: theme.palette.secondary.main,
                                     '&:hover': {
@@ -175,19 +272,67 @@ export default function HistoryPage() {
                 </Box>
             </Box>
 
+            {/* Filters / Controls */}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mb: 1.5, flexShrink: 0 }}>
+                <TextField
+                    size="small"
+                    placeholder="Search by ID / run_id / timestamp"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    sx={{ minWidth: 280 }}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon fontSize="small" />
+                            </InputAdornment>
+                        ),
+                    }}
+                />
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                    <Select value={methodFilter} onChange={(e) => setMethodFilter(e.target.value as 'all' | 'json' | 'batch')}>
+                        <MenuItem value="all">All Methods</MenuItem>
+                        <MenuItem value="json">JSON</MenuItem>
+                        <MenuItem value="batch">Batch</MenuItem>
+                    </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                    <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'all' | 'pass' | 'fail')}>
+                        <MenuItem value="all">All Status</MenuItem>
+                        <MenuItem value="pass">Pass</MenuItem>
+                        <MenuItem value="fail">Fail</MenuItem>
+                    </Select>
+                </FormControl>
+                <Chip
+                    size="small"
+                    label={`${filteredHistory.length} shown / ${history.length} total`}
+                    sx={{ fontWeight: 700 }}
+                />
+            </Box>
+
             {/* Content */}
-            <Box sx={{ flexGrow: 1, p: 2, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <Paper
-                    elevation={0}
+            <Box sx={{ flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <TableContainer
+                    component={Paper}
                     sx={{
-                        flexGrow: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        overflow: 'hidden',
-                        border: '1px solid',
-                        borderColor: 'divider',
                         borderRadius: 2,
-                        mb: 3
+                        bgcolor: 'background.paper',
+                        border: (t) => `1px solid ${t.palette.divider}`,
+                        boxShadow: (t) => t.palette.mode === 'dark' ? '0 0 30px rgba(208, 0, 0, 0.15)' : '0 10px 30px rgba(0,0,0,0.05)',
+                        height: '100%',
+                        overflowY: 'auto !important',
+                        mb: 0,
+                        '&::-webkit-scrollbar': { width: '8px' },
+                        '&::-webkit-scrollbar-track': { background: (t) => t.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.03)' },
+                        '&::-webkit-scrollbar-thumb': {
+                            background: (t) => t.palette.mode === 'dark' ? 'rgba(230, 0, 0, 0.2)' : 'rgba(230, 0, 0, 0.3)',
+                            borderRadius: '10px',
+                            border: (t) => t.palette.mode === 'dark' ? 'none' : '2px solid transparent',
+                            backgroundClip: 'padding-box'
+                        },
+                        '&::-webkit-scrollbar-thumb:hover': {
+                            background: (t) => t.palette.mode === 'dark' ? 'rgba(230, 0, 0, 0.4)' : 'rgba(230, 0, 0, 0.5)',
+                            backgroundClip: 'padding-box'
+                        }
                     }}
                 >
                     {loading ? (
@@ -195,38 +340,38 @@ export default function HistoryPage() {
                             <CircularProgress />
                         </Box>
                     ) : (
-                        <TableContainer sx={{ flexGrow: 1, overflow: 'auto' }}>
-                            <Table stickyHeader aria-label="sticky table">
+                        <Table stickyHeader aria-label="sticky table" sx={{ tableLayout: 'fixed' }}>
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell padding="checkbox">
-                                        </TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', width: 80 }}>ID</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>TIMESTAMP</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>METHOD</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', width: 150 }}>QUERIES/EVALUATIONS</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>STATUS</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>RQS</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>ACCURACY</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>COMPLETENESS</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>HALLUCINATION</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>CONSISTENCY</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>SAFETY</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', width: 80 }}>RESULTS</TableCell>
+                                        <TableCell padding="checkbox" sx={{ ...headCellSx, width: 52 }} />
+                                        <TableCell sx={{ ...headCellSx, width: 70 }}>ID</TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 170 }}>Timestamp</TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 90 }}>Method</TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 120 }}>Queries/Evals</TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 90 }}>Status</TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 80 }}>RQS</TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 90 }}>Accuracy</TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 105 }}>Completeness</TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 110 }}>Hallucination</TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 100 }}>Consistency</TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 80 }}>Safety</TableCell>
+                                        <TableCell sx={{ ...headCellSx, width: 80 }}>Action</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {history.map((row) => {
+                                    {filteredHistory.map((row) => {
                                         const isSelected = selectedIds.indexOf(row.id) !== -1;
+                                        const method = String(row.evaluation_method || 'batch').toLowerCase();
+                                        const isJsonMethod = method === 'json';
                                         const accuracy = (row.aggregate?.accuracy || 0) * 100;
                                         const rqs = (row.aggregate?.rqs || 0) * 100;
                                         const consistency = (row.aggregate?.consistency || 0) * 100;
-                                        const timestamp = new Date(row.timestamp).toLocaleString();
+                                        const timestamp = formatTimestamp(row.timestamp);
 
                                         // Calculate total queries and evaluations
                                         const totalQueries = Object.keys(row.per_query || {}).length;
                                         let totalEvaluations = 0;
-                                        Object.values(row.per_query || {}).forEach((q: any) => {
+                                        Object.values(row.per_query || {}).forEach((q: PerQueryEntry) => {
                                             if (Array.isArray(q.outputs)) {
                                                 totalEvaluations += q.outputs.length;
                                             }
@@ -248,81 +393,88 @@ export default function HistoryPage() {
                                                         onChange={(event) => handleSelect(event, row.id)}
                                                     />
                                                 </TableCell>
-                                                <TableCell>{row.id}</TableCell>
-                                                <TableCell>{timestamp}</TableCell>
+                                                <TableCell sx={{ borderBottom: (t) => `1px solid ${t.palette.divider}` }}>{row.id}</TableCell>
+                                                <TableCell sx={{ borderBottom: (t) => `1px solid ${t.palette.divider}` }}>{timestamp}</TableCell>
                                                 <TableCell>
                                                     <Chip
-                                                        label={(row.evaluation_method || 'Batch').toUpperCase()}
+                                                        label={method.toUpperCase()}
                                                         size="small"
                                                         variant="outlined"
                                                         sx={{
                                                             height: 24,
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: 'bold',
-                                                            backdropFilter: 'blur(6px)',
-                                                            background: row.evaluation_method === 'JSON' ? alpha(theme.palette.primary.main, 0.2) : alpha(theme.palette.secondary.main, 0.2),
-                                                            borderColor: row.evaluation_method === 'JSON' ? alpha(theme.palette.primary.main, 0.5) : alpha(theme.palette.secondary.main, 0.5),
-                                                            color: row.evaluation_method === 'JSON' ? theme.palette.primary.main : theme.palette.secondary.main,
-                                                            boxShadow: `0 2px 10px 0 ${row.evaluation_method === 'JSON' ? alpha(theme.palette.primary.main, 0.2) : alpha(theme.palette.secondary.main, 0.2)}`
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: 700,
+                                                            background: isJsonMethod ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.secondary.main, 0.1),
+                                                            borderColor: isJsonMethod ? alpha(theme.palette.primary.main, 0.35) : alpha(theme.palette.secondary.main, 0.35),
+                                                            color: isJsonMethod ? theme.palette.primary.main : theme.palette.secondary.main,
                                                         }}
                                                     />
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Typography sx={{ fontWeight: 'bold', fontSize: '0.875rem' }}>
+                                                    <Typography sx={{ fontWeight: 500, fontSize: '0.875rem' }}>
                                                         Q: {totalQueries}, E: {totalEvaluations}
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell>{getStatusChip(row)}</TableCell>
                                                 <TableCell>
-                                                    <Typography sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                                                    <Typography sx={{ fontWeight: 600, color: 'primary.main' }}>
                                                         {rqs.toFixed(1)}%
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Typography sx={{ fontWeight: 'bold' }}>
+                                                    <Typography sx={{ fontWeight: 500 }}>
                                                         {accuracy.toFixed(1)}%
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Typography sx={{ fontWeight: 'bold' }}>
+                                                    <Typography sx={{ fontWeight: 500 }}>
                                                         {((row.aggregate?.completeness || 0) * 100).toFixed(1)}%
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Typography sx={{ fontWeight: 'bold', color: (row.aggregate?.hallucination || 0) > 0.1 ? 'error.main' : 'inherit' }}>
+                                                    <Typography sx={{ fontWeight: 500, color: (row.aggregate?.hallucination || 0) > 0.1 ? 'error.main' : 'inherit' }}>
                                                         {((row.aggregate?.hallucination || 0) * 100).toFixed(1)}%
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Typography sx={{ fontWeight: 'bold' }}>
+                                                    <Typography sx={{ fontWeight: 500 }}>
                                                         {consistency.toFixed(1)}%
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Typography sx={{ fontWeight: 'bold' }}>
+                                                    <Typography sx={{ fontWeight: 500 }}>
                                                         {((row.aggregate?.safety || 1.0) * 100).toFixed(1)}%
                                                     </Typography>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <IconButton size="small" onClick={() => handleViewDetails(row)}>
+                                                    <IconButton
+                                                        size="small"
+                                                        color="primary"
+                                                        onClick={() => handleViewDetails(row)}
+                                                        sx={{
+                                                            borderRadius: 1.5,
+                                                            '&:hover': { bgcolor: (t: Theme) => alpha(t.palette.primary.main, 0.1) }
+                                                        }}
+                                                    >
                                                         <VisibilityIcon />
                                                     </IconButton>
                                                 </TableCell>
                                             </TableRow>
                                         );
                                     })}
-                                    {history.length === 0 && (
+                                    {filteredHistory.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
-                                                <Typography color="text.secondary">No evaluation history found.</Typography>
+                                            <TableCell colSpan={13} align="center" sx={{ py: 4 }}>
+                                                <Typography color="text.secondary">
+                                                    No matching evaluation history found.
+                                                </Typography>
                                             </TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>
                             </Table>
-                        </TableContainer>
                     )}
-                </Paper>
+                </TableContainer>
             </Box>
 
             {/* Details Dialog */}
@@ -338,7 +490,7 @@ export default function HistoryPage() {
                             Evaluation Details #{selectedResult?.id}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                            {selectedResult?.timestamp ? new Date(selectedResult.timestamp).toLocaleString() : ''} • {selectedResult?.run_id}
+                            {formatTimestamp(selectedResult?.timestamp)} • {selectedResult?.run_id || 'N/A'}
                         </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -480,7 +632,7 @@ export default function HistoryPage() {
                             };
 
                             // Calculate average metric from per_query data
-                            const calculateAvgMetric = (data: any, key: string) => {
+                            const calculateAvgMetric = (data: HistoryRow | undefined, key: string) => {
                                 if (!data?.per_query) return 0;
                                 const queries = Object.values(data.per_query);
                                 if (queries.length === 0) return 0;
@@ -488,11 +640,10 @@ export default function HistoryPage() {
                                 let sum = 0;
                                 let count = 0;
 
-                                queries.forEach((q: any) => {
-                                    if (q.outputs && q.outputs.length > 0) {
-                                        const output = q.outputs[0];
+                                queries.forEach((q: PerQueryEntry) => {
+                                    if (!Array.isArray(q.outputs) || q.outputs.length === 0) return;
+                                    q.outputs.forEach((output: EvaluationOutput) => {
                                         let val = 0;
-
                                         if (key === 'safety_score') {
                                             val = output.safety_score || 0;
                                         } else if (key === 'semantic_score') {
@@ -500,26 +651,22 @@ export default function HistoryPage() {
                                         } else if (key === 'hallucination_rate') {
                                             val = output.error_type === 'hallucination' ? 1 : 0;
                                         }
-
                                         if (val !== null && val !== undefined) {
                                             sum += val;
                                             count++;
                                         }
-                                    }
+                                    });
                                 });
 
                                 return count > 0 ? sum / count : 0;
                             };
 
                             // Calculate metric difference
-                            const calculateMetricDiff = (metric: any, data1: any, data2: any) => {
+                            const calculateMetricDiff = (metric: CompareMetric, data1: HistoryRow | undefined, data2: HistoryRow | undefined) => {
                                 let val1 = 0, val2 = 0;
                                 if (metric.source === 'aggregate') {
                                     val1 = data1?.aggregate?.[metric.key] || 0;
                                     val2 = data2?.aggregate?.[metric.key] || 0;
-                                } else if (metric.source === 'root') {
-                                    val1 = data1?.[metric.key] || 0;
-                                    val2 = data2?.[metric.key] || 0;
                                 } else if (metric.source === 'calculated') {
                                     val1 = calculateAvgMetric(data1, metric.key);
                                     val2 = calculateAvgMetric(data2, metric.key);
@@ -529,7 +676,7 @@ export default function HistoryPage() {
                                 const roundedVal2 = roundToPrecision(val2, metric.precision);
                                 const diff = roundedVal2 - roundedVal1;
 
-                                let color = 'text.secondary';
+                                let color: 'text.secondary' | 'success.main' | 'error.main' = 'text.secondary';
                                 if (diff !== 0) {
                                     if (metric.higherIsBetter) {
                                         color = diff > 0 ? 'success.main' : 'error.main';
@@ -542,7 +689,7 @@ export default function HistoryPage() {
                             };
 
                             // Render metric row with glassmorphism and enhanced diff display
-                            const renderMetricRow = (metric: any, val1: number, val2: number, diff: number, color: string) => {
+                            const renderMetricRow = (metric: CompareMetric, val1: number, val2: number, diff: number, color: string) => {
                                 const isImprovement = (metric.higherIsBetter && diff > 0) || (!metric.higherIsBetter && diff < 0);
                                 const isRegression = (metric.higherIsBetter && diff < 0) || (!metric.higherIsBetter && diff > 0);
 
@@ -625,21 +772,20 @@ export default function HistoryPage() {
                                             <TableBody>
                                                 {/* Standard Metrics Section */}
                                                 <TableRow>
-                                                    <TableCell colSpan={5} sx={{ bgcolor: (theme) => alpha(theme.palette.info.main, 0.08), py: 1.5 }}>
+                                                    <TableCell colSpan={4} sx={{ bgcolor: (theme) => alpha(theme.palette.info.main, 0.08), py: 1.5 }}>
                                                         <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'info.main', display: 'flex', alignItems: 'center', gap: 1 }}>
                                                             📊 Standard Metrics
                                                         </Typography>
                                                     </TableCell>
                                                 </TableRow>
-                                                {[
+                                                {([
                                                     { label: 'RQS (Std)', key: 'rqs', source: 'aggregate', format: (v: number) => `${(v * 100).toFixed(1)}%`, precision: 3, isPercent: true, higherIsBetter: true },
                                                     { label: 'Accuracy', key: 'accuracy', source: 'aggregate', format: (v: number) => `${(v * 100).toFixed(1)}%`, precision: 3, isPercent: true, higherIsBetter: true },
                                                     { label: 'Consistency', key: 'consistency', source: 'aggregate', format: (v: number) => `${(v * 100).toFixed(1)}%`, precision: 3, isPercent: true, higherIsBetter: true },
                                                     { label: 'Completeness', key: 'completeness', source: 'aggregate', format: (v: number) => `${(v * 100).toFixed(1)}%`, precision: 3, isPercent: true, higherIsBetter: true },
                                                     { label: 'Hallucination', key: 'hallucination', source: 'aggregate', format: (v: number) => `${(v * 100).toFixed(1)}%`, precision: 3, isPercent: true, higherIsBetter: false },
                                                     { label: 'Safety Score', key: 'safety', source: 'aggregate', format: (v: number) => `${(v * 100).toFixed(1)}%`, precision: 3, isPercent: true, higherIsBetter: true },
-
-                                                ]
+                                                ] as CompareMetric[])
                                                     .map((metric) => {
                                                         const { val1, val2, diff, color } = calculateMetricDiff(metric, compareData[0], compareData[1]);
                                                         return renderMetricRow(metric, val1, val2, diff, color);
@@ -671,7 +817,10 @@ export default function HistoryPage() {
                                         // Get unique query IDs from both
                                         const set1 = new Set(Object.keys(compareData[0]?.per_query || {}));
                                         const set2 = new Set(Object.keys(compareData[1]?.per_query || {}));
-                                        const allQueries = Array.from(new Set([...Array.from(set1), ...Array.from(set2)])).sort();
+                                        const allQueries = Array.from(new Set([
+                                            ...Object.keys(compareData[0]?.per_query || {}),
+                                            ...Object.keys(compareData[1]?.per_query || {}),
+                                        ])).sort((a, b) => a.localeCompare(b));
 
                                         return allQueries.map(qid => {
                                             const in1 = set1.has(qid);

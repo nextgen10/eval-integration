@@ -314,6 +314,28 @@ async def get_evaluation(eval_id: str, app: Dict = Depends(get_current_app)):
     finally:
         db.close()
 
+@app.get("/rag/prompts")
+async def get_rag_prompts():
+    """Get all RAG evaluation prompts"""
+    import glob
+    import json as json_lib
+    
+    prompts_dir = os.path.join(os.path.dirname(__file__), "prompts")
+    rag_prompt_files = glob.glob(os.path.join(prompts_dir, "rag_*.json"))
+    
+    prompts = []
+    for file_path in rag_prompt_files:
+        try:
+            with open(file_path, 'r') as f:
+                prompt_data = json_lib.load(f)
+                prompts.append(prompt_data)
+        except Exception as e:
+            logger.error(f"Failed to load prompt file {file_path}: {e}")
+    
+    # Sort by prompt_key for consistent ordering
+    prompts.sort(key=lambda x: x.get('prompt_key', ''))
+    return prompts
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, loop="asyncio")

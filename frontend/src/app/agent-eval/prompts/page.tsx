@@ -118,7 +118,10 @@ export default function PromptsPage() {
             const res = await authFetch(`${API_BASE_URL}/prompts`);
             if (!res.ok) throw new Error('Failed to fetch prompts');
             const data = await res.json();
-            if (Array.isArray(data)) setPrompts(data);
+            if (Array.isArray(data)) {
+                // Defensive filter so Agent Prompt tab never shows RAG prompt definitions.
+                setPrompts(data.filter((p: PromptData) => !String(p.prompt_key || '').startsWith('rag_')));
+            }
         } catch (e) {
             console.error('Error fetching prompts:', e);
             setSnackbar({ open: true, message: 'Failed to load prompts from server', severity: 'error' });
@@ -159,10 +162,10 @@ export default function PromptsPage() {
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden' }}>
             <Box sx={{ mb: 2, flexShrink: 0 }}>
                 <Typography sx={{ fontWeight: 800, fontSize: { xs: '0.95rem', md: '1.1rem' }, letterSpacing: '-0.02em', mb: 0.5, color: 'text.primary' }}>
-                    LLM Prompts
+                    Prompts
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', md: '0.85rem' } }}>
-                    Prompts used during evaluation. To edit, update the JSON files in <code>backend/prompts/</code>.
+                    Prompts used during Agent Eval. Includes semantic, fuzzy, consistency, and safety definitions. To edit, update the JSON files in <code>backend/prompts/</code>.
                 </Typography>
             </Box>
 

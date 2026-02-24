@@ -41,9 +41,29 @@ import 'react18-json-view/src/dark.css';
 
 // Type definitions
 interface EvaluationResult {
-    id: string;
-    [key: string]: any;
+    id: string | number;
+    aggregate?: {
+        n_queries?: number;
+        accuracy?: number;
+        completeness?: number;
+        hallucination?: number;
+        consistency?: number;
+        safety?: number;
+        rqs?: number;
+    };
+    per_query?: Record<string, { outputs?: Array<Record<string, unknown>> }>;
+    accuracy_per_query?: Record<string, number>;
+    consistency_per_query?: Record<string, number>;
+    evaluation_status?: string;
+    run_details?: Record<string, Record<string, unknown>>;
+    [key: string]: unknown;
 }
+
+const isEvaluationResult = (value: unknown): value is EvaluationResult => {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as { id?: unknown };
+    return typeof v.id === 'string' || typeof v.id === 'number';
+};
 
 const Tooltip = MuiTooltip;
 
@@ -51,6 +71,61 @@ function safeJsonParse<T>(raw: string | null, fallback: T): T {
     if (!raw) return fallback;
     try { return JSON.parse(raw); } catch { return fallback; }
 }
+
+type EvalConfig = {
+    semantic_threshold: number;
+    alpha: number;
+    beta: number;
+    gamma: number;
+    enable_safety: boolean;
+    llm_model_name: string;
+    accuracy_threshold: number;
+    consistency_threshold: number;
+    hallucination_threshold: number;
+    rqs_threshold: number;
+    fuzzy_threshold: number;
+    w_accuracy: number;
+    w_completeness: number;
+    w_hallucination: number;
+    w_safety: number;
+    field_strategies: Record<string, unknown>;
+};
+
+const safeNum = (value: string | null, fallback: number): number => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const loadEvalConfigFromStorage = (overrides?: Partial<EvalConfig>): EvalConfig => ({
+    semantic_threshold: safeNum(localStorage.getItem('config_semantic_threshold'), 0.72),
+    alpha: safeNum(localStorage.getItem('config_alpha'), 0.6),
+    beta: safeNum(localStorage.getItem('config_beta'), 0.2),
+    gamma: safeNum(localStorage.getItem('config_gamma'), 0.2),
+    enable_safety: localStorage.getItem('config_enable_safety') !== 'false',
+    llm_model_name: localStorage.getItem('config_llm_model_name') || 'gpt-4o',
+    accuracy_threshold: safeNum(localStorage.getItem('config_accuracy_threshold'), 0.5),
+    consistency_threshold: safeNum(localStorage.getItem('config_consistency_threshold'), 0.5),
+    hallucination_threshold: safeNum(localStorage.getItem('config_hallucination_threshold'), 0.5),
+    rqs_threshold: safeNum(localStorage.getItem('config_rqs_threshold'), 0.5),
+    fuzzy_threshold: safeNum(localStorage.getItem('config_fuzzy_threshold'), 0.85),
+    w_accuracy: safeNum(localStorage.getItem('config_w_accuracy'), 0.45),
+    w_completeness: safeNum(localStorage.getItem('config_w_completeness'), 0.25),
+    w_hallucination: safeNum(localStorage.getItem('config_w_hallucination'), 0.15),
+    w_safety: safeNum(localStorage.getItem('config_w_safety'), 0.15),
+    field_strategies: safeJsonParse(localStorage.getItem('config_field_strategies'), {}),
+    ...overrides,
+});
+
+const getErrorMessage = (error: unknown, fallback = 'Unexpected error'): string => {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    return fallback;
+};
+
+const asNonEmptyString = (value: unknown): string | null => {
+    if (typeof value !== 'string') return null;
+    return value.trim().length > 0 ? value : null;
+};
 
 const metricTooltips: { [key: string]: string } = {
     "Accuracy": "Measures correctness based on exact match or semantic similarity. (0-1)",
@@ -1073,8 +1148,8 @@ function TestEvaluationsPage() {
     // JSON Evaluation State
     const [gtJson, setGtJson] = useState('[\n  {\n    "query_id": "q1",\n    "expected_output": "42",\n    "match_type": "number"\n  }\n]');
     const [outputsJson, setOutputsJson] = useState('[\n  {\n    "query_id": "q1",\n    "output": "42",\n    "run_id": "run1"\n  }\n]');
-    const [convertedGt, setConvertedGt] = useState<any>(null);
-    const [convertedAi, setConvertedAi] = useState<any>(null);
+    const [convertedGt, setConvertedGt] = useState<unknown>(null);
+    const [convertedAi, setConvertedAi] = useState<Array<Record<string, unknown>> | null>(null);
     const [gtSource, setGtSource] = useState<string>("");
 
     // Structured JSON Engine State
@@ -1084,14 +1159,15 @@ function TestEvaluationsPage() {
     const [normalizedJsonKey, setNormalizedJsonKey] = useState(0);
 
     // Config State (Loaded for API calls)
-    const [config, setConfig] = useState<any>({});
+    const [config, setConfig] = useState<EvalConfig>(() => loadEvalConfigFromStorage());
 
     const [showJsonDiff, setShowJsonDiff] = useState(false);
-    const [selectedRunForDiff, setSelectedRunForDiff] = useState<any>(null);
+    const [selectedRunForDiff, setSelectedRunForDiff] = useState<unknown>(null);
 
     // Agent Events
     const { events, clearEvents } = useAgentEvents();
     const latestEvent = events.length > 0 ? events[events.length - 1] : null;
+    const hasNormalizedData = Boolean(convertedGt) || Boolean(convertedAi);
 
     const { latestResult: globalResult, loading: globalLoading, refreshLatestResult } = useEvaluation();
 
@@ -1106,24 +1182,7 @@ function TestEvaluationsPage() {
 
     useEffect(() => {
 
-        setConfig({
-            semantic_threshold: parseFloat(localStorage.getItem('config_semantic_threshold') || '0.72'),
-            alpha: parseFloat(localStorage.getItem('config_alpha') || '0.6'),
-            beta: parseFloat(localStorage.getItem('config_beta') || '0.2'),
-            gamma: parseFloat(localStorage.getItem('config_gamma') || '0.2'),
-            enable_safety: localStorage.getItem('config_enable_safety') !== 'false',
-            llm_model_name: localStorage.getItem('config_llm_model_name') || 'gpt-4o',
-            accuracy_threshold: parseFloat(localStorage.getItem('config_accuracy_threshold') || '0.5'),
-            consistency_threshold: parseFloat(localStorage.getItem('config_consistency_threshold') || '0.5'),
-            hallucination_threshold: parseFloat(localStorage.getItem('config_hallucination_threshold') || '0.5'),
-            rqs_threshold: parseFloat(localStorage.getItem('config_rqs_threshold') || '0.5'),
-            fuzzy_threshold: parseFloat(localStorage.getItem('config_fuzzy_threshold') || '0.85'),
-            w_accuracy: parseFloat(localStorage.getItem('config_w_accuracy') || '0.45'),
-            w_completeness: parseFloat(localStorage.getItem('config_w_completeness') || '0.25'),
-            w_hallucination: parseFloat(localStorage.getItem('config_w_hallucination') || '0.15'),
-            w_safety: parseFloat(localStorage.getItem('config_w_safety') || '0.15'),
-            field_strategies: safeJsonParse(localStorage.getItem('config_field_strategies'), {})
-        });
+        setConfig(loadEvalConfigFromStorage());
 
     }, []);
 
@@ -1143,24 +1202,7 @@ function TestEvaluationsPage() {
 
 
 
-        const latestConfig = {
-            semantic_threshold: parseFloat(localStorage.getItem('config_semantic_threshold') || '0.72'),
-            alpha: parseFloat(localStorage.getItem('config_alpha') || '0.6'),
-            beta: parseFloat(localStorage.getItem('config_beta') || '0.2'),
-            gamma: parseFloat(localStorage.getItem('config_gamma') || '0.2'),
-            enable_safety: localStorage.getItem('config_enable_safety') !== 'false',
-            llm_model_name: localStorage.getItem('config_llm_model_name') || 'gpt-4o',
-            accuracy_threshold: parseFloat(localStorage.getItem('config_accuracy_threshold') || '0.5'),
-            consistency_threshold: parseFloat(localStorage.getItem('config_consistency_threshold') || '0.5'),
-            hallucination_threshold: parseFloat(localStorage.getItem('config_hallucination_threshold') || '0.5'),
-            rqs_threshold: parseFloat(localStorage.getItem('config_rqs_threshold') || '0.5'),
-            fuzzy_threshold: parseFloat(localStorage.getItem('config_fuzzy_threshold') || '0.85'),
-            w_accuracy: parseFloat(localStorage.getItem('config_w_accuracy') || '0.45'),
-            w_completeness: parseFloat(localStorage.getItem('config_w_completeness') || '0.25'),
-            w_hallucination: parseFloat(localStorage.getItem('config_w_hallucination') || '0.15'),
-            w_safety: parseFloat(localStorage.getItem('config_w_safety') || '0.15'),
-            field_strategies: safeJsonParse(localStorage.getItem('config_field_strategies'), {})
-        };
+        const latestConfig = loadEvalConfigFromStorage();
 
         try {
             // 1. Preview Normalized Data IMMEDIATELY
@@ -1204,26 +1246,30 @@ function TestEvaluationsPage() {
                 throw new Error(detail);
             }
 
-            const data = await response.json();
+            const data: unknown = await response.json();
+            if (!isEvaluationResult(data)) throw new Error('Invalid evaluation response format');
             setResult(data);
             await refreshLatestResult();
 
             // Redundant update but keeps consistency
-            if (data.normalized_ground_truth) {
-                setConvertedGt(data.normalized_ground_truth);
+            const batchNormalizedGt = data.normalized_ground_truth;
+            if (batchNormalizedGt) {
+                setConvertedGt(batchNormalizedGt);
             }
-            if (data.normalized_ai_outputs) {
-                setConvertedAi(data.normalized_ai_outputs);
+            const batchNormalizedAi = data.normalized_ai_outputs;
+            if (Array.isArray(batchNormalizedAi)) {
+                setConvertedAi(batchNormalizedAi);
             }
-            if (data.ground_truth_source) {
-                setGtSource(data.ground_truth_source);
+            const batchGtSource = asNonEmptyString(data.ground_truth_source);
+            if (batchGtSource) {
+                setGtSource(batchGtSource);
             }
 
             setEvaluationType('batch');
             setSnackbarMessage("Batch Evaluation Completed Successfully!");
             setOpenSnackbar(true);
-        } catch (e: any) {
-            setSnackbarMessage(`Error: ${e.message}`);
+        } catch (e: unknown) {
+            setSnackbarMessage(`Error: ${getErrorMessage(e, 'Batch evaluation failed')}`);
             setOpenSnackbar(true);
         } finally {
             setLoading(false);
@@ -1268,9 +1314,9 @@ function TestEvaluationsPage() {
                     event.currentTarget.removeChild(textArea);
                 }
                 setOpenSnackbar(true);
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error('Copy failed', error);
-                setSnackbarMessage(`Copy failed: ${error.message}`);
+                setSnackbarMessage(`Copy failed: ${getErrorMessage(error, 'Failed to copy JSON')}`);
                 setOpenSnackbar(true);
             }
         }
@@ -1313,26 +1359,9 @@ function TestEvaluationsPage() {
             });
             if (!aiRes.ok) throw new Error("AI Output conversion failed");
             const aiData = await aiRes.json();
-            setConvertedAi(aiData);
+            setConvertedAi(Array.isArray(aiData) ? aiData : null);
 
-            const latestConfig = {
-                semantic_threshold: parseFloat(localStorage.getItem('config_semantic_threshold') || '0.72'),
-                alpha: parseFloat(localStorage.getItem('config_alpha') || '0.6'),
-                beta: parseFloat(localStorage.getItem('config_beta') || '0.2'),
-                gamma: parseFloat(localStorage.getItem('config_gamma') || '0.2'),
-                enable_safety: true,
-                llm_model_name: localStorage.getItem('config_llm_model_name') || 'gpt-4o',
-                accuracy_threshold: parseFloat(localStorage.getItem('config_accuracy_threshold') || '0.5'),
-                consistency_threshold: parseFloat(localStorage.getItem('config_consistency_threshold') || '0.5'),
-                hallucination_threshold: parseFloat(localStorage.getItem('config_hallucination_threshold') || '0.5'),
-                rqs_threshold: parseFloat(localStorage.getItem('config_rqs_threshold') || '0.5'),
-                fuzzy_threshold: parseFloat(localStorage.getItem('config_fuzzy_threshold') || '0.85'),
-                w_accuracy: parseFloat(localStorage.getItem('config_w_accuracy') || '0.45'),
-                w_completeness: parseFloat(localStorage.getItem('config_w_completeness') || '0.25'),
-                w_hallucination: parseFloat(localStorage.getItem('config_w_hallucination') || '0.15'),
-                w_safety: parseFloat(localStorage.getItem('config_w_safety') || '0.15'),
-                field_strategies: safeJsonParse(localStorage.getItem('config_field_strategies'), {})
-            };
+            const latestConfig = loadEvalConfigFromStorage({ enable_safety: true });
 
             // 3. Run Evaluation with CONVERTED data and FIXED keys
             const response = await authFetch(`${API_BASE_URL}/evaluate-from-json`, {
@@ -1358,7 +1387,8 @@ function TestEvaluationsPage() {
                 throw new Error(detail);
             }
 
-            const data = await response.json();
+            const data: unknown = await response.json();
+            if (!isEvaluationResult(data)) throw new Error('Invalid evaluation response format');
             setResult(data);
             await refreshLatestResult();
 
@@ -1367,8 +1397,8 @@ function TestEvaluationsPage() {
             setSnackbarMessage("JSON Evaluation Completed Successfully!");
             setOpenSnackbar(true);
 
-        } catch (e: any) {
-            setSnackbarMessage(`Error: ${e.message}`);
+        } catch (e: unknown) {
+            setSnackbarMessage(`Error: ${getErrorMessage(e, 'JSON evaluation failed')}`);
             setOpenSnackbar(true);
         } finally {
             setLoading(false);
@@ -1386,10 +1416,10 @@ function TestEvaluationsPage() {
 
         try {
             // Prepare data for Excel
-            const exportData: any[] = [];
+            const exportData: Array<Record<string, string | number>> = [];
 
             // Helper function to format metric values
-            const formatMetric = (val: any) => {
+            const formatMetric = (val: unknown) => {
                 if (val === 'NA' || val === "NA" || val === null || val === undefined) return 'NA';
                 const num = Number(val);
                 if (isNaN(num)) return 'NA';
@@ -1397,16 +1427,16 @@ function TestEvaluationsPage() {
             };
 
             // Helper function to get reason for decision
-            const getReasonForDecision = (out: any) => {
+            const getReasonForDecision = (out: Record<string, unknown>) => {
                 const matchType = out.match_type || 'text';
-                const getNum = (v: any, def = 0) => (v === 'NA' || v == null) ? def : Number(v);
+                const getNum = (v: unknown, def = 0) => (v === 'NA' || v == null) ? def : Number(v);
                 const semanticScore = getNum(out.semantic_score);
                 const accuracy = getNum(out.accuracy);
 
                 const semanticThreshold = config.semantic_threshold || 0.72;
 
                 if (matchType === 'json_structured') {
-                    const fmt = (v: any) => v != null ? Number(v).toFixed(2) : 'N/A';
+                    const fmt = (v: unknown) => v != null ? Number(v).toFixed(2) : 'N/A';
                     return `✓ Structured JSON Eval: Acc: ${accuracy.toFixed(2)}, Comp: ${fmt(out.completeness)}, Hall: ${fmt(out.hallucination)}, RQS: ${fmt(out.rqs)}`;
                 } else if (matchType === 'json') {
                     return accuracy === 1.0 ? '✓ JSON structural equality' : '✗ JSON structures differ';
@@ -1480,9 +1510,9 @@ function TestEvaluationsPage() {
 
             setSnackbarMessage(`Exported ${exportData.length} evaluations to ${filename}`);
             setOpenSnackbar(true);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Export failed', error);
-            setSnackbarMessage(`Export failed: ${error.message}`);
+            setSnackbarMessage(`Export failed: ${getErrorMessage(error, 'Export failed')}`);
             setOpenSnackbar(true);
         }
     };
@@ -1760,7 +1790,7 @@ function TestEvaluationsPage() {
                                         </Alert>
                                     )}
                                 </Box>
-                                {(convertedGt || convertedAi) && (
+                                {hasNormalizedData && (
                                     <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
                                         <Tooltip title="View Normalized JSON">
                                             <Button
@@ -1882,7 +1912,7 @@ function TestEvaluationsPage() {
                                         </Alert>
                                     )}
                                 </Box>
-                                {(convertedGt || convertedAi) && (
+                                {hasNormalizedData && (
                                     <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
                                         <Tooltip title="View Normalized JSON">
                                             <Button
@@ -1973,20 +2003,21 @@ function TestEvaluationsPage() {
                                         filename: {gtSource}
                                     </Typography>
                                 )}
-                                {convertedGt && <JsonView key={`gt-${normalizedJsonKey}`} src={convertedGt} theme={theme.palette.mode === 'dark' ? 'vscode' : 'default'} className={theme.palette.mode === 'dark' ? 'dark' : ''} collapsed={normalizedJsonDepth === 1} />}
+                                {Boolean(convertedGt) && <JsonView key={`gt-${normalizedJsonKey}`} src={convertedGt as object} theme={theme.palette.mode === 'dark' ? 'vscode' : 'default'} className={theme.palette.mode === 'dark' ? 'dark' : ''} collapsed={normalizedJsonDepth === 1} />}
                             </Grid>
                             <Grid size={{ xs: 6 }}>
                                 <Typography variant="subtitle1" gutterBottom>AI Outputs (Normalized)</Typography>
-                                {convertedAi && (() => {
+                                {Boolean(convertedAi) && (() => {
+                                    const aiList = Array.isArray(convertedAi) ? convertedAi : [];
                                     // Group by run_id
-                                    const grouped = convertedAi.reduce((acc: any, item: any) => {
-                                        const rid = item.run_id || "unknown";
+                                    const grouped = aiList.reduce((acc: Record<string, Array<Record<string, unknown>>>, item) => {
+                                        const rid = typeof item.run_id === 'string' ? item.run_id : "unknown";
                                         if (!acc[rid]) acc[rid] = [];
                                         acc[rid].push(item);
                                         return acc;
                                     }, {});
 
-                                    return Object.entries(grouped).map(([rid, items]: [string, any]) => (
+                                    return Object.entries(grouped).map(([rid, items]) => (
                                         <Box key={rid} sx={{ mb: 2 }}>
                                             {evaluationType === 'batch' && rid !== 'manual_run' && (
                                                 <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
