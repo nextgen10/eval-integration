@@ -252,6 +252,7 @@ function EnterpriseDashboardContent() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isEvaluating && logEndRef.current) {
@@ -671,7 +672,7 @@ function EnterpriseDashboardContent() {
               </Typography>
             </Box>
 
-            {activeView === 'insights' && data && (
+            {activeView === 'insights' && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Chip
                   label={`BATCH LOAD: ${data?.test_cases?.length || 0} QUESTIONS`}
@@ -738,6 +739,21 @@ function EnterpriseDashboardContent() {
 
             {activeView === 'drilldown' && data && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileUpload}
+                  style={{ display: 'none' }}
+                />
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<UploadCloud size={16} />}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Evaluate
+                </Button>
                 {filteredTestCases.length > ITEMS_PER_PAGE && (
                   <PaginationControl
                     count={Math.ceil(filteredTestCases.length / ITEMS_PER_PAGE)}
@@ -810,7 +826,7 @@ function EnterpriseDashboardContent() {
           {/* Scrollable Content Area (Freeze Pan) */}
           <Box sx={{
             flexGrow: 1,
-            overflowY: (activeView === 'about' || activeView === 'history' || activeView === 'config') ? 'hidden' : 'auto',
+            overflowY: 'auto',
             overflowX: 'hidden',
             width: '100%',
             maxWidth: '100vw',
@@ -843,13 +859,13 @@ function EnterpriseDashboardContent() {
               >
                 <Box sx={{ height: ['about', 'history', 'config'].includes(activeView) ? '100%' : 'auto' }}>
                   {/* Dashboard View */}
-                  {activeView === 'insights' && data && (
+                  {activeView === 'insights' && (
                     <Grid container spacing={1.5} columns={12}>
                       {/* Score Cards - Row 1 */}
                       <Grid size={{ xs: 6, sm: 6, md: 3 }}>
                         <MetricCard
                           label="Highest RQS"
-                          value={winner?.id}
+                          value={winner?.id || '0'}
                           icon={<Trophy size={24} />}
                           subtitle={`Master Score: ${(winner?.avg_rqs || 0).toFixed(2)}`}
                           trend={trends.rqs}
@@ -1889,7 +1905,7 @@ function EnterpriseDashboardContent() {
             margin: 0;
             padding: 0;
             height: 100%;
-            overflow: hidden !important;
+            overflow: auto !important;
           }
           @keyframes blink { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
           @keyframes shine {

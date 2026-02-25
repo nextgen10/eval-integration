@@ -94,7 +94,7 @@ export default function QualarisLanding() {
         <UnifiedNavBar
           title="QUALARIS"
           items={[
-            { id: 'platforms', label: 'Platforms', onClick: () => document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }) },
+            { id: 'platforms', label: 'Use Cases', onClick: () => document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }) },
             { id: 'methodology', label: 'Methodology', onClick: () => document.getElementById('methodology-section')?.scrollIntoView({ behavior: 'smooth' }) },
             { id: 'capabilities', label: 'Capabilities', onClick: () => document.getElementById('capabilities-section')?.scrollIntoView({ behavior: 'smooth' }) },
           ]}
@@ -165,16 +165,18 @@ export default function QualarisLanding() {
                     <br />
                     Evaluation for{' '}
                     <Box component="span" sx={{ color: 'primary.main' }}>RAG Pipelines</Box>
+                    {', '}
+                    <Box component="span" sx={{ color: 'primary.main' }}>AI Agents</Box>
                     {' & '}
-                    <Box component="span" sx={{ color: 'primary.main' }}>AI Agents</Box>.
+                    <Box component="span" sx={{ color: 'primary.main' }}>Ground Truth Data</Box>.
                   </Typography>
 
                   <Typography variant="h6" sx={{
                     fontSize: { xs: '1rem', md: '1.15rem' }, maxWidth: 560, mb: 5,
                     color: 'text.secondary', fontWeight: 400, lineHeight: 1.7,
                   }}>
-                    Benchmark your Retrieval-Augmented Generation systems and autonomous agents with rigorous metrics.
-                    Upload datasets, compare architectures, and export production-ready reports.
+                    Build high-quality test datasets, benchmark Retrieval-Augmented Generation systems, and evaluate autonomous agents with rigorous metrics.
+                    Run end-to-end validation workflows from dataset creation to production-grade reporting.
                   </Typography>
 
                   <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 6 }}>
@@ -193,9 +195,9 @@ export default function QualarisLanding() {
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 0.5 }}>
                     <Box sx={{ display: 'flex', gap: { xs: 3, md: 5 }, flexWrap: 'wrap' }}>
                       {[
+                        { value: '3', label: 'Integrated Applications' },
                         { value: '15+', label: 'Evaluation Metrics' },
-                        { value: 'Multi-Bot', label: 'Architecture Compare' },
-                        { value: 'RQS', label: 'Composite Scoring' },
+                        { value: 'RQS', label: 'Composite Scoring Engine' },
                       ].map((stat) => (
                         <Box key={stat.label}>
                           <Typography sx={{ fontWeight: 700, color: 'text.primary', fontSize: '1.1rem', lineHeight: 1 }}>{stat.value}</Typography>
@@ -467,13 +469,13 @@ export default function QualarisLanding() {
         }}>
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }} transition={{ duration: 0.5 }}>
             <Typography variant="overline" sx={{ display: 'block', mb: 4, letterSpacing: '0.08em', color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem' }}>
-              EVALUATION PLATFORMS
+              QUALARIS APPLICATION SUITE
             </Typography>
           </motion.div>
           <Grid container spacing={4}>
 
             {/* RAG EVAL Card */}
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <motion.div style={{ height: '100%' }} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.5, delay: 0.1 }}>
                 <MotionPaper
                   whileHover={{ y: -4 }}
@@ -506,8 +508,8 @@ export default function QualarisLanding() {
                     </Box>
                     <Typography variant="h4" sx={{ mb: 1, whiteSpace: 'nowrap', fontWeight: 600 }}>RAG <Box component="span" sx={{ color: 'primary.main' }}>EVAL</Box></Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
-                      Upload Excel datasets to evaluate and compare multiple RAG architectures side-by-side.
-                      Measure faithfulness, relevancy, context precision, and retrieval quality with a configurable RQS formula.
+                      Evaluate retrieval quality across multi-bot RAG systems with experiment-level analysis and run history.
+                      Measure faithfulness, relevancy, correctness, context precision/recall, and toxicity with configurable scoring.
                     </Typography>
                   </Box>
                   <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -534,7 +536,7 @@ export default function QualarisLanding() {
             </Grid>
 
             {/* AGENT EVAL Card */}
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <motion.div style={{ height: '100%' }} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.5, delay: 0.2 }}>
                 <MotionPaper
                   whileHover={{ y: -4 }}
@@ -567,8 +569,8 @@ export default function QualarisLanding() {
                     </Box>
                     <Typography variant="h4" sx={{ mb: 1, whiteSpace: 'nowrap', fontWeight: 600 }}>AGENT <Box component="span" sx={{ color: 'primary.main' }}>EVAL</Box></Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
-                      Evaluate autonomous agent outputs against ground truth using JSON or batch workflows.
-                      Score accuracy, completeness, hallucination, consistency, and safety with a weighted composite RQS formula.
+                      Validate autonomous agent outputs against structured ground truth via JSON and batch workflows.
+                      Track accuracy, completeness, hallucination, consistency, and safety with weighted production thresholds.
                     </Typography>
                   </Box>
                   <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -594,6 +596,67 @@ export default function QualarisLanding() {
               </motion.div>
             </Grid>
 
+            {/* GROUND TRUTH GENERATOR Card */}
+            <Grid size={{ xs: 12, md: 4 }}>
+              <motion.div style={{ height: '100%' }} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.5, delay: 0.3 }}>
+                <MotionPaper
+                  whileHover={{ y: -4 }}
+                  onClick={() => router.push('/ground-truth')}
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    height: '100%',
+                    bgcolor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 3,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    transition: 'all 0.25s ease',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      boxShadow: (t) => t.palette.mode === 'light' ? '0 8px 30px rgba(208,0,0,0.1)' : '0 8px 30px rgba(208,0,0,0.2)',
+                    }
+                  }}
+                >
+                  <Box sx={{ mb: 3 }}>
+                    <Box sx={{
+                      width: 48, height: 48, borderRadius: 2,
+                      bgcolor: (t) => t.palette.mode === 'light' ? '#FFE5E5' : alpha(t.palette.primary.main, 0.15),
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2,
+                    }}>
+                      <Sparkles size={24} color="#D00000" />
+                    </Box>
+                    <Typography variant="h4" sx={{ mb: 1, whiteSpace: 'nowrap', fontWeight: 600 }}>GROUND TRUTH <Box component="span" sx={{ color: 'primary.main' }}>GENERATOR</Box></Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                      Create and maintain high-quality JSON/YAML datasets with schema-aware editing, validation, and template libraries.
+                      Supports Excel/HTML portability to feed both RAG Eval and Agent Eval pipelines.
+                    </Typography>
+                  </Box>
+                  <Grid container spacing={2} sx={{ mb: 3 }}>
+                    <Grid size={{ xs: 6 }}>
+                      <Box sx={{ p: 2, borderRadius: 2, bgcolor: (t) => t.palette.mode === 'light' ? '#F5F7FA' : 'action.hover', border: '1px solid', borderColor: 'divider' }}>
+                        <FileJson size={16} style={{ marginBottom: 8, color: '#5B6472' }} />
+                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>Editor Modes</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>JSON / YAML / Form</Typography>
+                      </Box>
+                    </Grid>
+                    <Grid size={{ xs: 6 }}>
+                      <Box sx={{ p: 2, borderRadius: 2, bgcolor: (t) => t.palette.mode === 'light' ? '#F5F7FA' : 'action.hover', border: '1px solid', borderColor: 'divider' }}>
+                        <Download size={16} style={{ marginBottom: 8, color: '#5B6472' }} />
+                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>Data Ops</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Excel Import/Export</Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', fontSize: '0.9rem', fontWeight: 600, transition: 'gap 0.2s', '&:hover': { gap: 1.5 } }}>
+                    Launch Ground Truth Generator <ArrowRight size={16} />
+                  </Box>
+                </MotionPaper>
+              </motion.div>
+            </Grid>
+
           </Grid>
         </Container>
 
@@ -609,8 +672,8 @@ export default function QualarisLanding() {
                   How We <Box component="span" sx={{ color: 'primary.main' }}>Evaluate</Box>
                 </Typography>
                 <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 800, mx: 'auto', lineHeight: 1.7 }}>
-                  Both platforms use a composite Retrieval Quality Score (RQS) built from configurable weighted metrics,
-                  powered by semantic embeddings, Ragas, and LLM-based reasoning.
+                  Qualaris connects data preparation and evaluation in one workflow: Ground Truth Generator for dataset engineering,
+                  RAG Eval for retrieval benchmarking, and Agent Eval for output validation using configurable weighted metrics.
                 </Typography>
               </Box>
             </motion.div>
@@ -706,7 +769,7 @@ export default function QualarisLanding() {
                 { icon: <FileSpreadsheet size={22} />, title: 'Excel-Driven Evaluation', desc: 'Upload .xlsx datasets with queries, ground truth, and multiple bot columns. Auto-detected architectures scored in parallel.' },
                 { icon: <GitCompare size={22} />, title: 'Architecture Comparison', desc: 'Leaderboard ranking across Bot_A, Bot_B, Bot_C and more. Compare any two historical evaluations side-by-side.' },
                 { icon: <FileJson size={22} />, title: 'JSON & Batch Workflows', desc: 'Paste JSON or provide file paths for agent evaluation. Configurable key mapping for query_id, expected, and actual outputs.' },
-                { icon: <BarChart3 size={22} />, title: 'Real-Time Dashboards', desc: 'Production intelligence view with area charts, radar plots, and trend analysis across the last 100 evaluation runs.' },
+                { icon: <Sparkles size={22} />, title: 'Ground Truth Engineering', desc: 'Schema-aware JSON/YAML/Form editing with template libraries, validation workflows, and Excel/HTML portability.' },
                 { icon: <Download size={22} />, title: 'Multi-Format Export', desc: 'Export evaluation reports as PDF, JSON, or Excel with production intelligence summaries, leaderboards, and transactional detail.' },
                 { icon: <Zap size={22} />, title: 'Configurable RQS Engine', desc: 'Tune α, β, γ weights, semantic thresholds, judge models, strictness, temperature, and safety scoring per evaluation.' },
               ].map((item, idx) => (
@@ -776,14 +839,15 @@ export default function QualarisLanding() {
                   <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', whiteSpace: 'nowrap', fontSize: '1.125rem' }}>QUALARIS</Typography>
                 </Box>
                 <Typography variant="body2" color="text.secondary">
-                  Enterprise-grade evaluation infrastructure for RAG pipelines and autonomous AI agents.
+                  Unified enterprise suite for ground truth engineering, RAG benchmarking, and autonomous agent evaluation.
                 </Typography>
               </Grid>
               <Grid size={{ xs: 6, md: 2 }}>
                 <Typography variant="subtitle2" sx={{ color: 'text.primary', mb: 2, fontWeight: 600 }}>About</Typography>
                 <Stack spacing={1.5}>
-                  <Box component="a" href="/docs#rag-eval" sx={{ textDecoration: 'none', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s', fontSize: '0.875rem', display: 'block' }}>RAG Evaluation</Box>
-                  <Box component="a" href="/docs#agent-eval" sx={{ textDecoration: 'none', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s', fontSize: '0.875rem', display: 'block' }}>Agent Evaluation</Box>
+                  <Box component="a" href="/docs#rag-eval" sx={{ textDecoration: 'none', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s', fontSize: '0.875rem', display: 'block' }}>RAG Eval</Box>
+                  <Box component="a" href="/docs#agent-eval" sx={{ textDecoration: 'none', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s', fontSize: '0.875rem', display: 'block' }}>Agent Eval</Box>
+                  <Box component="a" href="/docs#ground-truth-application" sx={{ textDecoration: 'none', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s', fontSize: '0.875rem', display: 'block' }}>Ground Truth Generator</Box>
                   <Box component="a" href="#feedback-section" sx={{ textDecoration: 'none', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s', fontSize: '0.875rem', display: 'block' }}>Feedback</Box>
                   <Box component="a" href="/docs#contact-support" sx={{ textDecoration: 'none', color: 'text.secondary', '&:hover': { color: 'primary.main' }, transition: 'color 0.2s', fontSize: '0.875rem', display: 'block' }}>Contact</Box>
                 </Stack>

@@ -77,8 +77,8 @@ export default function DocumentationPage() {
                 <UnifiedNavBar
                     title="QUALARIS"
                     items={[
-                        { id: 'platforms', label: 'Platforms', onClick: () => document.getElementById('overview')?.scrollIntoView({ behavior: 'smooth' }) },
-                        { id: 'solutions', label: 'Solutions', onClick: () => document.getElementById('agent-eval')?.scrollIntoView({ behavior: 'smooth' }) },
+                        { id: 'platforms', label: 'Overview', onClick: () => document.getElementById('overview')?.scrollIntoView({ behavior: 'smooth' }) },
+                        { id: 'solutions', label: 'Use Cases', onClick: () => document.getElementById('ground-truth-application')?.scrollIntoView({ behavior: 'smooth' }) },
                         { id: 'enterprise', label: 'Enterprise', onClick: () => document.getElementById('contact-support')?.scrollIntoView({ behavior: 'smooth' }) },
                     ]}
                     onLogoClick={() => router.push('/')}
@@ -112,7 +112,7 @@ export default function DocumentationPage() {
                                 Platform <Box component="span" sx={{ color: 'primary.main' }}>Documentation</Box>
                             </Typography>
                             <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem', maxWidth: 800, mx: 'auto' }}>
-                                The definitive guide to Qualaris&apos;s metrics, models, and evaluation frameworks for RAG and Autonomous Agents.
+                                The definitive guide to Qualaris&apos;s unified workflow: Ground Truth Generator, RAG Eval, and Agent Eval for enterprise AI quality assurance.
                             </Typography>
                         </motion.div>
                     </Box>
@@ -125,7 +125,7 @@ export default function DocumentationPage() {
                                     ON THIS PAGE
                                 </Typography>
                                 <Stack spacing={1}>
-                                    {['Overview', 'Agent Eval', 'RAG Eval', 'Agent Metrics', 'RAG Metrics', 'Decision Engine', 'Models & API', 'API as a Service', 'Authentication', 'API Reference', 'Contact Support'].map((item) => (
+                                    {['Overview', 'Ground Truth Application', 'Agent Eval', 'RAG Eval', 'Agent Metrics', 'RAG Metrics', 'Decision Engine', 'Models & API', 'API as a Service', 'Authentication', 'API Reference', 'Contact Support'].map((item) => (
                                         <Typography
                                             key={item}
                                             variant="body2"
@@ -156,31 +156,60 @@ export default function DocumentationPage() {
                                     <SectionHeader icon={<Layers size={24} />} title="Overview" />
                                     <Typography variant="body1" paragraph color="text.secondary">
                                         Qualaris is an enterprise-grade evaluation suite for benchmarking Large Language Model applications.
-                                        It provides two primary evaluation frameworks:
+                                        It provides three integrated applications:
                                     </Typography>
                                     <Grid container spacing={2}>
-                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Grid size={{ xs: 12, sm: 4 }}>
                                             <DocCard
                                                 title="RAG Eval"
                                                 icon={<Activity size={20} />}
                                                 content="Evaluates Retrieval-Augmented Generation pipelines. Upload Excel datasets, compare multiple RAG architectures, and measure faithfulness, relevancy, context precision/recall, and answer correctness."
                                             />
                                         </Grid>
-                                        <Grid size={{ xs: 12, sm: 6 }}>
+                                        <Grid size={{ xs: 12, sm: 4 }}>
                                             <DocCard
                                                 title="Agent Eval"
                                                 icon={<Brain size={20} />}
                                                 content="Evaluates JSON-structured agent outputs. Measures correctness, completeness, hallucination, consistency, and safety. Supports Batch (JSON files) and single-run JSON evaluation."
                                             />
                                         </Grid>
+                                        <Grid size={{ xs: 12, sm: 4 }}>
+                                            <DocCard
+                                                title="Ground Truth Generator"
+                                                icon={<Layers size={20} />}
+                                                content="Builds and validates high-quality datasets using JSON/YAML/Form views, schema-aware editing, and Excel/HTML import-export for downstream evaluation use cases."
+                                            />
+                                        </Grid>
                                     </Grid>
                                 </Box>
 
-                                {/* 2. Agent Eval Implementation */}
-                                <Box id="agent-eval" sx={{ scrollMarginTop: '80px' }}>
-                                    <SectionHeader icon={<Brain size={24} />} title="Agent Eval Application" />
+                                {/* 2. Ground Truth Generator */}
+                                <Box id="ground-truth-application" sx={{ scrollMarginTop: '80px' }}>
+                                    <SectionHeader icon={<Layers size={24} />} title="Ground Truth Application" />
                                     <Typography variant="body1" paragraph color="text.secondary">
-                                        Agent Eval evaluates autonomous agents that produce JSON outputs. Navigate via: <strong>Dashboard → Experiments → History → Configuration</strong>.
+                                        Ground Truth Generator is the dataset engineering module in Qualaris. It standardizes evaluation inputs for both RAG Eval and Agent Eval with schema-aware controls and portable formats.
+                                    </Typography>
+                                    <Stack spacing={2}>
+                                        <MetricDetail
+                                            title="Editor Modes"
+                                            description="Use JSON, YAML, Schema Template, and Generated Form modes to author and validate datasets in one place while keeping structures synchronized."
+                                        />
+                                        <MetricDetail
+                                            title="Template Library"
+                                            description="Store reusable templates scoped to your application, with import/export support for team sharing and cross-project reuse."
+                                        />
+                                        <MetricDetail
+                                            title="Portable Data Operations"
+                                            description="Import and export Excel/HTML/JSON for operational workflows. Generated datasets flow directly into RAG and Agent evaluation pipelines."
+                                        />
+                                    </Stack>
+                                </Box>
+
+                                {/* 3. Agent Eval Use Case */}
+                                <Box id="agent-eval" sx={{ scrollMarginTop: '80px' }}>
+                                    <SectionHeader icon={<Brain size={24} />} title="Agent Eval Use Case" />
+                                    <Typography variant="body1" paragraph color="text.secondary">
+                                        Agent Eval validates autonomous agents that produce JSON outputs. Navigate via: <strong>Dashboard → Experiments → History → Configuration</strong>.
                                     </Typography>
                                     <Stack spacing={2}>
                                         <MetricDetail
@@ -202,9 +231,9 @@ export default function DocumentationPage() {
                                     </Stack>
                                 </Box>
 
-                                {/* 3. RAG Eval Implementation */}
+                                {/* 4. RAG Eval Use Case */}
                                 <Box id="rag-eval" sx={{ scrollMarginTop: '80px' }}>
-                                    <SectionHeader icon={<Activity size={24} />} title="RAG Eval Application" />
+                                    <SectionHeader icon={<Activity size={24} />} title="RAG Eval Use Case" />
                                     <Typography variant="body1" paragraph color="text.secondary">
                                         RAG Eval compares multiple RAG architectures on Excel datasets. Navigate via: <strong>Dashboard → Experiments → History → Configuration</strong>.
                                     </Typography>
@@ -226,7 +255,7 @@ export default function DocumentationPage() {
 
                                 {/* 4. Agent Metrics */}
                                 <Box id="agent-metrics" sx={{ scrollMarginTop: '80px' }}>
-                                    <SectionHeader icon={<Brain size={24} />} title="Agent Evaluation Metrics" />
+                                    <SectionHeader icon={<Brain size={24} />} title="Agent Eval Metrics" />
                                     <Stack spacing={3}>
                                         <MetricDetail
                                             title="RQS (Retrieval Quality Score)"
@@ -264,7 +293,7 @@ export default function DocumentationPage() {
 
                                 {/* 5. RAG Metrics */}
                                 <Box id="rag-metrics" sx={{ scrollMarginTop: '80px' }}>
-                                    <SectionHeader icon={<Activity size={24} />} title="RAG Evaluation Metrics" />
+                                    <SectionHeader icon={<Activity size={24} />} title="RAG Eval Metrics" />
                                     <Stack spacing={3}>
                                         <MetricDetail
                                             title="RQS (Retrieval Quality Score)"
@@ -376,9 +405,9 @@ export default function DocumentationPage() {
                                     </Paper>
 
                                     <Paper sx={{ p: 3, mt: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
-                                        <Typography variant="h6" fontWeight={800} gutterBottom>Two Platforms, One API Key</Typography>
+                                        <Typography variant="h6" fontWeight={800} gutterBottom>Unified Access Model</Typography>
                                         <Typography variant="body2" color="text.secondary" paragraph>
-                                            Your single API key works across both evaluation platforms. Use the same <code style={{ padding: '2px 6px', background: 'rgba(0,0,0,0.08)', borderRadius: 4 }}>X-API-Key</code> header for both.
+                                            Qualaris uses one application identity across its modules. Use the same <code style={{ padding: '2px 6px', background: 'rgba(0,0,0,0.08)', borderRadius: 4 }}>X-API-Key</code> header for API-backed evaluation services.
                                         </Typography>
                                         <Grid container spacing={2}>
                                             <Grid size={{ xs: 12, sm: 6 }}>

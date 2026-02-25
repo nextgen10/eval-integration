@@ -13,6 +13,8 @@ import { UbsLogoFull } from '@/components/UbsLogoFull';
 import { BrandPipe } from '@/components/BrandPipe';
 import ThemeToggle from '@/components/ThemeToggle';
 
+const APP_NAME_REGEX = /^[A-Za-z0-9]{1,15}$/;
+
 export default function LoginPage() {
     const theme = useTheme();
     const router = useRouter();
@@ -54,14 +56,15 @@ export default function LoginPage() {
     };
 
     const handleRegister = async () => {
-        if (!appName.trim() || appName.trim().length < 2) {
-            setError('Application name must be at least 2 characters');
+        const normalizedName = appName.trim();
+        if (!APP_NAME_REGEX.test(normalizedName)) {
+            setError('Application name must be alphanumeric and up to 15 characters');
             return;
         }
         setLoading(true);
         setError('');
         try {
-            const result = await register(appName.trim(), ownerEmail.trim());
+            const result = await register(normalizedName, ownerEmail.trim());
             setRegisteredKey(result.api_key);
             setSnackOpen(true);
         } catch (e: unknown) {
@@ -197,9 +200,13 @@ export default function LoginPage() {
                                             fullWidth
                                             label="Application Name"
                                             value={appName}
-                                            onChange={(e) => setAppName(e.target.value)}
+                                            onChange={(e) => {
+                                                const normalized = e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 15);
+                                                setAppName(normalized);
+                                            }}
                                             onKeyDown={(e) => e.key === 'Enter' && handleRegister()}
-                                            placeholder="e.g. My Trading Bot"
+                                            placeholder="e.g. TradingBot01"
+                                            helperText="Alphanumeric only, max 15 characters"
                                             InputProps={{
                                                 startAdornment: (
                                                     <InputAdornment position="start">

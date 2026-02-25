@@ -21,6 +21,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const SESSION_KEY = 'nexus_eval_session';
+const APP_NAME_REGEX = /^[A-Za-z0-9]{1,15}$/;
 
 export function useAuth() {
     const ctx = useContext(AuthContext);
@@ -95,10 +96,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [persistSession]);
 
     const register = useCallback(async (appName: string, ownerEmail: string) => {
+        const normalizedName = appName.trim();
+        if (!APP_NAME_REGEX.test(normalizedName)) {
+            throw new Error('Application name must be alphanumeric and up to 15 characters');
+        }
         const res = await fetch(`${API_BASE}/apps/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ app_name: appName, owner_email: ownerEmail }),
+            body: JSON.stringify({ app_name: normalizedName, owner_email: ownerEmail }),
         });
         if (!res.ok) {
             const err = await res.json().catch(() => ({ detail: 'Registration failed' }));

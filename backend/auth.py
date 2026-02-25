@@ -17,6 +17,7 @@ MAX_APP_NAME_LENGTH = 128
 MAX_EMAIL_LENGTH = 256
 MAX_API_KEY_LENGTH = 512
 _VALID_APP_ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$')
+_VALID_APP_NAME_RE = re.compile(r'^[A-Za-z0-9]{1,15}$')
 
 DB_NAME = "evaluations.db"
 
@@ -54,11 +55,10 @@ def register_application(app_name: str, owner_email: str = "") -> Dict[str, str]
     app_name = app_name.strip()[:MAX_APP_NAME_LENGTH]
     owner_email = (owner_email or "").strip()[:MAX_EMAIL_LENGTH]
 
-    if len(app_name) < 2:
-        raise ValueError("Application name must be at least 2 characters")
+    if not _VALID_APP_NAME_RE.match(app_name):
+        raise ValueError("Application name must be alphanumeric and 1-15 characters")
 
-    raw_id = re.sub(r'[^a-z0-9-]', '', app_name.lower().replace(" ", "-").replace("_", "-"))
-    raw_id = re.sub(r'-+', '-', raw_id).strip('-')
+    raw_id = app_name.lower()
     if not raw_id or len(raw_id) > 64 or not _VALID_APP_ID_RE.match(raw_id):
         raise ValueError("Application name must contain at least one alphanumeric character")
     app_id = raw_id

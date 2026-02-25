@@ -7,6 +7,7 @@ import json
 import asyncio
 import logging
 import uuid
+import re
 from datetime import datetime
 
 from agent_models import (
@@ -498,13 +499,16 @@ class RegisterAppRequest(BaseModel):
 class LoginRequest(BaseModel):
     api_key: str
 
+APP_NAME_REGEX = re.compile(r'^[A-Za-z0-9]{1,15}$')
+
 @router.post("/apps/register")
 async def register_app(req: RegisterAppRequest):
     """Register a new application and receive an API key."""
-    if not req.app_name or len(req.app_name.strip()) < 2:
-        raise HTTPException(status_code=400, detail="app_name must be at least 2 characters")
+    normalized_name = (req.app_name or "").strip()
+    if not APP_NAME_REGEX.match(normalized_name):
+        raise HTTPException(status_code=400, detail="Application name must be alphanumeric and 1-15 characters")
     try:
-        creds = register_application(req.app_name.strip(), req.owner_email.strip())
+        creds = register_application(normalized_name, req.owner_email.strip())
         return creds
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))

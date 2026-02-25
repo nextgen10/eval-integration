@@ -39,12 +39,19 @@ export default function AppIdentityBadge({ appName, appId }: AppIdentityBadgePro
                     fontWeight: 600,
                     fontSize: '0.75rem',
                     height: 28,
+                    width: 180,
                     bgcolor: alpha(theme.palette.primary.main, 0.08),
                     color: theme.palette.primary.main,
                     borderColor: alpha(theme.palette.primary.main, 0.2),
                     border: '1px solid',
                     '& .MuiChip-icon': { color: theme.palette.primary.main },
                     '& .MuiChip-deleteIcon': { color: theme.palette.primary.main },
+                    '& .MuiChip-label': {
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        maxWidth: 120,
+                    },
                     cursor: 'pointer',
                 }}
             />
