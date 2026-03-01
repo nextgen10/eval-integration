@@ -93,7 +93,7 @@ export const UnifiedNavBar: React.FC<UnifiedNavBarProps> = ({
                 </Typography>
             );
         }
-        if (parts.length > 1 && (lastWord === 'EVAL' || lastWord === 'DOCS' || lastWord === 'GENERATOR')) {
+        if (parts.length > 1 && (lastWord === 'EVAL' || lastWord === 'DOCS' || lastWord === 'GENERATOR' || lastWord === 'COMPASS')) {
             const mainPart = parts.slice(0, -1).join(' ');
             return (
                 <Typography variant="h6" sx={titleSx}>

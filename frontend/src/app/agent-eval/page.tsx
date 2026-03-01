@@ -1,5 +1,14 @@
-import { redirect } from 'next/navigation';
+'use client';
 
-export default function AgentEvalPage() {
-    redirect('/agent-eval/dashboard');
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function AgentEvalIndexPage() {
+    const router = useRouter();
+
+    useEffect(() => {
+        router.replace('/agent-eval/dashboard');
+    }, [router]);
+
+    return null;
 }

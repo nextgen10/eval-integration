@@ -112,7 +112,7 @@ export default function DocumentationPage() {
                                 Platform <Box component="span" sx={{ color: 'primary.main' }}>Documentation</Box>
                             </Typography>
                             <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem', maxWidth: 800, mx: 'auto' }}>
-                                The definitive guide to Qualaris&apos;s unified workflow: Ground Truth Generator, RAG Eval, and Agent Eval for enterprise AI quality assurance.
+                                The definitive guide to Qualaris&apos;s unified workflow: Ground Truth Generator, Playwright Compass, RAG Eval, and Agent Eval for enterprise AI quality assurance.
                             </Typography>
                         </motion.div>
                     </Box>
@@ -125,7 +125,7 @@ export default function DocumentationPage() {
                                     ON THIS PAGE
                                 </Typography>
                                 <Stack spacing={1}>
-                                    {['Overview', 'Ground Truth Application', 'Agent Eval', 'RAG Eval', 'Agent Metrics', 'RAG Metrics', 'Decision Engine', 'Models & API', 'API as a Service', 'Authentication', 'API Reference', 'Contact Support'].map((item) => (
+                                    {['Overview', 'Ground Truth Application', 'Playwright Compass', 'Agent Eval', 'RAG Eval', 'Agent Metrics', 'RAG Metrics', 'Decision Engine', 'Models & API', 'API as a Service', 'Authentication', 'API Reference', 'Contact Support'].map((item) => (
                                         <Typography
                                             key={item}
                                             variant="body2"
@@ -156,28 +156,35 @@ export default function DocumentationPage() {
                                     <SectionHeader icon={<Layers size={24} />} title="Overview" />
                                     <Typography variant="body1" paragraph color="text.secondary">
                                         Qualaris is an enterprise-grade evaluation suite for benchmarking Large Language Model applications.
-                                        It provides three integrated applications:
+                                        It provides four integrated modules:
                                     </Typography>
                                     <Grid container spacing={2}>
-                                        <Grid size={{ xs: 12, sm: 4 }}>
+                                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                             <DocCard
                                                 title="RAG Eval"
                                                 icon={<Activity size={20} />}
                                                 content="Evaluates Retrieval-Augmented Generation pipelines. Upload Excel datasets, compare multiple RAG architectures, and measure faithfulness, relevancy, context precision/recall, and answer correctness."
                                             />
                                         </Grid>
-                                        <Grid size={{ xs: 12, sm: 4 }}>
+                                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                             <DocCard
                                                 title="Agent Eval"
                                                 icon={<Brain size={20} />}
                                                 content="Evaluates JSON-structured agent outputs. Measures correctness, completeness, hallucination, consistency, and safety. Supports Batch (JSON files) and single-run JSON evaluation."
                                             />
                                         </Grid>
-                                        <Grid size={{ xs: 12, sm: 4 }}>
+                                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                             <DocCard
                                                 title="Ground Truth Generator"
                                                 icon={<Layers size={20} />}
                                                 content="Builds and validates high-quality datasets using JSON/YAML/Form views, schema-aware editing, and Excel/HTML import-export for downstream evaluation use cases."
+                                            />
+                                        </Grid>
+                                        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                                            <DocCard
+                                                title="Playwright Compass"
+                                                icon={<Compass size={20} />}
+                                                content="Designs and operates Playwright browser automation workflows, including test design, execution, locator management, self-healing operations, and architecture visibility."
                                             />
                                         </Grid>
                                     </Grid>
@@ -205,7 +212,29 @@ export default function DocumentationPage() {
                                     </Stack>
                                 </Box>
 
-                                {/* 3. Agent Eval Use Case */}
+                                {/* 3. Playwright Compass */}
+                                <Box id="playwright-compass" sx={{ scrollMarginTop: '80px' }}>
+                                    <SectionHeader icon={<Compass size={24} />} title="Playwright Compass" />
+                                    <Typography variant="body1" paragraph color="text.secondary">
+                                        Playwright Compass is the browser-automation engineering module in Qualaris. It supports end-to-end lifecycle management from test design to execution and operational maintenance.
+                                    </Typography>
+                                    <Stack spacing={2}>
+                                        <MetricDetail
+                                            title="Studio + Test Design"
+                                            description="Author page-object structures and reusable test flows with guided design controls aligned to automation standards."
+                                        />
+                                        <MetricDetail
+                                            title="Execution + Locator Ops"
+                                            description="Run test sessions, track execution outcomes, and manage locator assets for resilient browser automation."
+                                        />
+                                        <MetricDetail
+                                            title="Healing + Architecture + ROI"
+                                            description="Review self-healing recommendations, inspect architecture relationships, and monitor ROI indicators for automation programs."
+                                        />
+                                    </Stack>
+                                </Box>
+
+                                {/* 4. Agent Eval Use Case */}
                                 <Box id="agent-eval" sx={{ scrollMarginTop: '80px' }}>
                                     <SectionHeader icon={<Brain size={24} />} title="Agent Eval Use Case" />
                                     <Typography variant="body1" paragraph color="text.secondary">
@@ -231,7 +260,7 @@ export default function DocumentationPage() {
                                     </Stack>
                                 </Box>
 
-                                {/* 4. RAG Eval Use Case */}
+                                {/* 5. RAG Eval Use Case */}
                                 <Box id="rag-eval" sx={{ scrollMarginTop: '80px' }}>
                                     <SectionHeader icon={<Activity size={24} />} title="RAG Eval Use Case" />
                                     <Typography variant="body1" paragraph color="text.secondary">
@@ -522,7 +551,9 @@ X-API-Key: nxe_current_key...
                                     <SectionHeader icon={<Code size={24} />} title="API Reference" />
                                     <Typography variant="body1" paragraph color="text.secondary">
                                         All endpoints require the <code style={{ padding: '2px 6px', background: 'rgba(0,0,0,0.08)', borderRadius: 4 }}>X-API-Key</code> header unless noted.
-                                        The server exposes two groups of endpoints: <strong>Agent Eval</strong> (under <code>/agent-eval</code>) and <strong>RAG Eval</strong> (root-level).
+                                        The server currently exposes two endpoint groups: <strong>Agent Eval</strong> (under <code>/agent-eval</code>) and <strong>RAG Eval</strong> (root-level).
+                                        <br />
+                                        <strong>Ground Truth Generator</strong> and <strong>Playwright Compass</strong> are integrated as in-platform product modules and do not yet publish separate public API groups.
                                     </Typography>
 
                                     {/* --- Agent Eval Endpoints --- */}

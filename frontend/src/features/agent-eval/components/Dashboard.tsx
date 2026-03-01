@@ -8,6 +8,11 @@ import { API_BASE_URL } from '../utils/config';
 import { authFetch } from '../utils/authFetch';
 import { colors } from '@/theme';
 
+let historyCache: ChartPoint[] | null = null;
+let historyInFlight: Promise<ChartPoint[]> | null = null;
+let historyLastFetchTs = 0;
+const HISTORY_FETCH_COOLDOWN_MS = 15000;
+
 type AggregateMetrics = {
     accuracy?: number;
     rqs?: number;
@@ -68,35 +73,63 @@ export default function Dashboard({ latestResult }: DashboardProps) {
     useEffect(() => {
         setMounted(true);
         let isMounted = true;
+        const run = async () => {
+            try {
+                const now = Date.now();
+                if (historyCache) {
+                    setHistory(historyCache);
+                }
+                if (historyCache && now - historyLastFetchTs < HISTORY_FETCH_COOLDOWN_MS) {
+                    return;
+                }
 
-        authFetch(`${API_BASE_URL}/history`)
-            .then(res => {
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                return res.json();
-            })
-            .then((data: unknown) => {
-                if (!isMounted || !Array.isArray(data)) return;
-                const chartData = data
-                    .filter((item): item is HistoryApiItem => typeof item === 'object' && item !== null)
-                    .map((item) => {
-                    const rawTimestamp = item.timestamp ? new Date(item.timestamp) : null;
-                    return {
-                        id: item.id ?? 0,
-                        run_id: item.run_id ?? '',
-                        timestamp: rawTimestamp && !Number.isNaN(rawTimestamp.getTime())
-                            ? rawTimestamp.toLocaleTimeString()
-                            : 'N/A',
-                        accuracy: (item.aggregate?.accuracy || 0) * 100,
-                        rqs: (item.aggregate?.rqs || 0) * 100,
-                        completeness: (item.aggregate?.completeness || 0) * 100,
-                        consistency: (item.aggregate?.consistency || 0) * 100,
-                        safety: (item.aggregate?.safety || 0) * 100,
-                        hallucinations: (item.aggregate?.hallucination || 0) * 100
-                    };
-                }).reverse();
-                setHistory(chartData);
-            })
-            .catch(err => console.error("Failed to fetch history:", err));
+                if (!historyInFlight) {
+                    historyInFlight = authFetch(`${API_BASE_URL}/history`)
+                        .then(res => {
+                            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                            return res.json();
+                        })
+                        .then((data: unknown) => {
+                            const chartData = Array.isArray(data)
+                                ? data
+                                    .filter((item): item is HistoryApiItem => typeof item === 'object' && item !== null)
+                                    .map((item) => {
+                                        const rawTimestamp = item.timestamp ? new Date(item.timestamp) : null;
+                                        return {
+                                            id: item.id ?? 0,
+                                            run_id: item.run_id ?? '',
+                                            timestamp: rawTimestamp && !Number.isNaN(rawTimestamp.getTime())
+                                                ? rawTimestamp.toLocaleTimeString()
+                                                : 'N/A',
+                                            accuracy: (item.aggregate?.accuracy || 0) * 100,
+                                            rqs: (item.aggregate?.rqs || 0) * 100,
+                                            completeness: (item.aggregate?.completeness || 0) * 100,
+                                            consistency: (item.aggregate?.consistency || 0) * 100,
+                                            safety: (item.aggregate?.safety || 0) * 100,
+                                            hallucinations: (item.aggregate?.hallucination || 0) * 100
+                                        };
+                                    })
+                                    .reverse()
+                                : [];
+                            historyCache = chartData;
+                            historyLastFetchTs = Date.now();
+                            return chartData;
+                        })
+                        .finally(() => {
+                            historyInFlight = null;
+                        });
+                }
+
+                const chartData = await historyInFlight;
+                if (isMounted) {
+                    setHistory(chartData);
+                }
+            } catch (err) {
+                console.error("Failed to fetch history:", err);
+            }
+        };
+
+        run();
         return () => {
             isMounted = false;
         };

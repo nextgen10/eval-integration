@@ -73,14 +73,7 @@ export default function QualarisLanding() {
   const theme = useTheme();
   const isLight = theme.palette.mode === 'light';
   const brandLetters = 'QUALARIS'.split('');
-  const [mounted, setMounted] = useState(false);
   const { isAuthenticated, session } = useAuth();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
   return (
     <Box sx={{
         minHeight: '100vh',
@@ -187,7 +180,7 @@ export default function QualarisLanding() {
                     }} onClick={() => {
                       document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
                     }}>
-                      Start Evaluating
+                    Get Started
                     </Button>
                   </Box>
 
@@ -195,7 +188,7 @@ export default function QualarisLanding() {
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 0.5 }}>
                     <Box sx={{ display: 'flex', gap: { xs: 3, md: 5 }, flexWrap: 'wrap' }}>
                       {[
-                        { value: '3', label: 'Integrated Applications' },
+                        { value: '4', label: 'Integrated Modules' },
                         { value: '15+', label: 'Evaluation Metrics' },
                         { value: 'RQS', label: 'Composite Scoring Engine' },
                       ].map((stat) => (
@@ -475,7 +468,7 @@ export default function QualarisLanding() {
           <Grid container spacing={4}>
 
             {/* RAG EVAL Card */}
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <motion.div style={{ height: '100%' }} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.5, delay: 0.1 }}>
                 <MotionPaper
                   whileHover={{ y: -4 }}
@@ -484,6 +477,8 @@ export default function QualarisLanding() {
                   sx={{
                     p: 4,
                     height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
                     bgcolor: 'background.paper',
                     border: '1px solid',
                     borderColor: 'divider',
@@ -528,23 +523,25 @@ export default function QualarisLanding() {
                       </Box>
                     </Grid>
                   </Grid>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', fontSize: '0.9rem', fontWeight: 600, transition: 'gap 0.2s', '&:hover': { gap: 1.5 } }}>
-                    Launch RAG Eval <ArrowRight size={16} />
+                  <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', fontSize: '0.9rem', fontWeight: 600, transition: 'gap 0.2s', '&:hover': { gap: 1.5 } }}>
+                    Launch<ArrowRight size={16} />
                   </Box>
                 </MotionPaper>
               </motion.div>
             </Grid>
 
             {/* AGENT EVAL Card */}
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <motion.div style={{ height: '100%' }} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.5, delay: 0.2 }}>
                 <MotionPaper
                   whileHover={{ y: -4 }}
-                  onClick={() => router.push('/agent-eval')}
+                  onClick={() => router.push('/agent-eval/dashboard')}
                   elevation={0}
                   sx={{
                     p: 4,
                     height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
                     bgcolor: 'background.paper',
                     border: '1px solid',
                     borderColor: 'divider',
@@ -589,15 +586,15 @@ export default function QualarisLanding() {
                       </Box>
                     </Grid>
                   </Grid>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', fontSize: '0.9rem', fontWeight: 600, transition: 'gap 0.2s', '&:hover': { gap: 1.5 } }}>
-                    Launch Agent Eval <ArrowRight size={16} />
+                  <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', fontSize: '0.9rem', fontWeight: 600, transition: 'gap 0.2s', '&:hover': { gap: 1.5 } }}>
+                    Launch<ArrowRight size={16} />
                   </Box>
                 </MotionPaper>
               </motion.div>
             </Grid>
 
             {/* GROUND TRUTH GENERATOR Card */}
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <motion.div style={{ height: '100%' }} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.5, delay: 0.3 }}>
                 <MotionPaper
                   whileHover={{ y: -4 }}
@@ -606,6 +603,8 @@ export default function QualarisLanding() {
                   sx={{
                     p: 4,
                     height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
                     bgcolor: 'background.paper',
                     border: '1px solid',
                     borderColor: 'divider',
@@ -650,8 +649,71 @@ export default function QualarisLanding() {
                       </Box>
                     </Grid>
                   </Grid>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', fontSize: '0.9rem', fontWeight: 600, transition: 'gap 0.2s', '&:hover': { gap: 1.5 } }}>
-                    Launch Ground Truth Generator <ArrowRight size={16} />
+                  <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', fontSize: '0.9rem', fontWeight: 600, transition: 'gap 0.2s', '&:hover': { gap: 1.5 } }}>
+                    Launch<ArrowRight size={16} />
+                  </Box>
+                </MotionPaper>
+              </motion.div>
+            </Grid>
+
+            {/* PLAYWRIGHT COMPASS Card */}
+            <Grid size={{ xs: 12, md: 3 }}>
+              <motion.div style={{ height: '100%' }} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.5, delay: 0.4 }}>
+                <MotionPaper
+                  whileHover={{ y: -4 }}
+                  onClick={() => router.push('/playwright-pom')}
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    bgcolor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 3,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    transition: 'all 0.25s ease',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      boxShadow: (t) => t.palette.mode === 'light' ? '0 8px 30px rgba(208,0,0,0.1)' : '0 8px 30px rgba(208,0,0,0.2)',
+                    }
+                  }}
+                >
+                  <Box sx={{ mb: 3 }}>
+                    <Box sx={{
+                      width: 48, height: 48, borderRadius: 2,
+                      bgcolor: (t) => t.palette.mode === 'light' ? '#FFE5E5' : alpha(t.palette.primary.main, 0.15),
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2,
+                    }}>
+                      <Wrench size={24} color="#D00000" />
+                    </Box>
+                    <Typography variant="h4" sx={{ mb: 1, whiteSpace: 'nowrap', fontWeight: 600 }}>PLAYWRIGHT <Box component="span" sx={{ color: 'primary.main' }}>COMPASS</Box></Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                      Design, run, and maintain Playwright browser automation workflows in one production module.
+                      Includes test design, execution, locator management, self-healing, architecture visibility, and ROI tracking.
+                    </Typography>
+                  </Box>
+                  <Grid container spacing={2} sx={{ mb: 3 }}>
+                    <Grid size={{ xs: 6 }}>
+                      <Box sx={{ p: 2, borderRadius: 2, bgcolor: (t) => t.palette.mode === 'light' ? '#F5F7FA' : 'action.hover', border: '1px solid', borderColor: 'divider' }}>
+                        <Target size={16} style={{ marginBottom: 8, color: '#5B6472' }} />
+                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>Automation Design</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Studio + Locators</Typography>
+                      </Box>
+                    </Grid>
+                    <Grid size={{ xs: 6 }}>
+                      <Box sx={{ p: 2, borderRadius: 2, bgcolor: (t) => t.palette.mode === 'light' ? '#F5F7FA' : 'action.hover', border: '1px solid', borderColor: 'divider' }}>
+                        <Activity size={16} style={{ marginBottom: 8, color: '#5B6472' }} />
+                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>Execution Ops</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>Runs + Healing</Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                  <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', fontSize: '0.9rem', fontWeight: 600, transition: 'gap 0.2s', '&:hover': { gap: 1.5 } }}>
+                    Launch<ArrowRight size={16} />
                   </Box>
                 </MotionPaper>
               </motion.div>
@@ -672,8 +734,8 @@ export default function QualarisLanding() {
                   How We <Box component="span" sx={{ color: 'primary.main' }}>Evaluate</Box>
                 </Typography>
                 <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 800, mx: 'auto', lineHeight: 1.7 }}>
-                  Qualaris connects data preparation and evaluation in one workflow: Ground Truth Generator for dataset engineering,
-                  RAG Eval for retrieval benchmarking, and Agent Eval for output validation using configurable weighted metrics.
+                  Qualaris connects data preparation, automation, and evaluation in one workflow: Ground Truth Generator for dataset engineering,
+                  Playwright Compass for browser automation operations, RAG Eval for retrieval benchmarking, and Agent Eval for output validation using configurable weighted metrics.
                 </Typography>
               </Box>
             </motion.div>
@@ -914,7 +976,6 @@ function formatTimeAgo(ts: string): string {
 
 function FeedbackSection() {
   const theme = useTheme();
-  const router = useRouter();
   const { isAuthenticated } = useAuth();
   const [rating, setRating] = useState<number | null>(0);
   const [hoverRating, setHoverRating] = useState(-1);

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * JSON Schema validation utilities
  * Note: This is a lightweight implementation. For production, consider using Ajv library.

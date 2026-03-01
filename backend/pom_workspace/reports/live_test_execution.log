@@ -1,0 +1,60 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.7, pytest-9.0.2, pluggy-1.6.0 -- /usr/local/bin/python3
+cachedir: .pytest_cache
+metadata: {'Python': '3.13.7', 'Platform': 'macOS-15.6.1-arm64-arm-64bit-Mach-O', 'Packages': {'pytest': '9.0.2', 'pluggy': '1.6.0'}, 'Plugins': {'repeat': '0.9.4', 'playwright': '0.7.2', 'html': '4.1.1', 'xdist': '3.8.0', 'langsmith': '0.4.46', 'metadata': '3.1.1', 'allure-pytest': '2.15.1', 'anyio': '4.10.0', 'asyncio': '1.3.0', 'deepeval': '3.7.2', 'base-url': '2.1.0', 'rerunfailures': '16.1'}, 'Base URL': ''}
+rootdir: /Users/aniketmarwadi/Aniket/qualaris/backend/pom_workspace
+plugins: repeat-0.9.4, playwright-0.7.2, html-4.1.1, xdist-3.8.0, langsmith-0.4.46, metadata-3.1.1, allure-pytest-2.15.1, anyio-4.10.0, asyncio-1.3.0, deepeval-3.7.2, base-url-2.1.0, rerunfailures-16.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 1 item
+
+generated_pom/tests/test_generated.py::TestGenerated::test_flow[chromium] FAILED [100%]Running teardown with pytest sessionfinish...
+
+
+=================================== FAILURES ===================================
+______________________ TestGenerated.test_flow[chromium] _______________________
+
+self = <generated_pom.tests.test_generated.TestGenerated object at 0x13b095d10>
+page = <Page url='https://accounts.lambdatest.com/login'>
+generated_data = {'EMAIL_ADDRESS_TEXTBOX_DATA': ['aniket@gmail.com'], 'PASSWORD_TEXTBOX_DATA': ['ank123']}
+
+    def test_flow(self, page, generated_data):
+        page.set_default_timeout(Config.TIMEOUT)
+        try:
+            page_obj = GeneratedPage(page)
+            page_obj.run_generated_flow(generated_data)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+>           raise e
+
+generated_pom/tests/test_generated.py:25: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+generated_pom/tests/test_generated.py:21: in test_flow
+    page_obj.run_generated_flow(generated_data)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <generated_pom.pages.generated_page.GeneratedPage object at 0x13b0ff380>
+data = {'EMAIL_ADDRESS_TEXTBOX_DATA': ['aniket@gmail.com'], 'PASSWORD_TEXTBOX_DATA': ['ank123']}
+
+    def run_generated_flow(self, data: dict):
+        self.navigate_to("https://www.testmuai.com/")
+        self.click(GeneratedLocators.LOGIN_LINK)
+        self.click(GeneratedLocators.EMAIL_ADDRESS_TEXTBOX)
+        self.type_text(GeneratedLocators.EMAIL_ADDRESS_TEXTBOX, data.get("EMAIL_ADDRESS_TEXTBOX_DATA", [""] * 1)[0])
+>       self.press_key(GeneratedLocators.EMAIL_ADDRESS_TEXTBOX, "Tab")
+        ^^^^^^^^^^^^^^
+E       AttributeError: 'GeneratedPage' object has no attribute 'press_key'
+
+generated_pom/pages/generated_page.py:11: AttributeError
+----------------------------- Captured stderr call -----------------------------
+Traceback (most recent call last):
+  File "/Users/aniketmarwadi/Aniket/qualaris/backend/pom_workspace/generated_pom/tests/test_generated.py", line 21, in test_flow
+    page_obj.run_generated_flow(generated_data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/aniketmarwadi/Aniket/qualaris/backend/pom_workspace/generated_pom/pages/generated_page.py", line 11, in run_generated_flow
+    self.press_key(GeneratedLocators.EMAIL_ADDRESS_TEXTBOX, "Tab")
+    ^^^^^^^^^^^^^^
+AttributeError: 'GeneratedPage' object has no attribute 'press_key'
+=========================== short test summary info ============================
+FAILED generated_pom/tests/test_generated.py::TestGenerated::test_flow[chromium]
+============================== 1 failed in 6.35s ===============================

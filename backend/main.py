@@ -45,6 +45,22 @@ app.add_middleware(
 from agent_router import router as agent_router
 app.include_router(agent_router)
 
+from pom_studio.routers import recorder, generator, runner, workflow, settings, ai, locators, feedback, prompts, test_design, healer, roi, data
+
+app.include_router(recorder.router)
+app.include_router(generator.router)
+app.include_router(runner.router)
+app.include_router(workflow.router)
+app.include_router(settings.router)
+app.include_router(ai.router)
+app.include_router(locators.router)
+app.include_router(feedback.router)
+app.include_router(prompts.router)
+app.include_router(test_design.router)
+app.include_router(healer.router)
+app.include_router(roi.router)
+app.include_router(data.router)
+
 from nexus_database import SessionLocal, EvaluationRecord
 from auth import get_current_app
 import json

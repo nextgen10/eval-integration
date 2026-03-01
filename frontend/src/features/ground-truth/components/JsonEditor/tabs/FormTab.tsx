@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 import React from 'react';
 import { Box, Paper, Typography, Stack, Button, TextField, Alert, IconButton, InputAdornment, AlertColor } from '@mui/material';

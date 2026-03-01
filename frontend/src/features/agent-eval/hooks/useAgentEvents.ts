@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { API_BASE_URL } from '../utils/config';
-import { authFetch } from '../utils/authFetch';
 
 const SESSION_KEY = 'nexus_eval_session';
 
@@ -26,26 +25,6 @@ export function useAgentEvents() {
     const [events, setEvents] = useState<AgentEvent[]>([]);
     const [latestEvent, setLatestEvent] = useState<AgentEvent | null>(null);
     const [isConnected, setIsConnected] = useState(false);
-
-    useEffect(() => {
-        const fetchLatest = async () => {
-            try {
-                const response = await authFetch(`${API_BASE_URL}/latest-result`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.events && Array.isArray(data.events)) {
-                        setEvents(data.events);
-                        if (data.events.length > 0) {
-                            setLatestEvent(data.events[data.events.length - 1]);
-                        }
-                    }
-                }
-            } catch (error) {
-                // Silently fail - user may not have run evaluations yet
-            }
-        };
-        fetchLatest();
-    }, []);
 
     useEffect(() => {
         let eventSource: EventSource | null = null;

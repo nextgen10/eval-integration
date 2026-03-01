@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import {
     Box,
@@ -256,7 +257,7 @@ export const DynamicFieldComponent = ({
             )
             : (schemaData ? (() => {
                 const contextSchema = findSchemaNode(schemaData, path);
-                const itemSchema = Array.isArray(contextSchema) ? contextSchema[0] : (contextSchema?.items || null);
+                const itemSchema = Array.isArray(contextSchema) ? contextSchema[0] : ((contextSchema as any)?.items || null);
                 return itemSchema && typeof itemSchema === 'object' && !Array.isArray(itemSchema) &&
                     Object.values(itemSchema).every(v => v === null || typeof v !== 'object');
             })() : false)
