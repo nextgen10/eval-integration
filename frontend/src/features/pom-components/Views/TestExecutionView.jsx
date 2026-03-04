@@ -74,7 +74,7 @@ export function TestExecutionView() {
 
     const fetchSettings = async () => {
         try {
-            const res = await fetch('/api/settings');
+            const res = await fetch('/api/playwright-pom/settings');
             const data = await res.json();
             if (data.default_parallel_workers) setDefaultWorkers(data.default_parallel_workers);
         } catch (e) {
@@ -84,7 +84,7 @@ export function TestExecutionView() {
 
     const fetchMarkers = async () => {
         try {
-            const res = await fetch('/api/settings');
+            const res = await fetch('/api/playwright-pom/settings');
             const data = await res.json();
             if (data.markers) setAvailableMarkers(data.markers);
         } catch (e) {
@@ -102,7 +102,7 @@ export function TestExecutionView() {
         if (running) {
             interval = setInterval(async () => {
                 try {
-                    const res = await fetch(`/api/tests/logs?offset=${logOffset}`);
+                    const res = await fetch(`/api/playwright-pom/tests/logs?offset=${logOffset}`);
                     const data = await res.json();
                     if (data.content) {
                         setLiveLogs(prev => prev + data.content);
@@ -137,7 +137,7 @@ export function TestExecutionView() {
 
     const fetchTests = async () => {
         try {
-            const res = await fetch('/api/tests/list');
+            const res = await fetch('/api/playwright-pom/tests/list');
             const data = await res.json();
 
             // Handle legacy array of strings or new array of objects
@@ -189,7 +189,7 @@ export function TestExecutionView() {
             setReportAvailable(false);
             setAutoScroll(true);
 
-            const res = await fetch('/api/tests/run', {
+            const res = await fetch('/api/playwright-pom/tests/run', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -304,7 +304,7 @@ export function TestExecutionView() {
 
         try {
             const deletePromises = Array.from(selectedTests).map(path =>
-                fetch(`/api/tests/delete/${path}`, { method: 'DELETE' })
+                fetch(`/api/playwright-pom/tests/delete/${path}`, { method: 'DELETE' })
             );
 
             await Promise.all(deletePromises);
@@ -337,7 +337,7 @@ export function TestExecutionView() {
         }
 
         try {
-            const res = await fetch('/api/tests/assign-marker', {
+            const res = await fetch('/api/playwright-pom/tests/assign-marker', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -370,7 +370,7 @@ export function TestExecutionView() {
         if (!targetMarker) return;
 
         try {
-            const res = await fetch('/api/tests/remove-marker', {
+            const res = await fetch('/api/playwright-pom/tests/remove-marker', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -400,7 +400,7 @@ export function TestExecutionView() {
         setShowPreview(true);
         setPreviewActiveTab("test");
         try {
-            const res = await fetch(`/api/tests/preview?test_path=${encodeURIComponent(testPath)}`);
+            const res = await fetch(`/api/playwright-pom/tests/preview?test_path=${encodeURIComponent(testPath)}`);
             if (!res.ok) throw new Error("Failed to load preview");
             const data = await res.json();
             setPreviewData(data);
@@ -704,7 +704,7 @@ export function TestExecutionView() {
             )}
 
             {/* Header */}
-            <Box sx={{ p: 2, display: 'none', zIndex: 20 }}>
+            <Box sx={{ p: 2, height: '70px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'background.paper', flexShrink: 0, zIndex: 20 }}>
                 <Box sx={{ pt: 1 }}>
                     <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
                         Test Execution
@@ -734,9 +734,9 @@ export function TestExecutionView() {
                 </Box>
             </Box>
 
-            <div className="flex-1 flex min-h-0 p-4 gap-4 w-full overflow-hidden">
+            <div className="flex-1 flex min-h-0 px-4 pb-4 gap-4 w-full overflow-hidden" style={{ paddingTop: '10px' }}>
                 {/* Left Panel: Test Selection */}
-                <div className={`w-[500px] shrink-0 flex flex-col rounded-xl border shadow-2xl ring-1 overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#1e1e1e] border-gray-800 ring-white/5' : 'bg-white border-gray-300 ring-black/5'}`}>
+                <div className={`mx-4 mb-4 w-[500px] shrink-0 flex flex-col rounded-xl border overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-300'}`}>
                     {/* Panel Header */}
                     <div className={`p-4 border-b flex flex-col gap-3 ${isDark ? 'bg-[#1e1e1e] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
                         <div className="flex items-center justify-between">
@@ -985,9 +985,9 @@ export function TestExecutionView() {
                 </div>
 
                 {/* Right Panel: Execution Context */}
-                <div className="flex-1 flex flex-col gap-4 min-w-0 overflow-hidden">
-                    <div className={`p-5 flex items-center justify-between rounded-xl border shadow-2xl ring-1 overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#1e1e1e] border-gray-800 ring-white/5' : 'bg-white border-gray-300 ring-black/5'}`}>
-                        <div className="flex items-center gap-4 min-w-0">
+                <div className="mx-4 mb-4 flex-1 flex flex-col gap-4 min-w-0 overflow-hidden">
+                    <div className={`-mt-7 p-5 min-h-[80px] flex items-center justify-between rounded-xl border overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-300'}`}>
+                        <div className="flex items-center gap-4 min-w-0 translate-x-6">
                             <div className={`p-3 rounded-xl ${isDark ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
                                 <Layers size={24} />
                             </div>
@@ -1001,10 +1001,13 @@ export function TestExecutionView() {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3" style={{ marginRight: '24px' }}>
 
                             {/* Parallel Controls */}
-                            <div className={`flex items-center gap-2 mr-2 px-3 py-1.5 rounded-lg border border-dashed transition-colors ${isDark ? 'border-gray-700 bg-white/[0.02]' : 'border-gray-300 bg-gray-50/50'}`}>
+                            <div
+                                className={`-ml-1 flex items-center gap-2 mr-2 rounded-lg border border-dashed transition-colors ${isDark ? 'bg-white/[0.02] border-gray-700' : 'bg-gray-50/50 border-gray-300'}`}
+                                style={{ padding: '7px 12px' }}
+                            >
                                 <button
                                     onClick={() => {
                                         setRunParallel(!runParallel);
@@ -1012,9 +1015,10 @@ export function TestExecutionView() {
                                     }}
                                     className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors
                                         ${runParallel ? 'text-orange-500' : (isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700')}`}
+                                    style={{ padding: '3px 6px' }}
                                     title="Toggle Parallel Execution"
                                 >
-                                    <Zap size={14} className={runParallel ? 'fill-current' : ''} />
+                                    <Zap size={16} className={runParallel ? 'fill-current' : ''} />
                                     Parallel
                                 </button>
 
@@ -1046,49 +1050,49 @@ export function TestExecutionView() {
                                     onClick={() => window.open('/api/tests/report/download', '_blank')}
                                     disabled={!reportAvailable || running}
                                     title="Download Report"
-                                    className={`p-2.5 rounded-lg border transition-all duration-200 group relative
+                                    className={`w-9 h-9 inline-flex items-center justify-center rounded-lg border transition-all duration-200 group relative
                                         ${!reportAvailable || running
                                             ? (isDark ? 'border-gray-800 text-gray-600 bg-transparent' : 'border-gray-200 text-gray-300 bg-gray-50')
                                             : (isDark
                                                 ? 'border-purple-500/30 bg-purple-500/10 text-purple-400 hover:text-purple-300 hover:border-purple-500/50 hover:bg-purple-500/20 hover:shadow-lg hover:shadow-purple-500/20'
                                                 : 'border-purple-200 bg-purple-50 text-purple-600 hover:text-purple-700 hover:border-purple-300 hover:shadow-md')}`}
                                 >
-                                    <Download size={18} />
+                                    <Download size={16} />
                                 </button>
 
                                 <button
                                     onClick={() => runTest("ALL")}
                                     disabled={running}
                                     title="Run All Tests"
-                                    className={`p-2.5 rounded-lg border transition-all duration-200 group relative
+                                    className={`w-9 h-9 inline-flex items-center justify-center rounded-lg border transition-all duration-200 group relative
                                         ${running
                                             ? (isDark ? 'border-gray-800 text-gray-600 bg-transparent' : 'border-gray-200 text-gray-300 bg-gray-50')
                                             : (isDark
                                                 ? 'border-blue-500/30 bg-blue-500/10 text-blue-400 hover:text-blue-300 hover:border-blue-500/50 hover:bg-blue-500/20 hover:shadow-lg hover:shadow-blue-500/20'
                                                 : 'border-blue-200 bg-blue-50 text-blue-600 hover:text-blue-700 hover:border-blue-300 hover:shadow-md')}`}
                                 >
-                                    {running && runningMode === 'ALL' ? <RefreshCw className="animate-spin" size={18} /> : <PlayCircle size={18} />}
+                                    {running && runningMode === 'ALL' ? <RefreshCw className="animate-spin" size={16} /> : <PlayCircle size={16} />}
                                 </button>
 
                                 <button
                                     onClick={() => runTest()}
                                     disabled={(selectedTests.size === 0 && !selectedMarker) || running}
                                     title={`Run Selected (${selectedTests.size})`}
-                                    className={`p-2.5 rounded-lg border transition-all duration-200 group relative
+                                    className={`w-9 h-9 inline-flex items-center justify-center rounded-lg border transition-all duration-200 group relative
                                         ${(selectedTests.size === 0 && !selectedMarker) || running
                                             ? (isDark ? 'border-gray-800 text-gray-600 bg-transparent' : 'border-gray-200 text-gray-300 bg-gray-50')
                                             : (isDark
                                                 ? 'border-green-500/30 bg-green-500/10 text-green-400 hover:text-green-300 hover:border-green-500/50 hover:bg-green-500/20 hover:shadow-lg hover:shadow-green-500/20'
                                                 : 'border-green-200 bg-green-50 text-green-600 hover:text-green-700 hover:border-green-300 hover:shadow-md')}`}
                                 >
-                                    {running && runningMode === 'SELECTED' ? <RefreshCw className="animate-spin" size={18} /> : <Play size={18} />}
+                                    {running && runningMode === 'SELECTED' ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} />}
                                 </button>
                             </div>
                         </div>
                     </div>
 
                     {/* Console/Terminal Window */}
-                    <div className={`flex-1 flex flex-col min-h-0 w-full min-w-0 rounded-xl border shadow-2xl ring-1 overflow-hidden transition-all duration-300 ${isDark ? 'bg-[#1e1e1e] border-gray-800 ring-white/5' : 'bg-white border-gray-300 ring-black/5'}`}>
+                    <div className={`flex-1 flex flex-col min-h-0 w-full min-w-0 rounded-xl border overflow-hidden transition-all duration-300 ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-300'}`}>
                         {/* Terminal Header */}
                         <div className={`px-4 py-3 border-b flex items-center justify-between shrink-0 ${isDark ? 'bg-[#1e1e1e] border-white/5' : 'bg-gray-100 border-gray-200'}`}>
                             <div className="flex items-center gap-3">

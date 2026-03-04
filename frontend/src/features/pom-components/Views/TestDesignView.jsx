@@ -246,17 +246,17 @@ export function TestDesignView() {
                         className={`w-[800px] h-[80vh] flex flex-col rounded-xl border shadow-2xl overflow-hidden ${isDark ? 'bg-[#1e1e1e] border-white/10' : 'bg-white border-gray-300'}`}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className={`flex items-center justify-between px-4 py-3 border-b ${isDark ? 'border-white/10 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`}>
-                            <div className="flex items-center gap-3">
+                        <div className={`flex items-center justify-between px-4 border-b ${isDark ? 'border-white/10 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`} style={{ paddingTop: 16, paddingBottom: 16, minHeight: 72 }}>
+                            <div className="flex items-center gap-3" style={{ marginLeft: 24 }}>
                                 <Sparkles className={isDark ? 'text-purple-400' : 'text-purple-600'} size={20} />
                                 <h3 className={`text-lg font-bold ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{debugModalData.title}</h3>
                             </div>
-                            <button onClick={() => setShowDebugModal(false)} className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`}>
+                            <button onClick={() => setShowDebugModal(false)} className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`} style={{ marginRight: 24 }}>
                                 <X size={18} color={theme.palette.text.secondary} />
                             </button>
                         </div>
 
-                        <div className={`flex-1 p-6 overflow-y-auto custom-scrollbar space-y-6 ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
+                        <div className={`flex-1 overflow-y-auto custom-scrollbar space-y-6 ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`} style={{ padding: 20 }}>
                             <div>
                                 <pre className={`p-4 rounded-lg border text-xs whitespace-pre-wrap break-words font-mono ${isDark ? 'bg-black/40 border-white/5 text-gray-400' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
                                     {debugModalData.content}

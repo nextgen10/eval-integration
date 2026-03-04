@@ -7,6 +7,7 @@ import uuid
 from datetime import datetime
 from dotenv import load_dotenv
 import os
+import sys
 
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(env_path):
@@ -15,6 +16,16 @@ if os.path.exists(env_path):
 else:
     load_dotenv() # Fallback
     print(f"DEBUG: .env not found at {env_path}, using default load_dotenv()")
+
+# Load source Playwright Studio env to preserve source behavior.
+studio_env_path = os.path.join(os.path.dirname(__file__), "studio", "backend", ".env")
+if os.path.exists(studio_env_path):
+    load_dotenv(studio_env_path, override=False)
+
+# Make source-style studio packages resolve first (config/base/tools/etc).
+studio_root = os.path.join(os.path.dirname(__file__), "studio")
+if studio_root not in sys.path:
+    sys.path.insert(0, studio_root)
 
 import pandas as pd
 import io
@@ -34,6 +45,16 @@ def sanitize_floats(obj):
 app = FastAPI(title="RagEval Backend")
 
 _cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+for origin in [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://127.0.0.1:3000",
+]:
+    if origin not in _cors_origins:
+        _cors_origins.append(origin)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
@@ -45,7 +66,7 @@ app.add_middleware(
 from agent_router import router as agent_router
 app.include_router(agent_router)
 
-from pom_studio.routers import recorder, generator, runner, workflow, settings, ai, locators, feedback, prompts, test_design, healer, roi, data
+from studio.backend.routers import recorder, generator, runner, workflow, settings, ai, locators, feedback, prompts, test_design, healer, roi, data
 
 app.include_router(recorder.router)
 app.include_router(generator.router)
@@ -60,6 +81,10 @@ app.include_router(test_design.router)
 app.include_router(healer.router)
 app.include_router(roi.router)
 app.include_router(data.router)
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "message": "Studio Backend is running (Modular)"}
 
 from nexus_database import SessionLocal, EvaluationRecord
 from auth import get_current_app

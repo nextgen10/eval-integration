@@ -26,7 +26,7 @@ export function RoiView() {
     const fetchStats = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/roi/stats');
+            const res = await fetch('/api/playwright-pom/roi/stats');
             if (!res.ok) throw new Error(res.statusText);
             const data = await res.json();
             setStats(data);
@@ -41,7 +41,7 @@ export function RoiView() {
 
     const handleSaveSettings = async () => {
         try {
-            await fetch('/api/roi/settings', {
+            await fetch('/api/playwright-pom/roi/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formSettings)

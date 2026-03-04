@@ -1,13 +1,15 @@
 from fastapi import APIRouter, HTTPException
 import os
-from pom_studio.services.recorder_service import RecorderService
-from pom_studio.models import SaveContentRequest, SaveAsRequest
-from pom_studio.paths import ensure_pom_workspace
+from studio.backend.services.recorder_service import RecorderService
+from studio.backend.models import SaveContentRequest, SaveAsRequest
 
 router = APIRouter(prefix="/api/record", tags=["recorder"])
 
 def get_root_dir():
-    return ensure_pom_workspace()
+    # studio/backend/routers -> studio/backend -> studio -> root
+    current = os.path.dirname(os.path.abspath(__file__))
+    return os.path.dirname(os.path.dirname(os.path.dirname(current)))
+
 @router.post("/start")
 def start_recording():
     try:

@@ -5,27 +5,8 @@ import re
 from fastapi import APIRouter, HTTPException, Body
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
-from pom_studio.paths import ensure_pom_workspace
 
 router = APIRouter(prefix="/api/locators", tags=["locators"])
-
-class LocatorItem(BaseModel):
-    name: str
-    value: str
-    line_number: int
-
-
-class LocatorClass(BaseModel):
-    name: str
-    locators: List[LocatorItem]
-
-
-class LocatorFile(BaseModel):
-    file_path: str
-    file_name: str
-    classes: List[LocatorClass]
-    content: str
-
 
 def update_references(root_dir: str, locator_file_path: str, class_name: str, old_name: str, new_name: str):
     """
@@ -95,7 +76,26 @@ def update_references(root_dir: str, locator_file_path: str, class_name: str, ol
     return updated_files
 
 def get_root_dir():
-    return ensure_pom_workspace()
+    # Adjust this based on where main.py is or derived from __file__
+    # studio/backend/routers/locators.py -> studio/backend/routers -> studio/backend -> studio -> root
+    current = os.path.dirname(os.path.abspath(__file__))
+    return os.path.dirname(os.path.dirname(os.path.dirname(current)))
+
+class LocatorItem(BaseModel):
+    name: str
+    value: str
+    line_number: int
+
+class LocatorClass(BaseModel):
+    name: str
+    locators: List[LocatorItem]
+    
+class LocatorFile(BaseModel):
+    file_path: str
+    file_name: str
+    classes: List[LocatorClass]
+    content: Optional[str] = None # Include raw content
+
 @router.get("/", response_model=List[LocatorFile])
 async def get_locators():
     root_dir = get_root_dir()
@@ -290,7 +290,7 @@ class AiSuggestRequest(BaseModel):
 
 @router.post("/ai-suggest")
 async def ai_suggest(req: AiSuggestRequest):
-    from pom_studio.services.ai_service import get_ai_service
+    from studio.backend.services.ai_service import get_ai_service
     ai_service = get_ai_service()
     
     root_dir = get_root_dir()

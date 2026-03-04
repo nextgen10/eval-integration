@@ -1,0 +1,34 @@
+2026-01-29T21:24:59.423Z pw:api navigating to "https://www.testmuai.com/", waiting until "load"
+2026-01-29T21:24:59.768Z pw:api   "commit" event fired
+2026-01-29T21:24:59.768Z pw:api   navigated to "https://www.testmuai.com/"
+2026-01-29T21:25:00.152Z pw:api   "domcontentloaded" event fired
+2026-01-29T21:25:02.187Z pw:api   "load" event fired
+2026-01-29T21:25:02.209Z pw:api waiting for get_by_role("link", name="Platform", exact=True)
+2026-01-29T21:25:02.309Z pw:api   navigated to "https://www.testmuai.com/"
+2026-01-29T21:25:02.357Z pw:api   locator resolved to <a href="/feature/" class="chfw-nav-link chfw-dropdown-toggle chfw-menu-item">…</a>
+2026-01-29T21:25:02.358Z pw:api attempting click action
+2026-01-29T21:25:02.358Z pw:api   waiting for element to be visible, enabled and stable
+2026-01-29T21:25:02.379Z pw:api   element is visible, enabled and stable
+2026-01-29T21:25:02.379Z pw:api   scrolling into view if needed
+2026-01-29T21:25:02.381Z pw:api   done scrolling
+2026-01-29T21:25:02.384Z pw:api   performing click action
+2026-01-29T21:25:02.407Z pw:api   click action done
+2026-01-29T21:25:02.407Z pw:api   waiting for scheduled navigations to finish
+2026-01-29T21:25:02.760Z pw:api   "commit" event fired
+2026-01-29T21:25:02.760Z pw:api   navigated to "https://www.testmuai.com/feature/"
+2026-01-29T21:25:02.760Z pw:api   navigated to "https://www.testmuai.com/feature/"
+2026-01-29T21:25:02.770Z pw:api   navigations have finished
+2026-01-29T21:25:02.771Z pw:api waiting for get_by_role("link", name="Test Manager AI-native")
+2026-01-29T21:25:02.857Z pw:api   locator resolved to <a class="chfw-menu-link" href="https://www.testmuai.com/test-manager/">…</a>
+2026-01-29T21:25:02.857Z pw:api attempting click action
+2026-01-29T21:25:02.857Z pw:api   waiting for element to be visible, enabled and stable
+2026-01-29T21:25:02.861Z pw:api   element is visible, enabled and stable
+2026-01-29T21:25:02.861Z pw:api   scrolling into view if needed
+2026-01-29T21:25:02.861Z pw:api   done scrolling
+2026-01-29T21:25:02.862Z pw:api   performing click action
+2026-01-29T21:25:02.863Z pw:api   click action done
+2026-01-29T21:25:02.863Z pw:api   waiting for scheduled navigations to finish
+2026-01-29T21:25:03.185Z pw:api   "commit" event fired
+2026-01-29T21:25:03.185Z pw:api   navigated to "https://www.testmuai.com/test-manager/"
+2026-01-29T21:25:03.185Z pw:api   navigated to "https://www.testmuai.com/test-manager/"
+2026-01-29T21:25:03.191Z pw:api   navigations have finished

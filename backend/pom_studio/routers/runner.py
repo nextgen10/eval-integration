@@ -7,16 +7,17 @@ import traceback
 import importlib
 import re
 import time
-from pom_studio.models import TestRunRequest, MarkerAssignRequest
+from studio.backend.models import TestRunRequest, MarkerAssignRequest
 import config.config
 from config.config import Config
-from pom_studio.routers import roi
-from pom_studio.paths import ensure_pom_workspace
+from studio.backend.routers import roi
 
 router = APIRouter(prefix="/api/tests", tags=["runner"])
 
 def get_root_dir():
-    return ensure_pom_workspace()
+    current = os.path.dirname(os.path.abspath(__file__))
+    return os.path.dirname(os.path.dirname(os.path.dirname(current)))
+
 @router.get("/list")
 def list_tests():
     """Lists all test files in the tests/ and generated_pom/tests/ directories."""
@@ -175,14 +176,7 @@ def run_tests(request: TestRunRequest):
                 stdout=subprocess.PIPE, 
                 stderr=subprocess.STDOUT,
                 text=True,
-                bufsize=1,
-                env={
-                    **os.environ,
-                    "PYTHONPATH": os.pathsep.join(
-                        p for p in [os.path.dirname(os.path.dirname(os.path.dirname(__file__))), os.environ.get("PYTHONPATH", "")]
-                        if p
-                    ),
-                },
+                bufsize=1
             )
             
             output_lines = []
@@ -209,7 +203,7 @@ def run_tests(request: TestRunRequest):
                 
                 count = int(match.group(1)) if match else len(valid_files) # Fallback to file count
                 
-                from pom_studio.services.roi_service import ROIService
+                from studio.backend.services.roi_service import ROIService
                 ROIService.record_run(
                     test_count=count,
                     duration_seconds=duration
@@ -430,7 +424,7 @@ def assign_marker(request: MarkerAssignRequest):
     """
     root_dir = get_root_dir()
     tests_dir = os.path.join(root_dir, "tests")
-    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "config", "config.py")
+    config_path = os.path.join(root_dir, "config", "config.py")
     
     marker = request.marker.strip().lower()
     if not marker:

@@ -191,16 +191,16 @@ export function HealRecordingView() {
                         className={`w-[600px] flex flex-col rounded-xl border shadow-2xl overflow-hidden ${isDark ? 'bg-[#1e1e1e] border-white/10' : 'bg-white border-gray-300'}`}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className={`flex items-center justify-between px-4 py-3 border-b ${isDark ? 'border-white/10 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`}>
-                            <div className="flex items-center gap-3">
+                        <div className={`flex items-center justify-between px-4 border-b ${isDark ? 'border-white/10 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`} style={{ paddingTop: 16, paddingBottom: 16, minHeight: 72 }}>
+                            <div className="flex items-center gap-3" style={{ marginLeft: 24 }}>
                                 <RefreshCw className={isDark ? 'text-orange-400' : 'text-orange-600'} size={20} />
                                 <h3 className={`text-lg font-bold ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>Review Fix</h3>
                             </div>
-                            <button onClick={() => setShowFixModal(false)} className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`}>
+                            <button onClick={() => setShowFixModal(false)} className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`} style={{ marginRight: 24 }}>
                                 <X size={18} />
                             </button>
                         </div>
-                        <div className={`p-6 space-y-4 ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
+                        <div className={`space-y-4 ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`} style={{ padding: 20 }}>
                             <div>
                                 <h4 className={`text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Original Failed Line</h4>
                                 <pre className={`p-3 rounded-lg border text-sm font-mono overflow-x-auto ${isDark ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-red-50 border-red-200 text-red-600'}`}>
@@ -230,16 +230,16 @@ export function HealRecordingView() {
                         className={`w-[800px] h-[80vh] flex flex-col rounded-xl border shadow-2xl overflow-hidden ${isDark ? 'bg-[#1e1e1e] border-white/10' : 'bg-white border-gray-300'}`}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className={`flex items-center justify-between px-4 py-3 border-b ${isDark ? 'border-white/10 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`}>
-                            <div className="flex items-center gap-3">
+                        <div className={`flex items-center justify-between px-4 border-b ${isDark ? 'border-white/10 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`} style={{ paddingTop: 16, paddingBottom: 16, minHeight: 72 }}>
+                            <div className="flex items-center gap-3" style={{ marginLeft: 24 }}>
                                 <Sparkles className={isDark ? 'text-purple-400' : 'text-purple-600'} size={20} />
                                 <h3 className={`text-lg font-bold ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>AI Prompts Preview</h3>
                             </div>
-                            <button onClick={() => setShowPromptModal(false)} className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`}>
+                            <button onClick={() => setShowPromptModal(false)} className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`} style={{ marginRight: 24 }}>
                                 <X size={18} />
                             </button>
                         </div>
-                        <div className={`flex-1 p-6 overflow-y-auto custom-scrollbar space-y-6 ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
+                        <div className={`flex-1 overflow-y-auto custom-scrollbar space-y-6 ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`} style={{ padding: 20 }}>
                             {/* System Prompt */}
                             <div>
                                 <h4 className={`text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>System Prompt</h4>
@@ -385,63 +385,75 @@ export function HealRecordingView() {
                                     }
                                 }}
                             >
-                                {recordings.length === 0 ? (
-                                    <MenuItem disabled>No recordings found</MenuItem>
-                                ) : (
-                                    <>
-                                        <MenuItem
-                                            onClick={() => {
-                                                setSelectedRecording('');
-                                                setRecordingMenuAnchor(null);
-                                            }}
-                                            sx={{
-                                                gap: 1.5,
-                                                py: 1.5,
-                                                px: 2,
-                                                mx: 1,
-                                                borderRadius: '8px',
-                                                mb: 0.5,
-                                                color: 'text.secondary'
-                                            }}
-                                        >
-                                            <X size={16} className="opacity-70" />
-                                            <Typography variant="body2" sx={{ fontStyle: 'italic' }}>None (Clear Selection)</Typography>
-                                        </MenuItem>
-                                        <Divider sx={{ my: 1, mx: 2 }} />
-
-                                        {Object.entries(
+                                {recordings.length === 0
+                                    ? [<MenuItem key="no-recordings" disabled>No recordings found</MenuItem>]
+                                    : (() => {
+                                        const groupedRecordings = Object.entries(
                                             recordings.reduce((acc, r) => {
                                                 const folder = r.folder || 'Root';
                                                 if (!acc[folder]) acc[folder] = [];
                                                 acc[folder].push(r);
                                                 return acc;
                                             }, {})
-                                        ).sort(([a], [b]) => a === 'Root' ? -1 : b === 'Root' ? 1 : a.localeCompare(b)).map(([folder, folderFiles]) => (
-                                            <React.Fragment key={folder}>
-                                                {folder !== 'Root' && (
-                                                    <Box sx={{
-                                                        px: 3,
-                                                        py: 1,
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: 1,
-                                                        opacity: 0.6,
-                                                        userSelect: 'none'
-                                                    }}>
+                                        ).sort(([a], [b]) => a === 'Root' ? -1 : b === 'Root' ? 1 : a.localeCompare(b));
+
+                                        const menuItems = [
+                                            <MenuItem
+                                                key="clear-selection"
+                                                onClick={() => {
+                                                    setSelectedRecording('');
+                                                    setRecordingMenuAnchor(null);
+                                                }}
+                                                sx={{
+                                                    gap: 1.5,
+                                                    py: 1.5,
+                                                    px: 2,
+                                                    mx: 1,
+                                                    borderRadius: '8px',
+                                                    mb: 0.5,
+                                                    color: 'text.secondary'
+                                                }}
+                                            >
+                                                <X size={16} className="opacity-70" />
+                                                <Typography variant="body2" sx={{ fontStyle: 'italic' }}>None (Clear Selection)</Typography>
+                                            </MenuItem>,
+                                            <Divider key="clear-divider" sx={{ my: 1, mx: 2 }} />,
+                                        ];
+
+                                        groupedRecordings.forEach(([folder, folderFiles]) => {
+                                            if (folder !== 'Root') {
+                                                menuItems.push(
+                                                    <Box
+                                                        key={`folder-${folder}`}
+                                                        sx={{
+                                                            px: 3,
+                                                            py: 1,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: 1,
+                                                            opacity: 0.6,
+                                                            userSelect: 'none'
+                                                        }}
+                                                    >
                                                         <Folder size={12} className={isDark ? "text-yellow-500" : "text-yellow-600"} />
                                                         <Typography variant="caption" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '10px' }}>
                                                             {folder}
                                                         </Typography>
                                                     </Box>
-                                                )}
-                                                {folderFiles.map((r, idx) => (
+                                                );
+                                            }
+
+                                            folderFiles.forEach((r, idx) => {
+                                                const recordingPath = r.path || r;
+                                                const recordingName = (r.name || r).replace('.py', '');
+                                                menuItems.push(
                                                     <MenuItem
-                                                        key={`${folder}-${idx}`}
+                                                        key={`recording-${folder}-${recordingPath}-${idx}`}
                                                         onClick={() => {
-                                                            setSelectedRecording(r.path || r);
+                                                            setSelectedRecording(recordingPath);
                                                             setRecordingMenuAnchor(null);
                                                         }}
-                                                        selected={selectedRecording === (r.path || r)}
+                                                        selected={selectedRecording === recordingPath}
                                                         sx={{
                                                             gap: 1.5,
                                                             py: 1.5,
@@ -457,14 +469,18 @@ export function HealRecordingView() {
                                                         }}
                                                     >
                                                         <FileCode size={16} className="opacity-70" />
-                                                        <Typography variant="body2">{r.name.replace('.py', '') || r.replace('.py', '')}</Typography>
+                                                        <Typography variant="body2">{recordingName}</Typography>
                                                     </MenuItem>
-                                                ))}
-                                                <Divider sx={{ my: 0.5, mx: 2, opacity: 0.5 }} />
-                                            </React.Fragment>
-                                        ))}
-                                    </>
-                                )}
+                                                );
+                                            });
+
+                                            menuItems.push(
+                                                <Divider key={`divider-${folder}`} sx={{ my: 0.5, mx: 2, opacity: 0.5 }} />
+                                            );
+                                        });
+
+                                        return menuItems;
+                                    })()}
                             </Menu>
                         </Box>
                         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>

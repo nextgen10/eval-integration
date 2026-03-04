@@ -749,11 +749,11 @@ export const LocatorManagementView = () => {
                                                     }
                                                 }}
                                             >
-                                                {recordings.length === 0 ? (
-                                                    <MenuItem disabled>No recordings found</MenuItem>
-                                                ) : (
-                                                    <>
+                                                {recordings.length === 0
+                                                    ? [<MenuItem key="no-recordings" disabled>No recordings found</MenuItem>]
+                                                    : [
                                                         <MenuItem
+                                                            key="clear-recording"
                                                             onClick={() => {
                                                                 setSelectedRecording('');
                                                                 setRecordingMenuAnchor(null);
@@ -762,8 +762,8 @@ export const LocatorManagementView = () => {
                                                         >
                                                             <X size={14} />
                                                             None (Clear)
-                                                        </MenuItem>
-                                                        {recordings.map((rec) => (
+                                                        </MenuItem>,
+                                                        ...recordings.map((rec) => (
                                                             <MenuItem
                                                                 key={rec.path}
                                                                 onClick={() => {
@@ -780,9 +780,8 @@ export const LocatorManagementView = () => {
                                                                 <FileCode size={14} className="opacity-70" />
                                                                 {rec.name.replace('.py', '')}
                                                             </MenuItem>
-                                                        ))}
-                                                    </>
-                                                )}
+                                                        )),
+                                                    ]}
                                             </Menu>
                                         </div>
                                         <Button

@@ -245,7 +245,7 @@ def execute_next_step():
             "dom_snapshot": dom_snapshot[:1000] + "..." # Truncated for preview
         }
 
-from pom_studio.services.ai_service import get_ai_service
+from studio.backend.services.ai_service import get_ai_service
 
 # ... (imports)
 

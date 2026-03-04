@@ -4,7 +4,6 @@ Azure OpenAI Service for AI-powered features.
 import os
 from dotenv import load_dotenv
 from openai import AzureOpenAI
-from pom_studio.paths import ensure_pom_workspace
 
 # Load environment variables from .env file
 load_dotenv()
@@ -31,7 +30,8 @@ class AIService:
     def get_shared_flows_context(self) -> str:
         """Extract method names and docstrings from shared_flows.py for AI context."""
         import ast
-        root_dir = ensure_pom_workspace()
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
         shared_flows_path = os.path.join(root_dir, "flows", "shared_flows.py")
         
         if not os.path.exists(shared_flows_path):
@@ -196,17 +196,14 @@ class AIService:
                 cleaned = cleaned[3:]
             if cleaned.endswith("```"):
                 cleaned = cleaned[:-3]
-
+            
             import json
-
-            payload = cleaned.strip()
-            first_brace = payload.find("{")
-            last_brace = payload.rfind("}")
-            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-                payload = payload[first_brace:last_brace + 1]
-
-            parsed = _safe_parse_refactor_payload(payload, cleaned)
-            return parsed
+            try:
+                return json.loads(cleaned.strip())
+            except json.JSONDecodeError as e:
+                print(f"❌ JSON Parse Error: {e}")
+                print(f"RAW RESPONSE: {cleaned}")
+                raise ValueError(f"AI returned invalid JSON: {e}")
             
         except Exception as e:
             print(f"❌ AI refactoring failed: {e}")
@@ -298,93 +295,6 @@ class AIService:
         except Exception as e:
             print(f"Chat failed: {e}")
             raise e
-
-
-
-def _repair_test_data_block(match, json_module):
-    body = match.group("body")
-    trailing = match.group("trailing") or ""
-    body = body.replace('\\n', '\n').replace('\\"', '"')
-    try:
-        obj = json_module.loads("{" + body + "}")
-    except Exception:
-        return match.group(0)
-    return f'"test_data": {json_module.dumps(obj)}{trailing}'
-
-
-def _repair_malformed_test_data(payload: str) -> str:
-    import json
-    key_idx = payload.find('"test_data"')
-    if key_idx == -1:
-        return payload
-
-    obj_start = payload.find('{', key_idx)
-    if obj_start == -1:
-        return payload
-
-    depth = 0
-    obj_end = -1
-    i = obj_start
-    while i < len(payload):
-        ch = payload[i]
-        if ch == '{':
-            depth += 1
-        elif ch == '}':
-            depth -= 1
-            if depth == 0:
-                obj_end = i
-                break
-        i += 1
-
-    if obj_end == -1:
-        return payload
-
-    block = payload[obj_start:obj_end + 1]
-    candidates = [
-        block,
-        block.replace('\\n', '\n'),
-        block.replace('\\"', '"'),
-        block.replace('\\n', ''),
-        block.replace('\\n', '').replace('\\"', '"'),
-    ]
-
-    parsed_obj = None
-    for cand in candidates:
-        try:
-            parsed_obj = json.loads(cand)
-            break
-        except Exception:
-            continue
-
-    if parsed_obj is None:
-        return payload
-
-    return payload[:obj_start] + json.dumps(parsed_obj) + payload[obj_end + 1:]
-
-
-def _safe_parse_refactor_payload(payload: str, raw_for_log: str) -> dict:
-    import json
-
-    try:
-        parsed = json.loads(payload)
-    except json.JSONDecodeError:
-        repaired = _repair_malformed_test_data(payload)
-        try:
-            parsed = json.loads(repaired)
-        except json.JSONDecodeError as e:
-            print(f"❌ JSON Parse Error: {e}")
-            print(f"RAW RESPONSE: {raw_for_log}")
-            raise ValueError(f"AI returned invalid JSON: {e}")
-
-    # Normalize types expected by downstream file writers
-    if isinstance(parsed.get("test_data"), str):
-        try:
-            parsed["test_data"] = json.loads(parsed["test_data"])
-        except Exception:
-            parsed["test_data"] = {}
-
-    return parsed
-
 
 # Singleton instance getter
 def get_ai_service() -> AIService:

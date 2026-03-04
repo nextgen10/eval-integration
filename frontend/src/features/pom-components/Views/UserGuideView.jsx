@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-    Box, Typography, Paper, Chip, Divider, List, ListItem, ListItemText,
+    Box, Typography, Paper, Chip, Divider, List, ListItem, ListItemText, ListItemButton,
     Alert, Card, CardContent, alpha, Grid, Button
 } from '@mui/material';
 import {
@@ -1039,9 +1039,8 @@ export function UserGuideView() {
                                     </Typography>
                                     <List dense>
                                         {navigation.map((item) => (
-                                            <ListItem
+                                            <ListItemButton
                                                 key={item.id}
-                                                button
                                                 onClick={() => scrollToSection(item.id)}
                                                 sx={{
                                                     position: 'relative',
@@ -1059,7 +1058,7 @@ export function UserGuideView() {
                                                         fontWeight: activeSection === item.id ? 600 : 400
                                                     }}
                                                 />
-                                            </ListItem>
+                                            </ListItemButton>
                                         ))}
                                     </List>
                                 </Paper>

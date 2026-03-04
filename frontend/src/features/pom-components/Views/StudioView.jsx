@@ -332,6 +332,32 @@ export function StudioView() {
         setTimeout(() => setCodeCopied(false), 2000);
     };
 
+    const handleDownloadReport = async () => {
+        try {
+            const res = await fetch('/api/tests/report/download', { method: 'GET' });
+            if (!res.ok) {
+                throw new Error(`Download failed with status ${res.status}`);
+            }
+
+            const blob = await res.blob();
+            const disposition = res.headers.get('content-disposition') || '';
+            const match = disposition.match(/filename="?([^"]+)"?/i);
+            const filename = match?.[1] || 'extent_report.html';
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            // Fallback: keep legacy behavior if blob download fails.
+            window.open('/api/tests/report/download', '_blank');
+        }
+    };
+
     const publishTest = async () => {
         if (!testName.trim()) return;
         try {
@@ -945,7 +971,10 @@ export function StudioView() {
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
-                        <div className={`flex items-center justify-between border-b ${isDark ? 'border-gray-800 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`} style={{ padding: "12px 20px" }}>
+                        <div
+                            className={`flex items-center justify-between px-5 border-b ${isDark ? 'border-gray-800 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`}
+                            style={{ minHeight: 76, paddingTop: 14, paddingBottom: 14 }}
+                        >
                             <div className="flex items-center gap-3">
                                 <Play className={isDark ? 'text-cyan-400' : 'text-cyan-600'} size={20} />
                                 <h3 className={`text-lg font-bold ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>Raw Script Execution</h3>
@@ -956,13 +985,13 @@ export function StudioView() {
                                     </div>
                                 )}
                             </div>
-                            <button onClick={() => setShowRunRawModal(false)} disabled={runningRaw} className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-200 text-gray-500'} disabled:opacity-50`}>
+                            <button onClick={() => setShowRunRawModal(false)} disabled={runningRaw} title="Close" className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-200 text-gray-500'} disabled:opacity-50`}>
                                 <X size={18} />
                             </button>
                         </div>
 
                         {/* Body - Logs */}
-                        <div className={`flex-1 flex flex-col min-h-0 p-6 font-mono text-sm ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
+                        <div className={`flex-1 flex flex-col min-h-0 p-5 font-mono text-sm ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
                             {runningRaw && !rawRunResult && (
                                 <div className="flex flex-col items-center justify-center h-full space-y-4 opacity-50">
                                     <RefreshCw size={48} className="animate-spin text-cyan-500" />
@@ -1008,8 +1037,11 @@ export function StudioView() {
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
-                        <div className={`flex items-center justify-between px-5 py-2.5 border-b ${isDark ? 'border-gray-800 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`}>
-                            <div className="flex items-center gap-3">
+                        <div
+                            className={`flex items-center justify-between px-5 border-b ${isDark ? 'border-gray-800 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`}
+                            style={{ minHeight: 50, paddingTop: 14, paddingBottom: 14 }}
+                        >
+                            <div className="flex items-center gap-3" style={{ marginLeft: 10 }}>
                                 <Terminal className={isDark ? 'text-blue-400' : 'text-blue-600'} size={20} />
                                 <h3 className={`text-lg font-bold ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>Test Execution Logs</h3>
                                 {runningTest && (
@@ -1029,14 +1061,17 @@ export function StudioView() {
                                         {copied ? <Check size={18} /> : <Copy size={18} />}
                                     </button>
                                 )}
-                                <button onClick={() => setShowLogsModal(false)} className={`rounded-md transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`} style={{ padding: 6 }}>
+                                <button onClick={() => setShowLogsModal(false)} title="Close" className={`rounded-md transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`} style={{ padding: 6, marginRight: 6 }}>
                                     <X size={18} />
                                 </button>
                             </div>
                         </div>
 
                         {/* Body */}
-                        <div className={`flex-1 p-6 overflow-y-auto font-mono text-sm custom-scrollbar ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
+                        <div
+                            className={`flex-1 overflow-y-auto overflow-x-hidden font-mono text-sm custom-scrollbar ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}
+                            style={{ paddingTop: 20, paddingBottom: 20, paddingLeft: 28, paddingRight: 28 }}
+                        >
                             {runningTest && (
                                 <div className="space-y-3">
                                     <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
@@ -1081,11 +1116,14 @@ export function StudioView() {
                         </div>
 
                         {/* Footer */}
-                        <div className={`px-4 py-3 border-t flex justify-end shrink-0 ${isDark ? 'border-gray-800 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`}>
+                        <div
+                            className={`px-5 border-t flex justify-end items-center gap-3 shrink-0 ${isDark ? 'border-gray-800 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`}
+                            style={{ minHeight: 72, paddingTop: 10, paddingBottom: 10, paddingRight: 28 }}
+                        >
                             <Button
                                 variant="danger"
                                 onClick={() => setShowLogsModal(false)}
-                                className="px-8 shadow-lg shadow-red-500/20 font-bold"
+                                className="px-8 my-1 shadow-lg shadow-red-500/20 font-bold"
                             >
                                 Close
                             </Button>
@@ -1107,6 +1145,7 @@ export function StudioView() {
                             </div>
                             <button
                                 onClick={() => setShowPromptsModal(false)}
+                                title="Close"
                                 className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`}
                                 style={{ marginRight: 24 }}
                             >
@@ -1146,83 +1185,86 @@ export function StudioView() {
                 {/* Save As Modal */}
                 {showSaveAs && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                        <div className={`w-[420px] rounded-xl border shadow-2xl p-6 ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-300'}`}>
-                            <div className="flex items-center justify-between mb-4">
+                        <div className={`w-[460px] rounded-xl border shadow-2xl overflow-hidden ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-300'}`}>
+                            <div className={`flex items-center justify-between px-5 py-3.5 border-b ${isDark ? 'border-gray-800 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`}>
                                 <div className="flex items-center gap-2">
                                     <Save className="text-blue-500" size={18} />
                                     <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Save Recording As</h3>
                                 </div>
                                 <button
                                     onClick={() => { setShowSaveAs(false); setSaveAsName(''); setSaveAsFolderName(''); }}
+                                    title="Close"
                                     className={`p-1 rounded hover:bg-white/10 transition-colors ${isDark ? 'text-gray-400' : 'text-gray-500'}`}
                                 >
                                     <X size={18} />
                                 </button>
                             </div>
+                            <div style={{ padding: 18 }}>
 
-                            {/* Folder Name Input (Optional) */}
-                            <div className="mb-3">
-                                <label className={`block text-xs mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                    Folder Name <span className="text-red-400">*</span>
-                                </label>
-                                <div className="relative">
-                                    <FolderOpen size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-yellow-500' : 'text-yellow-600'}`} />
-                                    <input
-                                        type="text"
-                                        maxLength={30}
-                                        value={saveAsFolderName}
-                                        onChange={(e) => setSaveAsFolderName(e.target.value.replace(/\s+/g, '_'))}
-                                        placeholder="e.g., authentication (Max 30 chars)"
-                                        className={`w-full pl-9 pr-3 py-2 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-[#121212] border-gray-800 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'}`}
-                                        onKeyDown={(e) => e.key === 'Enter' && saveAsName.trim() && saveAsFolderName.trim() && saveAsFile()}
-                                    />
+                                {/* Folder Name Input (Optional) */}
+                                <div className="mb-3">
+                                    <label className={`block text-xs mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        Folder Name <span className="text-red-400">*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <FolderOpen size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-yellow-500' : 'text-yellow-600'}`} />
+                                        <input
+                                            type="text"
+                                            maxLength={30}
+                                            value={saveAsFolderName}
+                                            onChange={(e) => setSaveAsFolderName(e.target.value.replace(/\s+/g, '_'))}
+                                            placeholder="e.g., authentication (Max 30 chars)"
+                                            className={`w-full pl-9 pr-3 py-2 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-[#121212] border-gray-800 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'}`}
+                                            onKeyDown={(e) => e.key === 'Enter' && saveAsName.trim() && saveAsFolderName.trim() && saveAsFile()}
+                                        />
+                                    </div>
+                                    <p className={`text-[11px] mt-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                                        Saves to: recordings/{saveAsFolderName ? `${saveAsFolderName.toLowerCase().replace(/[^\w-]/g, '_')}/` : 'folder/'}{saveAsName ? `${saveAsName.replace(/[^\w-]/g, '_')}.py` : 'filename.py'}
+                                    </p>
                                 </div>
-                                <p className={`text-[11px] mt-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                                    Saves to: recordings/{saveAsFolderName ? `${saveAsFolderName.toLowerCase().replace(/[^\w-]/g, '_')}/` : 'folder/'}{saveAsName ? `${saveAsName.replace(/[^\w-]/g, '_')}.py` : 'filename.py'}
-                                </p>
-                            </div>
 
-                            {/* Filename Input */}
-                            <div className="mb-4">
-                                <label className={`block text-xs mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                    Scenario Name <span className={`${isDark ? 'text-red-400' : 'text-red-500'}`}>*</span>
-                                </label>
-                                <div className="relative">
-                                    <FileCode size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
-                                    <input
-                                        type="text"
-                                        maxLength={30}
-                                        value={saveAsName}
-                                        onChange={(e) => setSaveAsName(e.target.value.replace(/\s+/g, '_'))}
-                                        placeholder="e.g., login_flow (Max 30 chars)"
-                                        className={`w-full pl-9 pr-3 py-2 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-[#121212] border-gray-800 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'}`}
-                                        onKeyDown={(e) => e.key === 'Enter' && saveAsName.trim() && saveAsFolderName.trim() && saveAsFile()}
-                                        autoFocus
-                                    />
+                                {/* Filename Input */}
+                                <div className="mb-4">
+                                    <label className={`block text-xs mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                        Scenario Name <span className={`${isDark ? 'text-red-400' : 'text-red-500'}`}>*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <FileCode size={14} className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
+                                        <input
+                                            type="text"
+                                            maxLength={30}
+                                            value={saveAsName}
+                                            onChange={(e) => setSaveAsName(e.target.value.replace(/\s+/g, '_'))}
+                                            placeholder="e.g., login_flow (Max 30 chars)"
+                                            className={`w-full pl-9 pr-3 py-2 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-[#121212] border-gray-800 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'}`}
+                                            onKeyDown={(e) => e.key === 'Enter' && saveAsName.trim() && saveAsFolderName.trim() && saveAsFile()}
+                                            autoFocus
+                                        />
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="flex gap-3">
-                                <Button
-                                    variant="danger"
-                                    fullWidth
-                                    onClick={() => { setShowSaveAs(false); setSaveAsName(''); setSaveAsFolderName(''); }}
-                                    className="px-6 shadow-lg shadow-red-500/20"
-                                    icon={X}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    variant="primary-glass"
-                                    fullWidth
-                                    onClick={saveAsFile}
-                                    disabled={saveStatus === 'saving' || !saveAsName.trim() || !saveAsFolderName.trim()}
-                                    className="px-6 shadow-lg shadow-blue-500/20"
-                                    loading={saveStatus === 'saving'}
-                                    icon={Save}
-                                >
-                                    Save
-                                </Button>
+                                <div className="flex gap-3">
+                                    <Button
+                                        variant="danger"
+                                        fullWidth
+                                        onClick={() => { setShowSaveAs(false); setSaveAsName(''); setSaveAsFolderName(''); }}
+                                        className="px-6 shadow-lg shadow-red-500/20"
+                                        icon={X}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        variant="primary-glass"
+                                        fullWidth
+                                        onClick={saveAsFile}
+                                        disabled={saveStatus === 'saving' || !saveAsName.trim() || !saveAsFolderName.trim()}
+                                        className="px-6 shadow-lg shadow-blue-500/20"
+                                        loading={saveStatus === 'saving'}
+                                        icon={Save}
+                                    >
+                                        Save
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1230,131 +1272,121 @@ export function StudioView() {
 
                 {showPublishModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                        <div className={`w-[420px] rounded-xl border shadow-2xl p-6 ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-300'}`}>
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2">
-                                    <Rocket className="text-purple-500" size={18} />
+                        <div className={`w-[560px] max-w-[92vw] rounded-xl border shadow-2xl overflow-hidden flex flex-col ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-300'}`}>
+                            <div className={`flex items-center justify-between px-5 border-b ${isDark ? 'border-gray-800 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`} style={{ paddingTop: 14, paddingBottom: 14, minHeight: 72 }}>
+                                <div className="flex items-center gap-3" style={{ marginLeft: 12 }}>
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDark ? 'bg-purple-500/15' : 'bg-purple-100'}`}>
+                                        <Rocket className="text-purple-500" size={16} />
+                                    </div>
                                     <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Publish to Framework</h3>
                                 </div>
                                 <button
                                     onClick={() => { setShowPublishModal(false); setTestName(''); setFolderName(''); setSelectedMarker(''); setIsSnippet(false); }}
+                                    title="Close"
                                     className={`p-1 rounded transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                                    style={{ marginRight: 18 }}
                                 >
                                     <X size={18} />
                                 </button>
                             </div>
+                            <div style={{ padding: 24 }}>
 
-                            {!publishSuccess ? (
-                                <>
-                                    {/* Folder Name Input (Optional) */}
-                                    <div className="mb-3">
-                                        <label className={`block text-xs mb-2 ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>
-                                            Folder Name <span className="text-red-400">*</span>
-                                        </label>
-                                        <div className="relative">
-                                            <FolderInput size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-yellow-500" />
-                                            <input
-                                                type="text"
-                                                maxLength={30}
-                                                value={folderName}
-                                                onChange={(e) => setFolderName(e.target.value.replace(/\s+/g, '_'))}
-                                                placeholder="e.g., authentication (Max 30 chars)"
-                                                className={`w-full pl-9 pr-3 py-2 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-[#121212] border-gray-800 text-white placeholder-gray-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 shadow-sm'}`}
-                                                onKeyDown={(e) => e.key === 'Enter' && testName.trim() && folderName.trim() && publishTest()}
-                                            />
+                                {!publishSuccess ? (
+                                    <div style={{ display: 'grid', rowGap: 24 }}>
+                                        {/* Folder Name Input (Optional) */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                            <label className={`block text-xs ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>
+                                                Folder Name <span className="text-red-400">*</span>
+                                            </label>
+                                            <div className="relative" style={{ paddingLeft: 4, paddingRight: 4 }}>
+                                                <FolderInput size={14} className="absolute top-1/2 -translate-y-1/2 text-yellow-500" style={{ left: 18 }} />
+                                                <input
+                                                    type="text"
+                                                    maxLength={30}
+                                                    value={folderName}
+                                                    onChange={(e) => setFolderName(e.target.value.replace(/\s+/g, '_'))}
+                                                    placeholder="e.g., authentication (Max 30 chars)"
+                                                    className={`w-full pr-3 py-3 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-[#121212] border-gray-800 text-white placeholder-gray-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 shadow-sm'}`}
+                                                    style={{ paddingLeft: 44 }}
+                                                    onKeyDown={(e) => e.key === 'Enter' && testName.trim() && folderName.trim() && publishTest()}
+                                                />
+                                            </div>
+                                            <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-600'}`} style={{ margin: 0 }}>
+                                                Saves to: <span className={`${isDark ? 'text-gray-400' : 'text-gray-500'}`}>pages/{folderName ? folderName.toLowerCase().replace(/[^\w-]/g, '_') : 'folder'}/{testName ? testName.replace(/[^\w-]/g, '_') : 'name'}_page.py</span>
+                                            </p>
                                         </div>
-                                        <p className="text-[11px] mt-1 text-gray-600">
-                                            Saves to: <span className="text-gray-400">pages/{folderName ? folderName.toLowerCase().replace(/[^\w-]/g, '_') : 'folder'}/{testName ? testName.replace(/[^\w-]/g, '_') : 'name'}_page.py</span>
-                                        </p>
-                                    </div>
 
-                                    {/* Scenario Name Input */}
-                                    <div className="mb-4">
-                                        <label className={`block text-xs mb-2 ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>
-                                            Scenario Name <span className="text-red-400">*</span>
-                                        </label>
-                                        <div className="relative">
-                                            <FileCode size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400" />
-                                            <input
-                                                autoFocus
-                                                type="text"
-                                                maxLength={30}
-                                                value={testName}
-                                                onChange={(e) => setTestName(e.target.value.replace(/\s+/g, '_'))}
-                                                placeholder="e.g., login_flow (Max 30 chars)"
-                                                className={`w-full pl-9 pr-3 py-2 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-[#121212] border-gray-800 text-white placeholder-gray-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 shadow-sm'}`}
-                                                onKeyDown={(e) => e.key === 'Enter' && testName.trim() && folderName.trim() && publishTest()}
-                                            />
+                                        {/* Scenario Name Input */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                            <label className={`block text-xs ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>
+                                                Scenario Name <span className="text-red-400">*</span>
+                                            </label>
+                                            <div className="relative" style={{ paddingLeft: 4, paddingRight: 4 }}>
+                                                <FileCode size={14} className="absolute top-1/2 -translate-y-1/2 text-blue-400" style={{ left: 18 }} />
+                                                <input
+                                                    autoFocus
+                                                    type="text"
+                                                    maxLength={30}
+                                                    value={testName}
+                                                    onChange={(e) => setTestName(e.target.value.replace(/\s+/g, '_'))}
+                                                    placeholder="e.g., login_flow (Max 30 chars)"
+                                                    className={`w-full pr-3 py-3 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-[#121212] border-gray-800 text-white placeholder-gray-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 shadow-sm'}`}
+                                                    style={{ paddingLeft: 44 }}
+                                                    onKeyDown={(e) => e.key === 'Enter' && testName.trim() && folderName.trim() && publishTest()}
+                                                />
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* Playwright Marker Dropdown */}
-                                    <div className="mb-6 mt-4">
-                                        <label className={`block text-[10px] font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-                                            Markers <span className="text-gray-400 font-normal lowercase">(optional)</span>
-                                        </label>
-                                        <Box
-                                            onClick={(e) => setMarkerMenuAnchor(e.currentTarget)}
-                                            sx={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'space-between',
-                                                px: 1.5,
-                                                py: 1,
-                                                border: '1px solid',
-                                                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-                                                borderRadius: '8px',
-                                                cursor: 'pointer',
-                                                bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
-                                                transition: 'all 0.2s',
-                                                '&:hover': {
-                                                    borderColor: 'primary.main',
-                                                    bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
-                                                }
-                                            }}
-                                        >
-                                            <span className={`text-sm ${selectedMarker ? (isDark ? 'text-gray-400' : 'text-gray-800') : (isDark ? 'text-gray-600' : 'text-gray-500')}`}>
-                                                {selectedMarker || "None"}
-                                            </span>
-                                            <ChevronDown size={14} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
-                                        </Box>
-                                        <Menu
-                                            anchorEl={markerMenuAnchor}
-                                            open={Boolean(markerMenuAnchor)}
-                                            onClose={() => setMarkerMenuAnchor(null)}
-                                            PaperProps={{
-                                                sx: {
-                                                    mt: 1,
-                                                    borderRadius: '8px',
+                                        {/* Playwright Marker Dropdown */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                            <label className={`block text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+                                                Markers <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                                            </label>
+                                            <Box
+                                                onClick={(e) => setMarkerMenuAnchor(e.currentTarget)}
+                                                sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    px: 1.5,
+                                                    py: 1,
                                                     border: '1px solid',
                                                     borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-                                                    bgcolor: isDark ? '#1e1e1e' : '#fff',
-                                                    boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-                                                    minWidth: markerMenuAnchor ? markerMenuAnchor.clientWidth : 200,
-                                                    maxHeight: '200px',
-                                                    overflowY: 'auto'
-                                                }
-                                            }}
-                                        >
-                                            <MenuItem
-                                                onClick={() => { setSelectedMarker(""); setMarkerMenuAnchor(null); }}
-                                                sx={{
-                                                    fontSize: '0.875rem',
-                                                    py: 1,
-                                                    color: isDark ? 'rgba(255,255,255,0.5)' : 'text.secondary',
+                                                    borderRadius: '8px',
+                                                    cursor: 'pointer',
+                                                    bgcolor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                                                    transition: 'all 0.2s',
                                                     '&:hover': {
-                                                        bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                                                        color: isDark ? 'rgba(255,255,255,0.9)' : 'text.primary'
+                                                        borderColor: 'primary.main',
+                                                        bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
                                                     }
                                                 }}
                                             >
-                                                None
-                                            </MenuItem>
-                                            <Divider sx={{ my: 0.5, borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }} />
-                                            {availableMarkers.map(marker => (
+                                                <span className={`text-sm ${selectedMarker ? (isDark ? 'text-gray-400' : 'text-gray-800') : (isDark ? 'text-gray-600' : 'text-gray-500')}`}>
+                                                    {selectedMarker || "None"}
+                                                </span>
+                                                <ChevronDown size={14} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
+                                            </Box>
+                                            <Menu
+                                                anchorEl={markerMenuAnchor}
+                                                open={Boolean(markerMenuAnchor)}
+                                                onClose={() => setMarkerMenuAnchor(null)}
+                                                PaperProps={{
+                                                    sx: {
+                                                        mt: 1,
+                                                        borderRadius: '8px',
+                                                        border: '1px solid',
+                                                        borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                                                        bgcolor: isDark ? '#1e1e1e' : '#fff',
+                                                        boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                                                        minWidth: markerMenuAnchor ? markerMenuAnchor.clientWidth : 200,
+                                                        maxHeight: '200px',
+                                                        overflowY: 'auto'
+                                                    }
+                                                }}
+                                            >
                                                 <MenuItem
-                                                    key={marker}
-                                                    onClick={() => { setSelectedMarker(marker); setMarkerMenuAnchor(null); }}
+                                                    onClick={() => { setSelectedMarker(""); setMarkerMenuAnchor(null); }}
                                                     sx={{
                                                         fontSize: '0.875rem',
                                                         py: 1,
@@ -1365,92 +1397,121 @@ export function StudioView() {
                                                         }
                                                     }}
                                                 >
-                                                    {marker}
+                                                    None
                                                 </MenuItem>
-                                            ))}
-                                        </Menu>
-                                        <p className="text-[11px] mt-2 text-gray-500">
-                                            Adds <span className="text-blue-500">@pytest.mark.{selectedMarker || 'marker'}</span> to the test class
-                                        </p>
-                                    </div>
+                                                <Divider sx={{ my: 0.5, borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }} />
+                                                {availableMarkers.map(marker => (
+                                                    <MenuItem
+                                                        key={marker}
+                                                        onClick={() => { setSelectedMarker(marker); setMarkerMenuAnchor(null); }}
+                                                        sx={{
+                                                            fontSize: '0.875rem',
+                                                            py: 1,
+                                                            color: isDark ? 'rgba(255,255,255,0.5)' : 'text.secondary',
+                                                            '&:hover': {
+                                                                bgcolor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                                                                color: isDark ? 'rgba(255,255,255,0.9)' : 'text.primary'
+                                                            }
+                                                        }}
+                                                    >
+                                                        {marker}
+                                                    </MenuItem>
+                                                ))}
+                                            </Menu>
+                                            <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-600'}`} style={{ margin: 0 }}>
+                                                Adds <span className="text-blue-500">@pytest.mark.{selectedMarker || 'marker'}</span> to the test class
+                                            </p>
+                                        </div>
 
-                                    {/* Snippet Toggle */}
-                                    <div className={`mb-6 p-4 rounded-xl border ${isDark ? 'bg-blue-500/5 border-blue-500/20' : 'bg-blue-50 border-blue-200'}`}>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <div className="flex items-center gap-2">
-                                                <Sparkles size={16} className="text-blue-500" />
-                                                <span className={`text-sm font-bold ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>Reusable Snippet</span>
-                                            </div>
-                                            <div
-                                                onClick={() => setIsSnippet(!isSnippet)}
-                                                className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors duration-200 ${isSnippet ? 'bg-blue-500' : (isDark ? 'bg-gray-700' : 'bg-gray-300')}`}
-                                            >
-                                                <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all duration-200 ${isSnippet ? 'left-6' : 'left-1'}`} />
+                                        {/* Snippet Toggle */}
+                                        <div className={`p-4 rounded-xl border ${isDark ? 'bg-blue-500/5 border-blue-500/20' : 'bg-blue-50 border-blue-200'}`}>
+                                            <div style={{ paddingLeft: 6, paddingRight: 6, paddingTop: 4, paddingBottom: 4, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                                <div className="flex items-center justify-between" style={{ paddingRight: 2 }}>
+                                                    <div className="flex items-center gap-2.5">
+                                                        <Sparkles size={16} className="text-blue-500" />
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`text-sm font-semibold ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>Reusable Snippet</span>
+                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${isSnippet ? (isDark ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-700') : (isDark ? 'bg-white/10 text-gray-400' : 'bg-white text-gray-500 border border-gray-200')}`}>
+                                                                {isSnippet ? 'Enabled' : 'Disabled'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsSnippet(!isSnippet)}
+                                                        className={`w-11 h-6 rounded-full relative cursor-pointer transition-colors duration-200 ${isSnippet ? 'bg-blue-500' : (isDark ? 'bg-gray-700' : 'bg-gray-300')}`}
+                                                    >
+                                                        <div className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white transition-all duration-200 ${isSnippet ? 'left-6' : 'left-1'}`} />
+                                                    </button>
+                                                </div>
+                                                <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-600'}`} style={{ margin: 0 }}>
+                                                    {isSnippet
+                                                        ? "Snippet logic is appended to the shared flows library for reuse across tests."
+                                                        : "Standard publish creates independent Page and Test files."}
+                                                </p>
+
+                                                {isSnippet && (
+                                                    <div>
+                                                        <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+                                                            Target Flow File
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={targetFlowFile}
+                                                            onChange={(e) => setTargetFlowFile(e.target.value)}
+                                                            className={`w-full px-3 py-2 rounded-lg border text-[11px] font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500 ${isDark ? 'bg-black/40 border-gray-800 text-blue-300' : 'bg-white border-gray-300 text-blue-700 shadow-sm'}`}
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-                                        <p className={`text-[10px] leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-                                            {isSnippet
-                                                ? "Snippet logic will be appended to the shared flows library for reusability across multiple tests."
-                                                : "Standard publish will create new separate Page and Test files."}
-                                        </p>
 
-                                        {isSnippet && (
-                                            <div className="mt-3">
-                                                <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-                                                    Target Flow File
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={targetFlowFile}
-                                                    onChange={(e) => setTargetFlowFile(e.target.value)}
-                                                    className={`w-full px-3 py-1.5 rounded-lg border text-[11px] font-mono transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500 ${isDark ? 'bg-black/40 border-gray-800 text-blue-300' : 'bg-white border-gray-300 text-blue-700 shadow-sm'}`}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="flex gap-3">
-                                        <Button
-                                            variant="danger"
-                                            fullWidth
-                                            onClick={() => { setShowPublishModal(false); setTestName(''); setFolderName(''); setSelectedMarker(''); }}
-                                            className="px-6 shadow-lg shadow-red-500/20"
-                                            icon={X}
+                                        <div
+                                            className={`flex items-center gap-3 border-t ${isDark ? 'border-gray-800' : 'border-gray-200'}`}
+                                            style={{ paddingTop: 10, paddingBottom: 10, minHeight: 68 }}
                                         >
-                                            Cancel
-                                        </Button>
-                                        <Button
-                                            variant="primary-glass"
-                                            fullWidth
-                                            onClick={publishTest}
-                                            disabled={!testName.trim() || !folderName.trim() || publishing}
-                                            className="px-6 shadow-lg shadow-blue-500/20"
-                                            loading={publishing}
-                                            icon={Rocket}
-                                        >
-                                            Publish
-                                        </Button>
+                                            <Button
+                                                variant="danger"
+                                                fullWidth
+                                                onClick={() => { setShowPublishModal(false); setTestName(''); setFolderName(''); setSelectedMarker(''); }}
+                                                className="px-6 my-1 shadow-lg shadow-red-500/20"
+                                                icon={X}
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                variant="primary-glass"
+                                                fullWidth
+                                                onClick={publishTest}
+                                                disabled={!testName.trim() || !folderName.trim() || publishing}
+                                                className="px-6 my-1 shadow-lg shadow-blue-500/20"
+                                                loading={publishing}
+                                                icon={Rocket}
+                                            >
+                                                Publish
+                                            </Button>
+                                        </div>
                                     </div>
-                                </>
-                            ) : (
-                                <div className="text-center py-6 space-y-4">
-                                    <div className={`inline-flex p-3 rounded-full ${isDark ? 'bg-green-500/10 text-green-400' : 'bg-green-100 text-green-600'}`}>
-                                        <CheckCircle size={32} />
+                                ) : (
+                                    <div className="text-center py-6 space-y-4">
+                                        <div className={`inline-flex p-3 rounded-full ${isDark ? 'bg-green-500/10 text-green-400' : 'bg-green-100 text-green-600'}`}>
+                                            <CheckCircle size={32} />
+                                        </div>
+                                        <p className={isDark ? "text-green-400 font-medium" : "text-green-600 font-medium"}>{publishSuccess}</p>
+                                        <div className="pt-4">
+                                            <Button
+                                                variant="primary-glass"
+                                                fullWidth
+                                                onClick={() => { setShowPublishModal(false); setPublishSuccess(null); setTestName(''); setFolderName(''); setSelectedMarker(''); setIsSnippet(false); }}
+                                                className="px-6 shadow-lg shadow-blue-500/20"
+                                                icon={Check}
+                                            >
+                                                Done
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <p className={isDark ? "text-green-400 font-medium" : "text-green-600 font-medium"}>{publishSuccess}</p>
-                                    <div className="pt-4">
-                                        <Button
-                                            variant="primary-glass"
-                                            fullWidth
-                                            onClick={() => { setShowPublishModal(false); setPublishSuccess(null); setTestName(''); setFolderName(''); setSelectedMarker(''); setIsSnippet(false); }}
-                                            className="px-6 shadow-lg shadow-blue-500/20"
-                                            icon={Check}
-                                        >
-                                            Done
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -1458,92 +1519,95 @@ export function StudioView() {
                 {/* Partial Snippet Extraction Modal */}
                 {showSnippetModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                        <div className={`w-[420px] rounded-xl border shadow-2xl p-6 ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-300'}`}>
-                            <div className="flex items-center justify-between mb-4">
+                        <div className={`w-[420px] rounded-xl border shadow-2xl overflow-hidden ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-300'}`}>
+                            <div className={`flex items-center justify-between px-5 py-3 border-b ${isDark ? 'border-gray-800 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`}>
                                 <div className="flex items-center gap-2">
                                     <Scissors className="text-orange-500" size={18} />
                                     <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Extract Partial Snippet</h3>
                                 </div>
                                 <button
                                     onClick={() => setShowSnippetModal(false)}
+                                    title="Close"
                                     className={`p-1 rounded transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
                                 >
                                     <X size={18} />
                                 </button>
                             </div>
+                            <div style={{ padding: 18 }}>
 
-                            <div className="space-y-4">
-                                <div>
-                                    <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-                                        Snippet Name <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g., login_process"
-                                        value={snippetName}
-                                        onChange={(e) => setSnippetName(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
-                                        className={`w-full px-3 py-2 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 ${isDark ? 'bg-[#121212] border-gray-800 text-white' : 'bg-white border-gray-300 text-gray-900 shadow-sm'}`}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-4">
                                     <div>
                                         <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-                                            Start Step Index
+                                            Snippet Name <span className="text-red-500">*</span>
                                         </label>
                                         <input
-                                            type="number"
-                                            value={snippetRange.start}
-                                            onChange={(e) => setSnippetRange({ ...snippetRange, start: parseInt(e.target.value) || 0 })}
-                                            className={`w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 ${isDark ? 'bg-[#121212] border-gray-800 text-white' : 'bg-white border-gray-300 text-gray-900 shadow-sm'}`}
+                                            type="text"
+                                            placeholder="e.g., login_process"
+                                            value={snippetName}
+                                            onChange={(e) => setSnippetName(e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+                                            className={`w-full px-3 py-2 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 ${isDark ? 'bg-[#121212] border-gray-800 text-white' : 'bg-white border-gray-300 text-gray-900 shadow-sm'}`}
                                         />
                                     </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+                                                Start Step Index
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={snippetRange.start}
+                                                onChange={(e) => setSnippetRange({ ...snippetRange, start: parseInt(e.target.value) || 0 })}
+                                                className={`w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 ${isDark ? 'bg-[#121212] border-gray-800 text-white' : 'bg-white border-gray-300 text-gray-900 shadow-sm'}`}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+                                                End Step Index
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={snippetRange.end}
+                                                onChange={(e) => setSnippetRange({ ...snippetRange, end: parseInt(e.target.value) || 0 })}
+                                                className={`w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 ${isDark ? 'bg-[#121212] border-gray-800 text-white' : 'bg-white border-gray-300 text-gray-900 shadow-sm'}`}
+                                            />
+                                        </div>
+                                    </div>
+
                                     <div>
                                         <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-                                            End Step Index
+                                            Target Library File
                                         </label>
                                         <input
-                                            type="number"
-                                            value={snippetRange.end}
-                                            onChange={(e) => setSnippetRange({ ...snippetRange, end: parseInt(e.target.value) || 0 })}
-                                            className={`w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 ${isDark ? 'bg-[#121212] border-gray-800 text-white' : 'bg-white border-gray-300 text-gray-900 shadow-sm'}`}
+                                            type="text"
+                                            value={targetFlowFile}
+                                            onChange={(e) => setTargetFlowFile(e.target.value)}
+                                            className={`w-full px-3 py-1.5 rounded-lg border text-[11px] font-mono ${isDark ? 'bg-black/40 border-gray-800 text-blue-300' : 'bg-gray-50 border-gray-300 text-blue-700 shadow-sm'}`}
                                         />
                                     </div>
-                                </div>
 
-                                <div>
-                                    <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
-                                        Target Library File
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={targetFlowFile}
-                                        onChange={(e) => setTargetFlowFile(e.target.value)}
-                                        className={`w-full px-3 py-1.5 rounded-lg border text-[11px] font-mono ${isDark ? 'bg-black/40 border-gray-800 text-blue-300' : 'bg-gray-50 border-gray-300 text-blue-700 shadow-sm'}`}
-                                    />
-                                </div>
-
-                                <div className="flex gap-3 pt-2">
-                                    <Button
-                                        variant="danger"
-                                        fullWidth
-                                        onClick={() => setShowSnippetModal(false)}
-                                        className="shadow-lg shadow-red-500/20"
-                                        icon={X}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        variant="primary-glass"
-                                        fullWidth
-                                        onClick={handleExtractSnippet}
-                                        loading={extractingSnippet}
-                                        disabled={!snippetName.trim() || extractingSnippet}
-                                        className="shadow-lg shadow-orange-500/20 !border-orange-500/20"
-                                        icon={Sparkles}
-                                    >
-                                        Extract Snippet
-                                    </Button>
+                                    <div className="flex gap-3 pt-2">
+                                        <Button
+                                            variant="danger"
+                                            fullWidth
+                                            onClick={() => setShowSnippetModal(false)}
+                                            className="shadow-lg shadow-red-500/20"
+                                            icon={X}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            variant="primary-glass"
+                                            fullWidth
+                                            onClick={handleExtractSnippet}
+                                            loading={extractingSnippet}
+                                            disabled={!snippetName.trim() || extractingSnippet}
+                                            className="shadow-lg shadow-orange-500/20 !border-orange-500/20"
+                                            icon={Sparkles}
+                                        >
+                                            Extract Snippet
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1552,7 +1616,7 @@ export function StudioView() {
 
                 {showLoad && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                        <div className={`relative w-[600px] h-[70vh] flex flex-col rounded-xl border shadow-2xl p-6 ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-300'}`}>
+                        <div className={`relative w-[600px] h-[70vh] flex flex-col rounded-xl border shadow-2xl overflow-hidden ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-300'}`}>
                             {/* Confirmation Overlay */}
                             {confirmDeleteFile && (
                                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] rounded-xl">
@@ -1590,116 +1654,120 @@ export function StudioView() {
                                     </div>
                                 </div>
                             )}
-                            <div className="flex items-center justify-between mb-4">
+                            <div className={`flex items-center justify-between px-5 py-3 border-b ${isDark ? 'border-gray-800 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`}>
                                 <div className="flex items-center gap-2">
                                     <FolderOpen className="text-blue-500" fill="currentColor" size={18} />
                                     <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Load Recording</h3>
                                 </div>
                                 <button
                                     onClick={() => { setShowLoad(false); setSelectedFile(''); }}
+                                    title="Close"
                                     className={`p-1 rounded hover:bg-white/10 transition-colors ${isDark ? 'text-gray-400' : 'text-gray-500'}`}
                                 >
                                     <X size={18} />
                                 </button>
                             </div>
+                            <div className="flex-1 min-h-0" style={{ padding: 16 }}>
 
-                            {/* Reuse Tree Logic for Load - Read Only mostly */}
-                            <div className={`flex-1 overflow-y-auto border rounded-lg ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
-                                <div className={`flex items-center gap-2 px-4 py-2 border-b ${isDark ? 'border-gray-800 bg-[#1a1a1a]' : 'border-gray-300 bg-gray-100'}`}>
-                                    <FolderOpen size={14} className={isDark ? 'text-yellow-500' : 'text-yellow-600'} />
-                                    <span className={`text-sm font-bold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>recordings/</span>
-                                </div>
-                                <div className="p-2">
-                                    {groupedFiles.root && groupedFiles.root.map((file, idx) => (
-                                        <div
-                                            key={`root-${idx}`}
-                                            onClick={() => setSelectedFile(file.path)}
-                                            className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 group ${selectedFile === file.path ? (isDark ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-200 shadow-sm') : (isDark ? 'text-gray-400 hover:bg-white/5 border border-transparent' : 'text-gray-600 hover:bg-white hover:shadow-sm border border-transparent')}`}
-                                        >
-                                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedFile === file.path ? 'border-blue-500' : (isDark ? 'border-gray-600 group-hover:border-gray-400' : 'border-gray-300 group-hover:border-gray-400')}`}>
-                                                {selectedFile === file.path && <div className="w-2 h-2 rounded-full bg-blue-500" />}
-                                            </div>
-                                            <div className="flex-1 min-w-0 flex flex-col">
-                                                <span className={`text-sm truncate ${selectedFile === file.path ? (isDark ? 'text-blue-300' : 'text-blue-700') : (isDark ? 'text-gray-400 group-hover:text-gray-300' : 'text-gray-600 group-hover:text-gray-900')}`}>{file.name.replace('.py', '')}</span>
-                                                <span className={`text-[9px] opacity-40 font-mono truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{file.path}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{new Date(file.modified).toLocaleDateString()}</span>
-                                                <button
-                                                    onClick={(e) => quickDeleteFile(e, file.path)}
-                                                    className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-all ${isDark ? 'text-gray-500 hover:text-red-400 hover:bg-red-400/10' : 'text-gray-400 hover:text-red-600 hover:bg-red-50'}`}
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={13} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {Object.keys(groupedFiles).filter(k => k !== 'root').sort().map(folder => (
-                                        <div key={folder}>
-                                            <button
-                                                onClick={() => toggleFolder(folder)}
-                                                className={`w-full group flex items-center gap-2 px-3 py-2 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-xs font-bold tracking-wider ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
+                                {/* Reuse Tree Logic for Load - Read Only mostly */}
+                                <div className={`flex-1 overflow-y-auto border rounded-lg ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+                                    <div className={`flex items-center gap-2 px-4 py-2 border-b ${isDark ? 'border-gray-800 bg-[#1a1a1a]' : 'border-gray-300 bg-gray-100'}`}>
+                                        <FolderOpen size={14} className={isDark ? 'text-yellow-500' : 'text-yellow-600'} />
+                                        <span className={`text-sm font-bold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>recordings/</span>
+                                    </div>
+                                    <div className="p-2">
+                                        {groupedFiles.root && groupedFiles.root.map((file, idx) => (
+                                            <div
+                                                key={`root-${idx}`}
+                                                onClick={() => setSelectedFile(file.path)}
+                                                className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 group ${selectedFile === file.path ? (isDark ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-200 shadow-sm') : (isDark ? 'text-gray-400 hover:bg-white/5 border border-transparent' : 'text-gray-600 hover:bg-white hover:shadow-sm border border-transparent')}`}
                                             >
-                                                {expandedFolders[folder] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                                                {expandedFolders[folder] ? <FolderOpen size={14} className={isDark ? "text-yellow-500" : "text-yellow-600"} /> : <Folder size={14} className={isDark ? "text-yellow-500/70" : "text-yellow-600/70"} />}
-                                                {folder}
-                                            </button>
-                                            {expandedFolders[folder] && (
-                                                <div className="ml-6 space-y-1 mt-1 border-l pl-2 border-gray-300 dark:border-gray-700">
-                                                    {groupedFiles[folder].map(file => (
-                                                        <div
-                                                            key={file.path}
-                                                            onClick={() => setSelectedFile(file.path)}
-                                                            className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 group ${selectedFile === file.path ? (isDark ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-200 shadow-sm') : (isDark ? 'text-gray-400 hover:bg-white/5 border border-transparent' : 'text-gray-600 hover:bg-white hover:shadow-sm border border-transparent')}`}
-                                                        >
-                                                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedFile === file.path ? 'border-blue-500' : (isDark ? 'border-gray-600 group-hover:border-gray-400' : 'border-gray-300 group-hover:border-gray-400')}`}>
-                                                                {selectedFile === file.path && <div className="w-2 h-2 rounded-full bg-blue-500" />}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0 flex flex-col">
-                                                                <span className={`text-sm truncate ${selectedFile === file.path ? (isDark ? 'text-blue-300' : 'text-blue-700') : (isDark ? 'text-gray-400 group-hover:text-gray-300' : 'text-gray-600 group-hover:text-gray-900')}`}>{file.name.replace('.py', '')}</span>
-                                                                <span className={`text-[9px] opacity-40 font-mono truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{file.path}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{new Date(file.modified).toLocaleDateString()}</span>
-                                                                <button
-                                                                    onClick={(e) => quickDeleteFile(e, file.path)}
-                                                                    className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-all ${isDark ? 'text-gray-500 hover:text-red-400 hover:bg-red-400/10' : 'text-gray-400 hover:text-red-600 hover:bg-red-50'}`}
-                                                                    title="Delete"
-                                                                >
-                                                                    <Trash2 size={13} />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
+                                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedFile === file.path ? 'border-blue-500' : (isDark ? 'border-gray-600 group-hover:border-gray-400' : 'border-gray-300 group-hover:border-gray-400')}`}>
+                                                    {selectedFile === file.path && <div className="w-2 h-2 rounded-full bg-blue-500" />}
                                                 </div>
-                                            )}
-                                        </div>
-                                    ))}
+                                                <div className="flex-1 min-w-0 flex flex-col">
+                                                    <span className={`text-sm truncate ${selectedFile === file.path ? (isDark ? 'text-blue-300' : 'text-blue-700') : (isDark ? 'text-gray-400 group-hover:text-gray-300' : 'text-gray-600 group-hover:text-gray-900')}`}>{file.name.replace('.py', '')}</span>
+                                                    <span className={`text-[9px] opacity-40 font-mono truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{file.path}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{new Date(file.modified).toLocaleDateString()}</span>
+                                                    <button
+                                                        onClick={(e) => quickDeleteFile(e, file.path)}
+                                                        className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-all ${isDark ? 'text-gray-500 hover:text-red-400 hover:bg-red-400/10' : 'text-gray-400 hover:text-red-600 hover:bg-red-50'}`}
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={13} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {Object.keys(groupedFiles).filter(k => k !== 'root').sort().map(folder => (
+                                            <div key={folder}>
+                                                <button
+                                                    onClick={() => toggleFolder(folder)}
+                                                    title={expandedFolders[folder] ? `Collapse ${folder}` : `Expand ${folder}`}
+                                                    className={`w-full group flex items-center gap-2 px-3 py-2 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-xs font-bold tracking-wider ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
+                                                >
+                                                    {expandedFolders[folder] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                                    {expandedFolders[folder] ? <FolderOpen size={14} className={isDark ? "text-yellow-500" : "text-yellow-600"} /> : <Folder size={14} className={isDark ? "text-yellow-500/70" : "text-yellow-600/70"} />}
+                                                    {folder}
+                                                </button>
+                                                {expandedFolders[folder] && (
+                                                    <div className="ml-6 space-y-1 mt-1 border-l pl-2 border-gray-300 dark:border-gray-700">
+                                                        {groupedFiles[folder].map(file => (
+                                                            <div
+                                                                key={file.path}
+                                                                onClick={() => setSelectedFile(file.path)}
+                                                                className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 group ${selectedFile === file.path ? (isDark ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-200 shadow-sm') : (isDark ? 'text-gray-400 hover:bg-white/5 border border-transparent' : 'text-gray-600 hover:bg-white hover:shadow-sm border border-transparent')}`}
+                                                            >
+                                                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${selectedFile === file.path ? 'border-blue-500' : (isDark ? 'border-gray-600 group-hover:border-gray-400' : 'border-gray-300 group-hover:border-gray-400')}`}>
+                                                                    {selectedFile === file.path && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0 flex flex-col">
+                                                                    <span className={`text-sm truncate ${selectedFile === file.path ? (isDark ? 'text-blue-300' : 'text-blue-700') : (isDark ? 'text-gray-400 group-hover:text-gray-300' : 'text-gray-600 group-hover:text-gray-900')}`}>{file.name.replace('.py', '')}</span>
+                                                                    <span className={`text-[9px] opacity-40 font-mono truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{file.path}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{new Date(file.modified).toLocaleDateString()}</span>
+                                                                    <button
+                                                                        onClick={(e) => quickDeleteFile(e, file.path)}
+                                                                        className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-all ${isDark ? 'text-gray-500 hover:text-red-400 hover:bg-red-400/10' : 'text-gray-400 hover:text-red-600 hover:bg-red-50'}`}
+                                                                        title="Delete"
+                                                                    >
+                                                                        <Trash2 size={13} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className={`flex gap-3 mt-4 pt-4 border-t ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
-                                <Button
-                                    variant="danger"
-                                    fullWidth
-                                    onClick={() => { setShowLoad(false); setSelectedFile(''); }}
-                                    className="px-6 shadow-lg shadow-red-500/20"
-                                    icon={X}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    variant="primary-glass"
-                                    size="medium"
-                                    fullWidth
-                                    className="px-6 shadow-lg shadow-blue-500/20"
-                                    onClick={() => { if (selectedFile) { loadFile(selectedFile); setShowLoad(false); setSelectedFile(''); } }}
-                                    disabled={!selectedFile}
-                                    icon={FolderOpen}
-                                >
-                                    Load
-                                </Button>
+                                <div className={`flex gap-3 mt-4 pt-4 border-t ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+                                    <Button
+                                        variant="danger"
+                                        fullWidth
+                                        onClick={() => { setShowLoad(false); setSelectedFile(''); }}
+                                        className="px-6 shadow-lg shadow-red-500/20"
+                                        icon={X}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        variant="primary-glass"
+                                        size="medium"
+                                        fullWidth
+                                        className="px-6 shadow-lg shadow-blue-500/20"
+                                        onClick={() => { if (selectedFile) { loadFile(selectedFile); setShowLoad(false); setSelectedFile(''); } }}
+                                        disabled={!selectedFile}
+                                        icon={FolderOpen}
+                                    >
+                                        Load
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1708,7 +1776,7 @@ export function StudioView() {
                 {/* Delete Manager Modal */}
                 {showDeleteManager && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                        <div className={`relative w-[600px] h-[70vh] flex flex-col rounded-xl border shadow-2xl p-6 ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-300'}`}>
+                        <div className={`relative w-[600px] h-[70vh] flex flex-col rounded-xl border shadow-2xl overflow-hidden ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-300'}`}>
                             {/* Confirmation Overlay */}
                             {showDeleteConfirmOverlay && selectedItemsToDelete.size > 0 && (
                                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] rounded-xl">
@@ -1753,7 +1821,7 @@ export function StudioView() {
                                     </div>
                                 </div>
                             )}
-                            <div className={`px-4 py-3 border-b flex flex-col gap-3 ${isDark ? 'bg-[#252526] border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className={`px-5 py-3 border-b flex flex-col gap-3 ${isDark ? 'bg-[#252526] border-gray-800' : 'bg-gray-50 border-gray-200'}`}>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <Trash2 className="text-red-500" size={18} />
@@ -1761,6 +1829,7 @@ export function StudioView() {
                                     </div>
                                     <button
                                         onClick={() => { setShowDeleteManager(false); setSelectedItemsToDelete(new Set()); setDeleteSearchTerm(""); }}
+                                        title="Close"
                                         className={`p-1 rounded ${isDark ? 'text-gray-400 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-100'}`}
                                     >
                                         <X size={18} />
@@ -1783,6 +1852,7 @@ export function StudioView() {
                                     {deleteSearchTerm && (
                                         <button
                                             onClick={() => setDeleteSearchTerm("")}
+                                            title="Clear search"
                                             className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300 hover:bg-white/10' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
                                         >
                                             <X size={12} />
@@ -1790,148 +1860,151 @@ export function StudioView() {
                                     )}
                                 </div>
                             </div>
+                            <div className="flex-1 min-h-0" style={{ padding: 16 }}>
 
-                            {/* Actions Toolbar */}
-                            <div className={`px-4 py-2 border-b flex items-center justify-between text-xs ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-200'}`}>
-                                <button
-                                    onClick={handleSelectAll}
-                                    className={`flex items-center gap-2 font-medium transition-colors ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
-                                >
-                                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all
+                                {/* Actions Toolbar */}
+                                <div className={`px-4 py-2 border-b flex items-center justify-between text-xs ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-200'}`}>
+                                    <button
+                                        onClick={handleSelectAll}
+                                        title="Select all recordings"
+                                        className={`flex items-center gap-2 font-medium transition-colors ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
+                                    >
+                                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all
                                         ${isDeleteSelectAllChecked
-                                            ? 'bg-blue-500 border-blue-500'
-                                            : (isDark ? 'border-gray-600' : 'border-gray-400')}`}
-                                    >
-                                        {isDeleteSelectAllChecked && <Check size={10} className="text-white" />}
-                                    </div>
-                                    Select All
-                                </button>
-                                <div className="flex items-center gap-3">
-                                    <span className={`font-medium ${selectedItemsToDelete.size > 0 ? 'text-blue-500' : (isDark ? 'text-gray-500' : 'text-gray-400')}`}>
-                                        {selectedFileCount} selected
-                                    </span>
-
-                                </div>
-                            </div>
-
-                            <div className={`flex-1 overflow-y-auto p-2 border rounded-lg m-2 ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
-                                {/* Root Files */}
-                                {groupedDeleteFiles.root && groupedDeleteFiles.root.map((file, idx) => (
-                                    <div
-                                        key={`del-root-${idx}`}
-                                        onClick={() => toggleDeleteSelection(file.path)}
-                                        className={`group relative flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border transition-all duration-200 mb-1
-                                            ${selectedItemsToDelete.has(file.path)
-                                                ? (isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200 shadow-sm')
-                                                : (isDark ? 'bg-transparent border-transparent hover:bg-white/5' : 'bg-transparent border-transparent hover:bg-white hover:shadow-sm')
-                                            }`}
-                                    >
-                                        <div className={`shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors 
-                                            ${selectedItemsToDelete.has(file.path)
                                                 ? 'bg-blue-500 border-blue-500'
-                                                : (isDark ? 'border-gray-600 group-hover:border-gray-400' : 'border-gray-400 group-hover:border-gray-500')}`}
+                                                : (isDark ? 'border-gray-600' : 'border-gray-400')}`}
                                         >
-                                            {selectedItemsToDelete.has(file.path) && <Check size={10} className="text-white" />}
+                                            {isDeleteSelectAllChecked && <Check size={10} className="text-white" />}
                                         </div>
-                                        <FileCode size={14} className={isDark ? 'text-blue-400' : 'text-blue-600'} />
-                                        <div className="flex-1 min-w-0 flex flex-col">
-                                            <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{file.name.replace('.py', '')}</span>
-                                            <span className={`text-[9px] opacity-40 font-mono truncate ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{file.path}</span>
-                                        </div>
+                                        Select All
+                                    </button>
+                                    <div className="flex items-center gap-3">
+                                        <span className={`font-medium ${selectedItemsToDelete.size > 0 ? 'text-blue-500' : (isDark ? 'text-gray-500' : 'text-gray-400')}`}>
+                                            {selectedFileCount} selected
+                                        </span>
+
                                     </div>
-                                ))}
+                                </div>
 
-                                {/* Folders */}
-                                {Object.keys(groupedDeleteFiles).filter(k => k !== 'root').sort().map(folder => {
-                                    const folderTests = groupedDeleteFiles[folder];
-                                    const isFolderSelected = selectedItemsToDelete.has(`recordings/${folder}`);
-                                    const isAllFilteredSelected = folderTests.length > 0 && folderTests.every(f => selectedItemsToDelete.has(f.path));
-
-                                    return (
-                                        <div key={folder} className="mb-1">
-                                            {/* Folder Header */}
-                                            <div
-                                                className={`flex items-center px-2 py-1.5 mb-1 cursor-pointer hover:bg-white/5 rounded group`}
-                                                onClick={() => toggleFolder(folder)}
+                                <div className={`flex-1 overflow-y-auto p-2 border rounded-lg mt-2 ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+                                    {/* Root Files */}
+                                    {groupedDeleteFiles.root && groupedDeleteFiles.root.map((file, idx) => (
+                                        <div
+                                            key={`del-root-${idx}`}
+                                            onClick={() => toggleDeleteSelection(file.path)}
+                                            className={`group relative flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border transition-all duration-200 mb-1
+                                            ${selectedItemsToDelete.has(file.path)
+                                                    ? (isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200 shadow-sm')
+                                                    : (isDark ? 'bg-transparent border-transparent hover:bg-white/5' : 'bg-transparent border-transparent hover:bg-white hover:shadow-sm')
+                                                }`}
+                                        >
+                                            <div className={`shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors 
+                                            ${selectedItemsToDelete.has(file.path)
+                                                    ? 'bg-blue-500 border-blue-500'
+                                                    : (isDark ? 'border-gray-600 group-hover:border-gray-400' : 'border-gray-400 group-hover:border-gray-500')}`}
                                             >
-                                                <button className={`p-0.5 rounded mr-1 transition-transform duration-200 ${expandedFolders[folder] ? 'rotate-90' : ''}`}>
-                                                    <ChevronRight size={14} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
-                                                </button>
-
-                                                {/* Folder Checkbox */}
-                                                <div
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleDeleteSelection(`recordings/${folder}`, folderTests);
-                                                    }}
-                                                    className={`mr-2 w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors 
-                                                        ${isAllFilteredSelected || isFolderSelected
-                                                            ? 'bg-blue-500 border-blue-500'
-                                                            : (isDark ? 'border-gray-600 hover:border-gray-400' : 'border-gray-400 hover:border-gray-500')}`}
-                                                >
-                                                    {(isAllFilteredSelected || isFolderSelected) && <Check size={10} className="text-white" />}
-                                                </div>
-
-                                                <div className={`flex items-center gap-2 text-xs font-bold tracking-wider ${isDark ? 'text-gray-400 group-hover:text-gray-300' : 'text-gray-500 group-hover:text-gray-700'}`}>
-                                                    {expandedFolders[folder] ? <FolderOpen size={14} className={isDark ? "text-yellow-500" : "text-yellow-600"} /> : <Folder size={14} className={isDark ? "text-yellow-500/70" : "text-yellow-600/70"} />}
-                                                    {folder}
-                                                </div>
+                                                {selectedItemsToDelete.has(file.path) && <Check size={10} className="text-white" />}
                                             </div>
-
-                                            {/* Folder Items */}
-                                            {expandedFolders[folder] && (
-                                                <div className="ml-6 space-y-1 border-l border-gray-700/50 pl-2">
-                                                    {folderTests.map(file => (
-                                                        <div
-                                                            key={`del-${file.path}`}
-                                                            onClick={() => toggleDeleteSelection(file.path)}
-                                                            className={`group relative flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border transition-all duration-200
-                                                                ${selectedItemsToDelete.has(file.path)
-                                                                    ? (isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200 shadow-sm')
-                                                                    : (isDark ? 'bg-transparent border-transparent hover:bg-white/5' : 'bg-transparent border-transparent hover:bg-white hover:shadow-sm')
-                                                                }`}
-                                                        >
-                                                            <div className={`shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors 
-                                                                ${selectedItemsToDelete.has(file.path)
-                                                                    ? 'bg-blue-500 border-blue-500'
-                                                                    : (isDark ? 'border-gray-600 group-hover:border-gray-400' : 'border-gray-400 group-hover:border-gray-500')}`}
-                                                            >
-                                                                {selectedItemsToDelete.has(file.path) && <Check size={10} className="text-white" />}
-                                                            </div>
-                                                            <FileCode size={13} className={isDark ? 'text-blue-400' : 'text-blue-600'} />
-                                                            <div className="flex-1 min-w-0 flex flex-col">
-                                                                <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{file.name.replace('.py', '')}</span>
-                                                                <span className={`text-[9px] opacity-40 font-mono truncate ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{file.path}</span>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
+                                            <FileCode size={14} className={isDark ? 'text-blue-400' : 'text-blue-600'} />
+                                            <div className="flex-1 min-w-0 flex flex-col">
+                                                <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{file.name.replace('.py', '')}</span>
+                                                <span className={`text-[9px] opacity-40 font-mono truncate ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{file.path}</span>
+                                            </div>
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                    ))}
 
-                            <div className={`flex gap-3 mt-4 pt-4 border-t ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
-                                <Button
-                                    variant="danger"
-                                    fullWidth
-                                    onClick={() => { setShowDeleteManager(false); setSelectedItemsToDelete(new Set()); setDeleteSearchTerm(""); }}
-                                    className="shadow-lg shadow-red-500/20"
-                                    icon={X}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    variant="danger"
-                                    fullWidth
-                                    onClick={() => { if (selectedItemsToDelete.size > 0) { setShowDeleteConfirmOverlay(true); } }}
-                                    disabled={selectedItemsToDelete.size === 0}
-                                    className={`px-6 ${selectedItemsToDelete.size > 0 ? 'shadow-lg shadow-red-500/20' : ''}`}
-                                    icon={Trash2}
-                                >
-                                    Delete {selectedFileCount > 0 ? `(${selectedFileCount})` : ''}
-                                </Button>
+                                    {/* Folders */}
+                                    {Object.keys(groupedDeleteFiles).filter(k => k !== 'root').sort().map(folder => {
+                                        const folderTests = groupedDeleteFiles[folder];
+                                        const isFolderSelected = selectedItemsToDelete.has(`recordings/${folder}`);
+                                        const isAllFilteredSelected = folderTests.length > 0 && folderTests.every(f => selectedItemsToDelete.has(f.path));
+
+                                        return (
+                                            <div key={folder} className="mb-1">
+                                                {/* Folder Header */}
+                                                <div
+                                                    className={`flex items-center px-2 py-1.5 mb-1 cursor-pointer hover:bg-white/5 rounded group`}
+                                                    onClick={() => toggleFolder(folder)}
+                                                >
+                                                    <button className={`p-0.5 rounded mr-1 transition-transform duration-200 ${expandedFolders[folder] ? 'rotate-90' : ''}`}>
+                                                        <ChevronRight size={14} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
+                                                    </button>
+
+                                                    {/* Folder Checkbox */}
+                                                    <div
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleDeleteSelection(`recordings/${folder}`, folderTests);
+                                                        }}
+                                                        className={`mr-2 w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors 
+                                                        ${isAllFilteredSelected || isFolderSelected
+                                                                ? 'bg-blue-500 border-blue-500'
+                                                                : (isDark ? 'border-gray-600 hover:border-gray-400' : 'border-gray-400 hover:border-gray-500')}`}
+                                                    >
+                                                        {(isAllFilteredSelected || isFolderSelected) && <Check size={10} className="text-white" />}
+                                                    </div>
+
+                                                    <div className={`flex items-center gap-2 text-xs font-bold tracking-wider ${isDark ? 'text-gray-400 group-hover:text-gray-300' : 'text-gray-500 group-hover:text-gray-700'}`}>
+                                                        {expandedFolders[folder] ? <FolderOpen size={14} className={isDark ? "text-yellow-500" : "text-yellow-600"} /> : <Folder size={14} className={isDark ? "text-yellow-500/70" : "text-yellow-600/70"} />}
+                                                        {folder}
+                                                    </div>
+                                                </div>
+
+                                                {/* Folder Items */}
+                                                {expandedFolders[folder] && (
+                                                    <div className="ml-6 space-y-1 border-l border-gray-700/50 pl-2">
+                                                        {folderTests.map(file => (
+                                                            <div
+                                                                key={`del-${file.path}`}
+                                                                onClick={() => toggleDeleteSelection(file.path)}
+                                                                className={`group relative flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer border transition-all duration-200
+                                                                ${selectedItemsToDelete.has(file.path)
+                                                                        ? (isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200 shadow-sm')
+                                                                        : (isDark ? 'bg-transparent border-transparent hover:bg-white/5' : 'bg-transparent border-transparent hover:bg-white hover:shadow-sm')
+                                                                    }`}
+                                                            >
+                                                                <div className={`shrink-0 w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors 
+                                                                ${selectedItemsToDelete.has(file.path)
+                                                                        ? 'bg-blue-500 border-blue-500'
+                                                                        : (isDark ? 'border-gray-600 group-hover:border-gray-400' : 'border-gray-400 group-hover:border-gray-500')}`}
+                                                                >
+                                                                    {selectedItemsToDelete.has(file.path) && <Check size={10} className="text-white" />}
+                                                                </div>
+                                                                <FileCode size={13} className={isDark ? 'text-blue-400' : 'text-blue-600'} />
+                                                                <div className="flex-1 min-w-0 flex flex-col">
+                                                                    <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{file.name.replace('.py', '')}</span>
+                                                                    <span className={`text-[9px] opacity-40 font-mono truncate ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>{file.path}</span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className={`flex gap-3 mt-4 pt-4 border-t ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+                                    <Button
+                                        variant="danger"
+                                        fullWidth
+                                        onClick={() => { setShowDeleteManager(false); setSelectedItemsToDelete(new Set()); setDeleteSearchTerm(""); }}
+                                        className="shadow-lg shadow-red-500/20"
+                                        icon={X}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        variant="danger"
+                                        fullWidth
+                                        onClick={() => { if (selectedItemsToDelete.size > 0) { setShowDeleteConfirmOverlay(true); } }}
+                                        disabled={selectedItemsToDelete.size === 0}
+                                        className={`px-6 ${selectedItemsToDelete.size > 0 ? 'shadow-lg shadow-red-500/20' : ''}`}
+                                        icon={Trash2}
+                                    >
+                                        Delete {selectedFileCount > 0 ? `(${selectedFileCount})` : ''}
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1943,8 +2016,8 @@ export function StudioView() {
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
                         <div className={`w-[800px] h-[80vh] flex flex-col rounded-xl border shadow-2xl overflow-hidden ${isDark ? 'bg-[#1e1e1e] border-gray-800' : 'bg-white border-gray-300'}`}>
                             {/* Header */}
-                            <div className={`flex items-center justify-between px-4 py-3 border-b ${isDark ? 'border-gray-800 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`}>
-                                <div className="flex items-center gap-2">
+                            <div className={`flex items-center justify-between px-5 py-4 border-b ${isDark ? 'border-gray-800 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`} style={{ minHeight: 50 }}>
+                                <div className="flex items-center gap-2" style={{ marginLeft: 25 }}>
                                     <FileCode size={16} className="text-blue-500" />
                                     <span className={`font-mono text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{previewFile}</span>
                                 </div>
@@ -1952,7 +2025,9 @@ export function StudioView() {
 
                                     <button
                                         onClick={() => setPreviewFile(null)}
+                                        title="Close"
                                         className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-200 text-gray-500'}`}
+                                        style={{ marginRight: 15 }}
                                     >
                                         <X size={18} />
                                     </button>
@@ -1971,11 +2046,10 @@ export function StudioView() {
                                         style={syntaxStyle}
                                         showLineNumbers={true}
                                         lineNumberStyle={{
-                                            minWidth: '3.5rem',
-                                            paddingRight: '1rem',
+                                            minWidth: '1rem',
+                                            paddingRight: '0.75rem',
                                             paddingLeft: '0.5rem', // Added
                                             borderRight: 'none',   // Added
-                                            background: 'transparent', // Added
                                             textAlign: 'right',
                                             color: isDark ? '#6e7681' : '#a0a0a0',
                                             userSelect: 'none',
@@ -1988,14 +2062,13 @@ export function StudioView() {
                                         customStyle={{
                                             margin: 0,
                                             paddingTop: '1.5rem', // Changed from padding
-                                            paddingLeft: '1.5rem', // Changed from padding
+                                            paddingLeft: '1.25rem', // Changed from padding
                                             paddingRight: '1.5rem', // Changed from padding
                                             paddingBottom: '10rem', // Changed from padding, new value
                                             fontSize: '0.875rem',
                                             lineHeight: '1.5',
                                             fontFamily: 'monospace',
                                             fontVariantLigatures: 'none',
-                                            background: 'transparent',
                                             border: 'none',
                                             outline: 'none',
                                             letterSpacing: 'normal',
@@ -2022,7 +2095,7 @@ export function StudioView() {
                                         fontSize: '0.875rem',
                                         lineHeight: '1.5',
                                         paddingTop: '1.5rem',
-                                        paddingLeft: '6rem', // LineNum(3.5) + LinePad(1) + ContPad(1.5)
+                                        paddingLeft: '5.5rem', // Slightly reduced to move content left
                                         paddingRight: '1.5rem',
                                         paddingBottom: '10rem', // Extra space at bottom
                                         caretColor: isDark ? '#60a5fa' : '#2563eb',
@@ -2042,13 +2115,16 @@ export function StudioView() {
                             </div>
 
                             {/* Footer */}
-                            <div className={`px-4 py-3 border-t flex justify-end gap-3 shrink-0 ${isDark ? 'border-gray-800 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`}>
+                            <div
+                                className={`px-5 border-t flex justify-end items-center gap-3 shrink-0 ${isDark ? 'border-gray-800 bg-[#252526]' : 'border-gray-300 bg-gray-50'}`}
+                                style={{ minHeight: 72, paddingTop: 10, paddingBottom: 10, paddingRight: 28 }}
+                            >
                                 <Button
                                     variant={previewSaveStatus === 'saved' ? 'success' : 'primary-glass'}
                                     onClick={handleSavePreview}
                                     disabled={previewSaveStatus === 'saving'}
                                     loading={previewSaveStatus === 'saving'}
-                                    className={`px-8 font-bold ${previewSaveStatus === 'saved' ? 'shadow-lg shadow-green-500/20' : 'shadow-lg shadow-blue-500/20'}`}
+                                    className={`px-8 my-1 font-bold ${previewSaveStatus === 'saved' ? 'shadow-lg shadow-green-500/20' : 'shadow-lg shadow-blue-500/20'}`}
                                     icon={previewSaveStatus === 'saved' ? CheckCircle : Save}
                                 >
                                     {previewSaveStatus === 'saved' ? 'Saved' : 'Save'}
@@ -2056,7 +2132,7 @@ export function StudioView() {
                                 <Button
                                     variant="danger"
                                     onClick={() => setPreviewFile(null)}
-                                    className="px-8 shadow-lg shadow-red-500/20 font-bold"
+                                    className="px-8 my-1 shadow-lg shadow-red-500/20 font-bold"
                                 >
                                     Close
                                 </Button>
@@ -2172,7 +2248,6 @@ export function StudioView() {
                                             lineNumberStyle={{
                                                 minWidth: '1.5rem',
                                                 paddingRight: '0.25rem',
-                                                background: 'transparent',
                                                 borderRight: 'none',
                                                 color: isDark ? '#6e7681' : '#aeb7c2',
                                                 textAlign: 'right',
@@ -2188,7 +2263,6 @@ export function StudioView() {
                                                 paddingLeft: '0.25rem',
                                                 paddingRight: '1.5rem',
                                                 paddingBottom: '10rem',
-                                                background: 'transparent',
                                                 fontSize: '0.875rem',
                                                 lineHeight: '1.5',
                                                 fontFamily: 'monospace',
@@ -2294,6 +2368,7 @@ export function StudioView() {
                                                 {recording ? (
                                                     <button
                                                         onClick={stopRecording}
+                                                        title="Stop recording"
                                                         className={`w-20 h-7 px-2.5 text-xs font-semibold rounded-lg backdrop-blur-md transition-all duration-200 ${isDark ? 'bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 hover:text-red-200 shadow-sm' : 'bg-red-500/10 hover:bg-red-500/15 border border-red-300/40 text-red-700 hover:text-red-800 shadow-sm'}`}
                                                     >
                                                         Stop
@@ -2303,6 +2378,7 @@ export function StudioView() {
                                                         {(recordingCompleted || currentFile) && !recording && (
                                                             <button
                                                                 onClick={() => setShowSnippetModal(true)}
+                                                                title="Extract partial snippet"
                                                                 className={`${isDark ? 'bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-300 shadow-sm' : 'bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 shadow-sm'}`}
                                                                 style={{
                                                                     height: 26,
@@ -2323,6 +2399,7 @@ export function StudioView() {
                                                         )}
                                                         <button
                                                             onClick={startRecording}
+                                                            title="Start recording"
                                                             className={`w-20 h-7 px-2.5 text-xs font-semibold rounded-lg backdrop-blur-md transition-all duration-200 flex items-center justify-center ${isDark ? 'bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-300 hover:text-green-200 shadow-sm' : 'bg-green-500/10 hover:bg-green-500/15 border border-green-300/40 text-green-700 hover:text-green-800 shadow-sm'}`}
                                                         >
                                                             Start
@@ -2370,7 +2447,7 @@ export function StudioView() {
                                                             : (isDark ? 'text-gray-500 hover:text-gray-400' : 'text-gray-500 hover:text-gray-600')
                                                             }`}
                                                             title="Abstract Syntax Tree - Traditional code parsing"
-                                                        style={{ minWidth: 56 }}
+                                                            style={{ minWidth: 56 }}
                                                         >
                                                             <Cpu size={12} />
                                                             <span>AST</span>
@@ -2384,7 +2461,7 @@ export function StudioView() {
                                                                 : (isDark ? 'text-gray-500 hover:text-gray-400' : 'text-gray-500 hover:text-gray-600')
                                                                 }`}
                                                             title="Azure OpenAI Powered - Smart code generation"
-                                                        style={{ minWidth: 56 }}
+                                                            style={{ minWidth: 56 }}
                                                         >
                                                             <Sparkles size={12} className={useAI ? 'animate-pulse' : ''} />
                                                             <span>AI</span>
@@ -2402,6 +2479,7 @@ export function StudioView() {
                                                     <button
                                                         onClick={generatePOM}
                                                         disabled={generating || recording}
+                                                        title={generating ? 'Generating POM...' : 'Generate POM'}
                                                         className={`w-20 h-7 px-2.5 text-xs font-semibold rounded-lg backdrop-blur-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${useAI ? (isDark ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-purple-500/40 text-purple-300 hover:text-purple-200 shadow-sm' : 'bg-gradient-to-r from-purple-500/15 to-pink-500/15 hover:from-purple-500/25 hover:to-pink-500/25 border border-purple-300/50 text-purple-700 hover:text-purple-800 shadow-sm') : (isDark ? 'bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 hover:text-purple-200 shadow-sm' : 'bg-purple-500/10 hover:bg-purple-500/15 border border-purple-300/40 text-purple-700 hover:text-purple-800 shadow-sm')}`}
                                                     >
                                                         {generating ? 'Running...' : 'Generate'}
@@ -2450,30 +2528,38 @@ export function StudioView() {
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0 }}>
-                                                    <button
-                                                        onClick={() => runTest()}
-                                                        disabled={runningTest || recording || healing}
-                                                        className={`w-20 h-7 px-2.5 text-xs font-semibold rounded-lg backdrop-blur-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-300 hover:text-blue-200 shadow-sm' : 'bg-blue-500/10 hover:bg-blue-500/15 border border-blue-300/40 text-blue-700 hover:text-blue-800 shadow-sm'}`}
-                                                    >
-                                                        {runningTest ? 'Run...' : 'Run'}
-                                                    </button>
                                                     {/* Heal Button - Shows when test failed, hides after healed */}
                                                     {testResult && testResult.status !== 'success' && !healResult?.fixes_applied && (
-                                                        <button
-                                                            onClick={healTest}
-                                                            disabled={healing || runningTest}
-                                                            title="AI Heal - Analyze failure and fix"
-                                                            className={`flex items-center gap-1 h-7 px-2 text-xs font-semibold rounded-lg backdrop-blur-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${healing
-                                                                ? (isDark ? 'bg-gradient-to-r from-violet-500/20 to-pink-500/20 border border-purple-500/40 text-purple-300' : 'bg-gradient-to-r from-violet-500/15 to-pink-500/15 border border-purple-300/50 text-purple-700')
-                                                                : healResult?.fixes_applied
-                                                                    ? (isDark ? 'bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-300 hover:text-green-200' : 'bg-green-500/10 hover:bg-green-500/15 border border-green-300/40 text-green-700 hover:text-green-800')
-                                                                    : (isDark ? 'bg-gradient-to-r from-violet-500/10 to-pink-500/10 hover:from-violet-500/20 hover:to-pink-500/20 border border-purple-500/30 text-purple-300 hover:text-purple-200 shadow-sm' : 'bg-gradient-to-r from-violet-500/10 to-pink-500/10 hover:from-violet-500/15 hover:to-pink-500/15 border border-purple-300/40 text-purple-700 hover:text-purple-800 shadow-sm')
-                                                                }`}
-                                                        >
-                                                            <Wand2 size={12} className={healing ? 'animate-pulse' : ''} />
-                                                            <span>{healing ? 'Healing...' : healResult?.fixes_applied ? 'Healed!' : 'Heal'}</span>
-                                                        </button>
+                                                        <Tooltip title="AI Heal - Analyze failure and fix" arrow placement="top">
+                                                            <span>
+                                                                <button
+                                                                    onClick={healTest}
+                                                                    disabled={healing || runningTest}
+                                                                    className={`flex items-center justify-center gap-1 h-7 px-2 text-xs font-semibold rounded-lg backdrop-blur-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap ${healing
+                                                                        ? (isDark ? 'bg-gradient-to-r from-violet-500/20 to-pink-500/20 border border-purple-500/40 text-purple-300' : 'bg-gradient-to-r from-violet-500/15 to-pink-500/15 border border-purple-300/50 text-purple-700')
+                                                                        : healResult?.fixes_applied
+                                                                            ? (isDark ? 'bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-300 hover:text-green-200' : 'bg-green-500/10 hover:bg-green-500/15 border border-green-300/40 text-green-700 hover:text-green-800')
+                                                                            : (isDark ? 'bg-gradient-to-r from-violet-500/10 to-pink-500/10 hover:from-violet-500/20 hover:to-pink-500/20 border border-purple-500/30 text-purple-300 hover:text-purple-200 shadow-sm' : 'bg-gradient-to-r from-violet-500/10 to-pink-500/10 hover:from-violet-500/15 hover:to-pink-500/15 border border-purple-300/40 text-purple-700 hover:text-purple-800 shadow-sm')
+                                                                        }`}
+                                                                    style={{ minWidth: 92, flexShrink: 0 }}
+                                                                >
+                                                                    <Wand2 size={12} className={healing ? 'animate-pulse' : ''} />
+                                                                    <span>{healing ? 'Healing...' : healResult?.fixes_applied ? 'Healed!' : 'Heal'}</span>
+                                                                </button>
+                                                            </span>
+                                                        </Tooltip>
                                                     )}
+                                                    <Tooltip title={runningTest ? 'Running tests...' : 'Run Tests'} arrow placement="top">
+                                                        <span>
+                                                            <button
+                                                                onClick={() => runTest()}
+                                                                disabled={runningTest || recording || healing}
+                                                                className={`w-20 h-7 px-2.5 text-xs font-semibold rounded-lg backdrop-blur-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-300 hover:text-blue-200 shadow-sm' : 'bg-blue-500/10 hover:bg-blue-500/15 border border-blue-300/40 text-blue-700 hover:text-blue-800 shadow-sm'}`}
+                                                            >
+                                                                {runningTest ? 'Run...' : 'Run'}
+                                                            </button>
+                                                        </span>
+                                                    </Tooltip>
                                                 </div>
                                             </div>
                                             <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${isDark ? '#374151' : '#d1d5db'}`, fontSize: 9 }} className={healResult?.fixes_applied ? (isDark ? 'text-green-400' : 'text-green-600') : testResult?.status === 'success' ? (isDark ? 'text-green-400' : 'text-green-600') : testResult || testError ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-gray-500' : 'text-gray-500')}>
@@ -2533,6 +2619,7 @@ export function StudioView() {
                                                 <button
                                                     onClick={() => setShowPublishModal(true)}
                                                     disabled={recording || generating}
+                                                    title="Publish to framework"
                                                     className={`w-20 h-7 px-2.5 text-xs font-semibold rounded-lg backdrop-blur-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-300 hover:text-orange-200 shadow-sm' : 'bg-orange-500/10 hover:bg-orange-500/15 border border-orange-300/40 text-orange-700 hover:text-orange-800 shadow-sm'}`}
                                                     style={{ flexShrink: 0 }}
                                                 >
@@ -2552,6 +2639,7 @@ export function StudioView() {
                                     <div className="flex items-center gap-6">
                                         <button
                                             onClick={() => setActiveTerminalTab('output')}
+                                            title="Generation output"
                                             className={`text-[10px] font-semibold uppercase tracking-wider flex items-center gap-2 transition-colors ${activeTerminalTab === 'output' ? (isDark ? 'text-blue-300' : 'text-blue-700') : 'text-gray-500 hover:text-gray-400'}`}
                                             style={{
                                                 padding: '6px 2px',
@@ -2564,6 +2652,7 @@ export function StudioView() {
                                         </button>
                                         <button
                                             onClick={() => setActiveTerminalTab('test')}
+                                            title="Test execution output"
                                             className={`text-[10px] font-semibold uppercase tracking-wider flex items-center gap-2 transition-colors ${activeTerminalTab === 'test' ? (isDark ? 'text-blue-300' : 'text-blue-700') : 'text-gray-500 hover:text-gray-400'}`}
                                             style={{
                                                 padding: '6px 2px',
@@ -2576,31 +2665,34 @@ export function StudioView() {
                                         </button>
                                     </div>
                                     {activeTerminalTab === 'test' && (testResult || runningTest || liveLogs) && (
-                                        <div className="flex items-center gap-1">
+                                        <div className="flex items-center gap-2">
                                             {testResult && (
-                                                <button
-                                                    onClick={() => window.open('/api/tests/report/download', '_blank')}
-                                                    title="Download Report"
-                                                    className={`p-1 rounded transition-colors ${isDark ? 'text-purple-400 hover:text-purple-300 hover:bg-white/5' : 'text-purple-600 hover:text-purple-700 hover:bg-black/5'}`}
-                                                >
-                                                    <Download size={14} />
-                                                </button>
+                                                <Tooltip title="Download Report" arrow placement="top">
+                                                    <button
+                                                        onClick={handleDownloadReport}
+                                                        className={`p-1 rounded transition-colors ${isDark ? 'text-purple-400 hover:text-purple-300 hover:bg-white/5' : 'text-purple-600 hover:text-purple-700 hover:bg-black/5'}`}
+                                                    >
+                                                        <Download size={14} />
+                                                    </button>
+                                                </Tooltip>
                                             )}
-                                            <button
-                                                onClick={() => setShowLogsModal(true)}
-                                                title="Expand"
-                                                className={`p-1 rounded transition-colors ${isDark ? 'text-blue-400 hover:text-blue-300 hover:bg-white/5' : 'text-blue-600 hover:text-blue-700 hover:bg-black/5'}`}
-                                            >
-                                                <Search size={14} />
-                                            </button>
-                                            {testResult && (
+                                            <Tooltip title="Expand Logs" arrow placement="top">
                                                 <button
-                                                    onClick={handleCopy}
-                                                    title={copied ? "Copied" : "Copy Log"}
-                                                    className={`p-1 rounded transition-colors ${copied ? 'text-green-500' : (isDark ? 'text-blue-400 hover:text-blue-300 hover:bg-white/5' : 'text-blue-600 hover:text-blue-700 hover:bg-black/5')}`}
+                                                    onClick={() => setShowLogsModal(true)}
+                                                    className={`p-1 rounded transition-colors ${isDark ? 'text-blue-400 hover:text-blue-300 hover:bg-white/5' : 'text-blue-600 hover:text-blue-700 hover:bg-black/5'}`}
                                                 >
-                                                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                                                    <Search size={14} />
                                                 </button>
+                                            </Tooltip>
+                                            {testResult && (
+                                                <Tooltip title={copied ? "Copied" : "Copy Log"} arrow placement="top">
+                                                    <button
+                                                        onClick={handleCopy}
+                                                        className={`p-1 rounded transition-colors ${copied ? 'text-green-500' : (isDark ? 'text-blue-400 hover:text-blue-300 hover:bg-white/5' : 'text-blue-600 hover:text-blue-700 hover:bg-black/5')}`}
+                                                    >
+                                                        {copied ? <Check size={14} /> : <Copy size={14} />}
+                                                    </button>
+                                                </Tooltip>
                                             )}
                                         </div>
                                     )}
@@ -2751,6 +2843,7 @@ export function StudioView() {
                             }
                             setShowChat(!showChat);
                         }}
+                        title={showChat ? 'Close assistant' : 'Open assistant'}
                         className={`group relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 bg-gradient-to-br from-[#673ab7] via-[#2196f3] to-[#673ab7] text-white shadow-[0_0_20px_rgba(103,58,183,0.4),0_0_40px_rgba(33,150,243,0.3)]`}
                     >
                         {!showChat && (

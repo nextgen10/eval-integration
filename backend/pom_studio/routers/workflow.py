@@ -1,16 +1,17 @@
 from fastapi import APIRouter, HTTPException
 import os
-from pom_studio.models import PublishRequest
+from studio.backend.models import PublishRequest
 from pydantic import BaseModel
 import ast
 import re
 import json
-from pom_studio.paths import ensure_pom_workspace
 
 router = APIRouter(prefix="/api", tags=["workflow"])
 
 def get_root_dir():
-    return ensure_pom_workspace()
+    current = os.path.dirname(os.path.abspath(__file__))
+    return os.path.dirname(os.path.dirname(os.path.dirname(current)))
+
 @router.get("/shared-flows")
 def list_shared_flows():
     """Extract and list all methods in SharedFlows for the Studio Gallery."""

@@ -14,6 +14,27 @@ const POM_BASE =
 
 type Params = { slug: string[] };
 
+async function fetchWithRetry(
+  input: string,
+  init: RequestInit,
+  attempts = 2,
+): Promise<Response> {
+  let lastError: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fetch(input, init);
+    } catch (err) {
+      lastError = err;
+      if (i < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('Failed to reach Playwright POM backend');
+}
+
 async function proxyRequest(
   request: NextRequest,
   context: { params: Promise<Params> },
@@ -45,7 +66,7 @@ async function proxyRequest(
       }
     });
 
-    const upstreamResponse = await fetch(upstreamUrl, {
+    const upstreamResponse = await fetchWithRetry(upstreamUrl, {
       method: request.method,
       headers: forwardHeaders,
       body: bodyInit,

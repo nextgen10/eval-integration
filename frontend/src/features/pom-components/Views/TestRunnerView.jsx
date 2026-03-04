@@ -257,89 +257,143 @@ export function TestRunnerView() {
 
             {/* Publish Modal */}
             {showPublishModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className={`w-[420px] rounded-xl border shadow-2xl p-6 ${isDark ? 'bg-[#1e1e1e] border-white/10' : 'bg-white border-gray-200'}`}>
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Publish to Framework</h3>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-0">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity" onClick={() => { setShowPublishModal(false); setTestName(''); setFolderName(''); }} />
+                    <div className={`relative w-[600px] max-h-[90vh] rounded-2xl border shadow-2xl overflow-hidden flex flex-col transform transition-all ${isDark ? 'bg-[#121212]/95 border-gray-800/60 shadow-black/80' : 'bg-white/95 border-gray-200 shadow-xl'} backdrop-blur-xl ring-1 ring-black/5`}>
+                        {/* Premium Header */}
+                        <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? 'border-white/5 bg-gradient-to-r from-white/[0.02] to-transparent' : 'border-gray-100 bg-gradient-to-r from-gray-50 to-white'}`}>
+                            <div className="flex items-center gap-4">
+                                <div className={`p-2.5 rounded-xl bg-gradient-to-br ${isDark ? 'from-purple-500/20 to-blue-500/20 ring-purple-500/30' : 'from-purple-100 to-blue-100 ring-purple-200'} ring-1 shadow-inner`}>
+                                    <Upload className="text-purple-500" size={22} />
+                                </div>
+                                <div>
+                                    <h3 className={`text-[17px] font-semibold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Publish to Framework</h3>
+                                    <p className={`text-[13px] font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'} mt-0.5`}>Add your generated code to the central repository</p>
+                                </div>
+                            </div>
                             <button
                                 onClick={() => { setShowPublishModal(false); setTestName(''); setFolderName(''); }}
-                                className={`p-1 rounded transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                                className={`p-2 rounded-xl transition-all ${isDark ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'}`}
                             >
-                                <X size={18} />
+                                <X size={20} />
                             </button>
                         </div>
+                        <div className="flex-1 overflow-y-auto px-6 py-5 scrollbar-thin scrollbar-thumb-gray-700">
 
-                        {!publishSuccess ? (
-                            <>
-                                {/* Folder Name Input (Optional) */}
-                                <div className="mb-3">
-                                    <label className={`block text-xs mb-2 ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>
-                                        Folder Name <span className="text-gray-600">(optional)</span>
-                                    </label>
-                                    <div className="relative">
-                                        <FolderInput size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-yellow-500" />
-                                        <input
-                                            type="text"
-                                            value={folderName}
-                                            onChange={(e) => setFolderName(e.target.value)}
-                                            placeholder="e.g., authentication"
-                                            className={`w-full pl-9 pr-3 py-2 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-[#121212] border-white/10 text-white placeholder-gray-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 shadow-sm'}`}
-                                        />
+                            {!publishSuccess ? (
+                                <div className="space-y-6">
+                                    {/* Name Configuration Group */}
+                                    <div className={`p-5 rounded-xl border ${isDark ? 'bg-white/[0.02] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {/* Folder Name Input (Optional) */}
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className={`text-[12px] font-semibold tracking-wide uppercase ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                    Folder Name <span className="text-gray-500 font-normal capitalize">(optional)</span>
+                                                </label>
+                                                <div className="relative group">
+                                                    <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors ${isDark ? 'text-gray-500 group-focus-within:text-yellow-500' : 'text-gray-400 group-focus-within:text-yellow-600'}`}>
+                                                        <FolderInput size={15} />
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        value={folderName}
+                                                        onChange={(e) => setFolderName(e.target.value)}
+                                                        placeholder="e.g., auth"
+                                                        className={`w-full pl-9 pr-3 py-2.5 rounded-lg border text-[13px] font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${isDark ? 'bg-black/40 border-gray-700 text-white placeholder-gray-600 hover:border-gray-600' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 hover:border-gray-400 shadow-sm'}`}
+                                                        onKeyDown={(e) => e.key === 'Enter' && testName.trim() && publishTest()}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Scenario Name Input */}
+                                            <div className="flex flex-col gap-1.5">
+                                                <label className={`text-[12px] font-semibold tracking-wide uppercase ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                    Scenario Name <span className="text-red-500">*</span>
+                                                </label>
+                                                <div className="relative group">
+                                                    <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors ${isDark ? 'text-gray-500 group-focus-within:text-blue-400' : 'text-gray-400 group-focus-within:text-blue-500'}`}>
+                                                        <FileCode size={15} />
+                                                    </div>
+                                                    <input
+                                                        autoFocus
+                                                        type="text"
+                                                        value={testName}
+                                                        onChange={(e) => setTestName(e.target.value)}
+                                                        placeholder="e.g., login_flow"
+                                                        className={`w-full pl-9 pr-3 py-2.5 rounded-lg border text-[13px] font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 ${isDark ? 'bg-black/40 border-gray-700 text-white placeholder-gray-600 hover:border-gray-600' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 hover:border-gray-400 shadow-sm'}`}
+                                                        onKeyDown={(e) => e.key === 'Enter' && testName.trim() && publishTest()}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Preview Path */}
+                                        <div className={`mt-4 pt-4 border-t ${isDark ? 'border-white/5' : 'border-gray-200'}`}>
+                                            <p className={`text-[11px] font-mono tracking-tight flex flex-wrap gap-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                <span className={isDark ? "text-gray-500" : "text-gray-400"}>Output Path:</span>
+                                                <span>pages/</span>
+                                                {folderName ? (
+                                                    <>
+                                                        <span className={isDark ? "text-yellow-400" : "text-yellow-600"}>{folderName.toLowerCase().replace(/[^\w-]/g, '_')}</span>
+                                                        <span>/</span>
+                                                    </>
+                                                ) : null}
+                                                <span className={testName ? (isDark ? "text-blue-400" : "text-blue-600") : (isDark ? "text-gray-600" : "text-gray-400")}>{testName ? testName.replace(/[^\w-]/g, '_') : '<name>'}_page.py</span>
+                                                <span className="mx-1 text-gray-500">|</span>
+                                                <span className={testName ? (isDark ? "text-blue-400" : "text-blue-600") : (isDark ? "text-gray-600" : "text-gray-400")}>{testName ? testName.replace(/[^\w-]/g, '_') : '<name>'}_test.py</span>
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p className="text-[11px] mt-1 text-gray-600">
-                                        {folderName
-                                            ? <>Saves to: <span className="text-gray-400">pages/{folderName.toLowerCase().replace(/[^\w-]/g, '_')}/{testName || 'name'}_page.py</span></>
-                                            : 'Leave empty to publish to root pages folder'
-                                        }
-                                    </p>
                                 </div>
-
-                                {/* Scenario Name Input */}
-                                <div className="mb-4">
-                                    <label className={`block text-xs mb-2 ${isDark ? 'text-gray-400' : 'text-gray-700'}`}>
-                                        Scenario Name <span className="text-red-400">*</span>
-                                    </label>
-                                    <div className="relative">
-                                        <FileCode size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400" />
-                                        <input
-                                            autoFocus
-                                            type="text"
-                                            value={testName}
-                                            onChange={(e) => setTestName(e.target.value)}
-                                            placeholder="e.g., login_flow"
-                                            className={`w-full pl-9 pr-3 py-2 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-[#121212] border-white/10 text-white placeholder-gray-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 shadow-sm'}`}
-                                            onKeyDown={(e) => e.key === 'Enter' && testName.trim() && publishTest()}
-                                        />
+                            ) : (
+                                <div className="text-center py-10 space-y-5">
+                                    <div className="relative inline-block">
+                                        <div className={`absolute inset-0 rounded-full blur-xl opacity-50 ${isDark ? 'bg-green-500' : 'bg-green-400'}`}></div>
+                                        <div className={`relative inline-flex p-4 rounded-full ${isDark ? 'bg-[#121212] border border-green-500/30' : 'bg-white border border-green-200 shadow-lg'} text-green-500`}>
+                                            <CheckCircle size={48} className="animate-[pulse_2s_ease-in-out_infinite]" />
+                                        </div>
                                     </div>
-                                    <p className="text-[11px] mt-1 text-gray-600">
-                                        Files renamed to: <span className="text-gray-400">{testName || 'name'}_page.py</span>, <span className="text-gray-400">{testName || 'name'}_locators.py</span>, etc.
-                                    </p>
+                                    <div>
+                                        <h4 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Publish Successful!</h4>
+                                        <p className={`font-medium text-sm ${isDark ? "text-green-400/80" : "text-green-600/80"}`}>{publishSuccess}</p>
+                                    </div>
                                 </div>
+                            )}
+                        </div>
 
-                                <div className="flex gap-3">
+                        {/* Modal Footer Actions */}
+                        <div className={`px-6 py-4 flex items-center justify-end gap-3 border-t ${isDark ? 'border-white/5 bg-gradient-to-r from-transparent to-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
+                            {!publishSuccess ? (
+                                <>
                                     <button
                                         onClick={() => { setShowPublishModal(false); setTestName(''); setFolderName(''); }}
-                                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isDark ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+                                        className={`px-5 py-2.5 rounded-lg font-medium text-[13px] transition-all ${isDark ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`}
                                     >
                                         Cancel
                                     </button>
-                                    <button
+                                    <Button
+                                        variant="primary"
                                         onClick={publishTest}
                                         disabled={!testName.trim() || publishing}
-                                        className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
+                                        className={`px-6 py-2.5 rounded-xl font-semibold text-[13px] shadow-lg shadow-blue-500/25 transition-all ${(!testName.trim() || publishing) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-blue-500/40 hover:-translate-y-0.5'}`}
+                                        loading={publishing}
+                                        icon={Upload}
                                     >
-                                        {publishing ? 'Publishing...' : 'Publish'}
-                                    </button>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="text-center py-6 space-y-4">
-                                <div className={`inline-flex p-3 rounded-full ${isDark ? 'bg-green-500/10 text-green-400' : 'bg-green-100 text-green-600'}`}>
-                                    <CheckCircle size={32} />
-                                </div>
-                                <p className={isDark ? "text-green-400 font-medium" : "text-green-600 font-medium"}>{publishSuccess}</p>
-                            </div>
-                        )}
+                                        {publishing ? 'Publishing...' : 'Publish Framework'}
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button
+                                    variant="primary"
+                                    fullWidth
+                                    onClick={() => { setShowPublishModal(false); setPublishSuccess(null); setTestName(''); setFolderName(''); }}
+                                    className="px-6 py-3 rounded-xl font-semibold shadow-lg shadow-green-500/25 transition-all w-full !bg-green-500 hover:!bg-green-600 hover:shadow-green-500/40"
+                                    icon={Check}
+                                >
+                                    Done
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

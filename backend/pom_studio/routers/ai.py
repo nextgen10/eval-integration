@@ -4,18 +4,24 @@ Analyzes test failures and suggests/applies fixes.
 """
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 import os
 import json
-from pom_studio.paths import ensure_pom_workspace
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
+
+
+def get_root_dir():
+    current = os.path.dirname(os.path.abspath(__file__))
+    return os.path.dirname(os.path.dirname(os.path.dirname(current)))
+
 
 class HealRequest(BaseModel):
     error_message: str
     error_traceback: str
-    locators_file: str
-    page_file: str
+    test_file: str = "generated_pom/tests/test_generated.py"
+    page_file: str = "generated_pom/pages/generated_page.py"
+    locators_file: str = "generated_pom/locators/generated_locators.py"
 
 
 class HealResponse(BaseModel):
@@ -24,17 +30,15 @@ class HealResponse(BaseModel):
     fixes_applied: bool
     fixed_locators: Optional[str] = None
     fixed_page: Optional[str] = None
-    suggestions: List[str] = []
+    suggestions: list = []
 
 
-def get_root_dir():
-    return ensure_pom_workspace()
 @router.post("/heal", response_model=HealResponse)
 def heal_test_failure(request: HealRequest):
     """
     Analyze a test failure and use AI to fix the issues.
     """
-    from pom_studio.services.ai_service import get_ai_service
+    from studio.backend.services.ai_service import get_ai_service
     
     root_dir = get_root_dir()
     
@@ -128,7 +132,7 @@ def heal_test_failure(request: HealRequest):
 def ai_status():
     """Check if AI service is configured and working."""
     try:
-        from pom_studio.services.ai_service import get_ai_service
+        from studio.backend.services.ai_service import get_ai_service
         ai_service = get_ai_service()
         return {
             "status": "ok",
@@ -146,7 +150,7 @@ def get_ai_prompts(request: dict):
     """
     Get the prompts that will be sent to the AI.
     """
-    from pom_studio.services.ai_service import get_ai_service
+    from studio.backend.services.ai_service import get_ai_service
     ai_service = get_ai_service()
     
     raw_script = request.get("raw_script", "")
@@ -167,7 +171,7 @@ def chat_with_ai(request: ChatRequest):
     Chat with the AI Assistant.
     """
     try:
-        from pom_studio.services.ai_service import get_ai_service
+        from studio.backend.services.ai_service import get_ai_service
         ai_service = get_ai_service()
         response = ai_service.chat(request.messages, request.context)
         return {"response": response}

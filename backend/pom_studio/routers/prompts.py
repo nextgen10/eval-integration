@@ -2,14 +2,15 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import os
 import shutil
-from pom_studio.paths import ensure_pom_workspace
 
 router = APIRouter(prefix="/api/prompts", tags=["prompts"])
 
 def get_root_dir():
-    return ensure_pom_workspace()
+    current = os.path.dirname(os.path.abspath(__file__))
+    return os.path.dirname(os.path.dirname(os.path.dirname(current)))
+
 def get_prompts_dir():
-    return os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompts")
+    return os.path.join(get_root_dir(), "studio", "backend", "prompts")
 
 class PromptUpdate(BaseModel):
     content: str

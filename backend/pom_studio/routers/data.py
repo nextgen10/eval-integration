@@ -3,12 +3,13 @@ import json
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict, List
-from pom_studio.paths import ensure_pom_workspace
 
 router = APIRouter(prefix="/api/data", tags=["data"])
 
 def get_root_dir():
-    return ensure_pom_workspace()
+    current = os.path.dirname(os.path.abspath(__file__))
+    return os.path.dirname(os.path.dirname(os.path.dirname(current)))
+
 @router.get("/shared")
 def get_shared_data():
     root_dir = get_root_dir()

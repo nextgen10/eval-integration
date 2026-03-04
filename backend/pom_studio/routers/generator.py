@@ -4,19 +4,21 @@ import sys
 import subprocess
 import json
 import re
-from pom_studio.models import GenerateRequest
-from pom_studio.paths import ensure_pom_workspace
+from studio.backend.models import GenerateRequest
 
 router = APIRouter(prefix="/api/generate", tags=["generator"])
 
 def get_root_dir():
-    return ensure_pom_workspace()
+    current = os.path.dirname(os.path.abspath(__file__))
+    return os.path.dirname(os.path.dirname(os.path.dirname(current)))
+
+
 def generate_pom_with_ai(input_path: str, output_dir: str) -> dict:
     """
     Use Azure OpenAI to generate a clean POM structure from raw Playwright script.
     Returns a dictionary with generation results.
     """
-    from pom_studio.services.ai_service import get_ai_service
+    from studio.backend.services.ai_service import get_ai_service
     
     # Read the raw script
     with open(input_path, 'r') as f:
@@ -272,7 +274,7 @@ def generate_pom(request: GenerateRequest):
                 
                 if error:
                     print(f"🔄 AST Failed. Sending to AI for Review & Healing...")
-                    from pom_studio.services.ai_service import get_ai_service
+                    from studio.backend.services.ai_service import get_ai_service
                     ai = get_ai_service()
                     
                     # Read inputs for AI review

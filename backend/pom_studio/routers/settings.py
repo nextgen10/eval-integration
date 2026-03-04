@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import os
 import re
-from pom_studio.paths import ensure_pom_workspace
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -157,7 +156,7 @@ def update_settings(settings: SettingsUpdate):
 
         # Cleanup deleted markers from test files
         if deleted_markers:
-            root_dir = ensure_pom_workspace()
+            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
             tests_dir = os.path.join(root_dir, "tests")
             
             # Additional check: also check generated_pom/tests

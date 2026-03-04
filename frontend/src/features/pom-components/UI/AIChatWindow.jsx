@@ -69,7 +69,7 @@ export const AIChatWindow = ({
                     </div>
                     <div>
                         <h3 className={`font-semibold text-sm leading-tight mb-0 ${isDark ? 'text-zinc-100' : 'text-zinc-900'}`}>
-                            Playwright Codeing Assistant
+                            Playwright Coding Assistant
                         </h3>
                         <div className="flex items-center gap-1.5 min-w-0">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
